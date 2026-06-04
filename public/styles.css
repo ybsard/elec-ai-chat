@@ -440,6 +440,21 @@ textarea:disabled {
   font-size: 13px;
 }
 
+.signature {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  z-index: 20;
+  padding: 8px 10px;
+  border: 1px solid rgba(216, 224, 230, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(16, 24, 32, 0.1);
+}
+
 @media (max-width: 920px) {
   .app {
     grid-template-columns: 1fr;
@@ -490,5 +505,10 @@ textarea:disabled {
 
   .message-stack {
     max-width: 86%;
+  }
+
+  .signature {
+    right: 10px;
+    bottom: 8px;
   }
 }
