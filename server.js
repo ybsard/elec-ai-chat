@@ -1,0 +1,121 @@
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const publicDir = join(__dirname, "public");
+const port = Number(process.env.PORT || 3000);
+
+const mimeTypes = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml"
+};
+
+function sendJson(res, status, body) {
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(body));
+}
+
+function extractResponseText(data) {
+  if (typeof data.output_text === "string" && data.output_text.trim()) {
+    return data.output_text.trim();
+  }
+
+  const parts = [];
+  for (const item of data.output || []) {
+    for (const content of item.content || []) {
+      if (content.type === "output_text" && content.text) {
+        parts.push(content.text);
+      }
+      if (content.type === "text" && content.text) {
+        parts.push(content.text);
+      }
+    }
+  }
+
+  return parts.join("\n").trim();
+}
+
+async function readRequestJson(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+async function handleChat(req, res) {
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(res, 500, {
+      error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
+    });
+    return;
+  }
+
+  try {
+    const { messages = [] } = await readRequestJson(req);
+    const input = messages.map((message) => ({
+      role: message.role === "assistant" ? "assistant" : "user",
+      content: String(message.content || "")
+    }));
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        instructions: "Tu es l'assistant IA du site ELEC.AI. Réponds en français, de façon claire, utile et concise.",
+        input
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      sendJson(res, response.status, { error: data.error?.message || "Erreur API OpenAI." });
+      return;
+    }
+
+    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu générer de réponse." });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
+async function serveStatic(req, res) {
+  const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
+  const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
+  const filePath = join(publicDir, safePath);
+
+  try {
+    const file = await readFile(filePath);
+    res.writeHead(200, { "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream" });
+    res.end(file);
+  } catch {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Page introuvable");
+  }
+}
+
+createServer(async (req, res) => {
+  if (req.method === "POST" && req.url === "/api/chat") {
+    await handleChat(req, res);
+    return;
+  }
+
+  if (req.method === "GET") {
+    await serveStatic(req, res);
+    return;
+  }
+
+  res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("Méthode non autorisée");
+}).listen(port, () => {
+  console.log(`ELEC.AI chat site: http://localhost:${port}`);
+});

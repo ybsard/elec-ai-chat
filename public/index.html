@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ELEC.AI - Chat IA</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="brand-panel" aria-label="Présentation ELEC.AI">
+        <div class="brand-mark">E</div>
+        <p class="eyebrow">ELEC.AI</p>
+        <h1>Un assistant IA pour avancer plus vite.</h1>
+        <p class="intro">
+          Pose une question, prépare un texte, clarifie une idée ou demande un plan d'action.
+          Le chat répond en français et garde le fil de la conversation.
+        </p>
+        <div class="status-card">
+          <span class="status-dot"></span>
+          <span>Chat connecté au serveur local</span>
+        </div>
+      </section>
+
+      <section class="chat-shell" aria-label="Chat IA">
+        <header class="chat-header">
+          <div>
+            <p class="chat-kicker">Assistant</p>
+            <h2>Chat IA</h2>
+          </div>
+          <button id="clearChat" class="icon-button" type="button" title="Effacer la conversation" aria-label="Effacer la conversation">
+            <span aria-hidden="true">↻</span>
+          </button>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite">
+          <article class="message assistant">
+            <div class="bubble">
+              Bonjour, je suis l'assistant ELEC.AI. Qu'est-ce qu'on construit aujourd'hui ?
+            </div>
+          </article>
+        </div>
+
+        <form id="chatForm" class="composer">
+          <textarea id="prompt" name="prompt" rows="1" placeholder="Écris ton message..." autocomplete="off"></textarea>
+          <button type="submit">Envoyer</button>
+        </form>
+        <p id="hint" class="hint">Configure `OPENAI_API_KEY` pour activer les vraies réponses IA.</p>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
