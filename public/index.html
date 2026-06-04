@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ELEC.AI - Assistant IA</title>
+    <title>ELEC.AI - Assistant electricite</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -14,44 +14,44 @@
             <div class="brand-mark">E</div>
             <span>ELEC.AI</span>
           </div>
-          <span class="pill">Chat IA</span>
+          <span class="pill">Diagnostic IA</span>
         </nav>
 
         <div class="hero-copy">
-          <p class="eyebrow">Assistant intelligent</p>
-          <h1>Ton copilote IA pour clarifier, ecrire et decider.</h1>
+          <p class="eyebrow">Electricite simple et claire</p>
+          <h1>Ton nouvel assistant en electricite.</h1>
           <p class="intro">
-            Pose une question, demande un plan, prepare un texte ou transforme une idee brute
-            en reponse claire. L'assistant garde le fil de la conversation.
+            Un probleme ? Une question ? Une solution. ELEC.AI t'aide a comprendre
+            une panne, preparer une intervention et trouver les bonnes pistes avant d'agir.
           </p>
         </div>
 
         <div class="feature-grid" aria-label="Capacites">
           <div>
-            <strong>Redaction</strong>
-            <span>Emails, scripts, messages et contenus.</span>
+            <strong>Pannes</strong>
+            <span>Disjoncteur, prise, lumiere ou appareil qui ne fonctionne plus.</span>
           </div>
           <div>
-            <strong>Idees</strong>
-            <span>Plans, angles, noms et concepts.</span>
+            <strong>Conseils</strong>
+            <span>Explications simples pour mieux comprendre le probleme.</span>
           </div>
           <div>
-            <strong>Decision</strong>
-            <span>Comparaisons, priorites et prochaines etapes.</span>
+            <strong>Securite</strong>
+            <span>Rappels utiles avant toute manipulation electrique.</span>
           </div>
         </div>
 
         <div class="status-card">
           <span class="status-dot"></span>
-          <span>Serveur local actif. La cle API reste cote serveur.</span>
+          <span>Assistant disponible. Pour les risques reels, coupe le courant et appelle un pro.</span>
         </div>
       </section>
 
       <section class="chat-shell" aria-label="Chat IA">
         <header class="chat-header">
           <div>
-            <p class="chat-kicker">Conversation</p>
-            <h2>Assistant ELEC.AI</h2>
+            <p class="chat-kicker">Une question electrique ?</p>
+            <h2>Un probleme, une solution</h2>
           </div>
           <button id="clearChat" class="icon-button" type="button" title="Effacer la conversation" aria-label="Effacer la conversation">
             Reset
@@ -59,9 +59,9 @@
         </header>
 
         <div class="suggestions" aria-label="Suggestions">
-          <button type="button" data-prompt="Donne-moi 5 idees pour ameliorer mon site ELEC.AI.">Ameliorer mon site</button>
-          <button type="button" data-prompt="Ecris une presentation courte et professionnelle pour ELEC.AI.">Presentation pro</button>
-          <button type="button" data-prompt="Aide-moi a trouver un plan d'action simple pour lancer ce projet.">Plan d'action</button>
+          <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
+          <button type="button" data-prompt="Une prise ne fonctionne plus, que verifier sans prendre de risque ?">Prise en panne</button>
+          <button type="button" data-prompt="Explique-moi la difference entre interrupteur differentiel et disjoncteur.">Comprendre le tableau</button>
         </div>
 
         <div id="messages" class="messages" aria-live="polite">
@@ -70,7 +70,7 @@
             <div class="message-stack">
               <span class="message-label">ELEC.AI</span>
               <div class="bubble">
-                Bonjour, je suis ton assistant IA. Choisis une suggestion ou ecris ton message.
+                Bonjour, je suis ton assistant en electricite. Decris ton probleme et je t'aide a y voir clair.
               </div>
             </div>
           </article>
@@ -78,12 +78,12 @@
 
         <form id="chatForm" class="composer">
           <div class="input-wrap">
-            <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Ecris ton message..." autocomplete="off"></textarea>
+            <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Decris ton probleme electrique..." autocomplete="off"></textarea>
             <span id="counter" class="counter">0 / 1200</span>
           </div>
           <button id="sendButton" type="submit">Envoyer</button>
         </form>
-        <p id="hint" class="hint">Astuce: entree pour envoyer, maj + entree pour aller a la ligne.</p>
+        <p id="hint" class="hint">Astuce: explique ce que tu observes, depuis quand, et ce qui a deja ete teste.</p>
       </section>
     </main>
 

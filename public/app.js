@@ -100,7 +100,7 @@ async function askAssistant(content) {
   const pending = addMessage("assistant", "", { loading: true });
   sendButton.disabled = true;
   promptInput.disabled = true;
-  hint.textContent = "ELEC.AI prepare une reponse...";
+    hint.textContent = "ELEC.AI analyse les pistes possibles...";
 
   try {
     const response = await fetch("/api/chat", {
@@ -117,7 +117,7 @@ async function askAssistant(content) {
     const reply = (data.reply || "").trim() || "Je n'ai pas pu generer de reponse.";
     setAssistantMessage(pending, reply);
     messages.push({ role: "assistant", content: reply });
-    hint.textContent = "Reponse generee. Tu peux continuer la conversation.";
+    hint.textContent = "Reponse generee. Precise le contexte si tu veux une piste plus exacte.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas repondre pour l'instant: ${error.message}`);
     hint.textContent = "Verifie OPENAI_API_KEY, le quota OpenAI et les logs Render si le site est en ligne.";
@@ -150,8 +150,8 @@ form.addEventListener("submit", async (event) => {
 clearButton.addEventListener("click", () => {
   messages.length = 0;
   messagesEl.innerHTML = "";
-  addMessage("assistant", "Conversation effacee. Quelle est ta prochaine question ?");
-  hint.textContent = "Nouvelle conversation demarree.";
+  addMessage("assistant", "Conversation effacee. Decris ton prochain probleme electrique.");
+  hint.textContent = "Nouvelle recherche demarree.";
   promptInput.focus();
 });
 
