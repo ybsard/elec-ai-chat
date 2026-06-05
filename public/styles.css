@@ -184,11 +184,16 @@ h2 {
   line-height: 1.45;
 }
 
-.diagnostic-card {
+.diagnostic-card,
+.schema-card {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: linear-gradient(180deg, #ffffff, #fbfcfd);
+}
+
+.schema-card {
+  border-color: rgba(29, 111, 143, 0.28);
 }
 
 .card-heading {
@@ -278,7 +283,8 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(242, 165, 26, 0.18);
 }
 
-.primary-action {
+.primary-action,
+.secondary-action {
   width: 100%;
   min-height: 48px;
   border: 0;
@@ -287,6 +293,18 @@ textarea:focus {
   color: white;
   font-weight: 950;
   cursor: pointer;
+}
+
+.secondary-action {
+  border: 1px solid rgba(29, 111, 143, 0.26);
+  background: #eef8fb;
+  color: #14556d;
+}
+
+.schema-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .trust-row {
@@ -422,6 +440,74 @@ textarea:focus {
   background: white;
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.diagram-bubble {
+  min-width: min(100%, 520px);
+}
+
+.diagram-bubble strong {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.diagram-bubble p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.diagram-frame {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.diagram-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.diagram-frame rect {
+  fill: white;
+  stroke: #9fb4c1;
+  stroke-width: 1.5;
+}
+
+.diagram-frame line {
+  stroke: var(--warning);
+  stroke-width: 3;
+}
+
+.diagram-frame path {
+  fill: var(--warning);
+}
+
+.diagram-frame text {
+  fill: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.diagram-frame .diagram-title,
+.diagram-frame .diagram-subtitle,
+.diagram-frame .diagram-note {
+  text-anchor: start;
+}
+
+.diagram-frame .diagram-title {
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.diagram-frame .diagram-subtitle,
+.diagram-frame .diagram-note {
+  fill: var(--muted);
+  font-size: 11px;
 }
 
 .message.user .bubble {
@@ -587,6 +673,10 @@ textarea:disabled {
   }
 
   .issue-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schema-row {
     grid-template-columns: 1fr;
   }
 

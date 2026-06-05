@@ -77,6 +77,39 @@
             <button id="startDiagnostic" class="primary-action" type="button">Lancer le diagnostic</button>
           </div>
 
+          <div class="schema-card">
+            <div class="card-heading">
+              <span class="step-badge">2</span>
+              <div>
+                <h2>Creation de schema</h2>
+                <p>Genere un schema electrique indicatif et une explication.</p>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Type de schema</span>
+              <select id="schemaType">
+                <option value="prise">Circuit prise simple</option>
+                <option value="eclairage">Eclairage simple allumage</option>
+                <option value="va-et-vient">Va-et-vient simplifie</option>
+                <option value="tableau">Tableau electrique simplifie</option>
+              </select>
+            </label>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Piece</span>
+                <input id="schemaRoom" type="text" placeholder="Ex: salon, cuisine">
+              </label>
+              <label class="field">
+                <span>Puissance ou usage</span>
+                <input id="schemaUse" type="text" placeholder="Ex: 16A, lumiere, four">
+              </label>
+            </div>
+
+            <button id="createSchema" class="secondary-action" type="button">Creer un schema</button>
+          </div>
+
           <div class="trust-row" aria-label="Points forts">
             <div>
               <strong>Simple</strong>
@@ -107,7 +140,8 @@
           <div class="suggestions" aria-label="Suggestions">
             <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
             <button type="button" data-prompt="Une prise ne fonctionne plus, que verifier sans prendre de risque ?">Prise en panne</button>
-            <button type="button" data-prompt="Explique-moi la difference entre interrupteur differentiel et disjoncteur.">Comprendre le tableau</button>
+          <button type="button" data-prompt="Explique-moi la difference entre interrupteur differentiel et disjoncteur.">Comprendre le tableau</button>
+          <button type="button" data-prompt="Cree un schema electrique simple pour un point lumineux commande par un interrupteur.">Schema eclairage</button>
           </div>
 
           <div id="messages" class="messages" aria-live="polite">

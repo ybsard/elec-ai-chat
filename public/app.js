@@ -10,6 +10,10 @@ const issueButtons = document.querySelectorAll("[data-issue]");
 const symptomInput = document.querySelector("#symptomInput");
 const riskSelect = document.querySelector("#riskSelect");
 const startDiagnostic = document.querySelector("#startDiagnostic");
+const schemaType = document.querySelector("#schemaType");
+const schemaRoom = document.querySelector("#schemaRoom");
+const schemaUse = document.querySelector("#schemaUse");
+const createSchema = document.querySelector("#createSchema");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
@@ -80,6 +84,44 @@ function setAssistantMessage(item, content) {
   item.querySelector(".message-stack").append(createCopyAction(content));
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function addDiagramMessage(title, svgMarkup, note) {
+  const item = document.createElement("article");
+  item.className = "message assistant";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "AI";
+
+  const stack = document.createElement("div");
+  stack.className = "message-stack";
+
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = "ELEC.AI";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble diagram-bubble";
+  bubble.innerHTML = `
+    <strong>${escapeHtml(title)}</strong>
+    <div class="diagram-frame">${svgMarkup}</div>
+    <p>${escapeHtml(note)}</p>
+  `;
+
+  stack.append(label, bubble);
+  item.append(avatar, stack);
+  messagesEl.append(item);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
 function autosize() {
   promptInput.style.height = "auto";
   promptInput.style.height = `${promptInput.scrollHeight}px`;
@@ -95,6 +137,59 @@ function buildDiagnosticPrompt() {
     `Observation: ${symptom}.`,
     `Niveau de risque indique: ${risk}.`,
     "Reponds avec: 1) danger immediat ou non, 2) causes possibles, 3) verifications simples sans danger, 4) quand appeler un electricien."
+  ].join("\n");
+}
+
+function buildSchema(type, room, usage) {
+  const safeRoom = escapeHtml(room || "piece a definir");
+  const safeUsage = escapeHtml(usage || "usage a definir");
+  const baseLabels = {
+    prise: ["Tableau", "Disjoncteur 16A/20A", "Phase + Neutre + Terre", "Prise"],
+    eclairage: ["Tableau", "Disjoncteur 10A/16A", "Interrupteur", "Point lumineux"],
+    "va-et-vient": ["Tableau", "Interrupteur A", "Navettes", "Interrupteur B", "Point lumineux"],
+    tableau: ["Arrivee", "Interrupteur differentiel", "Disjoncteurs", "Circuits"]
+  };
+  const labels = baseLabels[type] || baseLabels.prise;
+  const blocks = labels.map((label, index) => {
+    const x = 35 + index * (460 / Math.max(labels.length - 1, 1));
+    const line = index === labels.length - 1 ? "" : `<line x1="${x + 70}" y1="96" x2="${35 + (index + 1) * (460 / Math.max(labels.length - 1, 1)) - 6}" y2="96" />`;
+    return `
+      <g>
+        <rect x="${x - 8}" y="58" width="86" height="74" rx="8" />
+        <text x="${x + 35}" y="88">${escapeHtml(label)}</text>
+        <text x="${x + 35}" y="108">${index + 1}</text>
+      </g>
+      ${line}
+    `;
+  }).join("");
+
+  return `
+    <svg viewBox="0 0 560 210" role="img" aria-label="Schema electrique simplifie">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z"></path>
+        </marker>
+      </defs>
+      <text class="diagram-title" x="24" y="28">Schema indicatif - ${safeRoom}</text>
+      <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage}</text>
+      <g class="diagram-circuit" marker-end="url(#arrow)">
+        ${blocks}
+      </g>
+      <text class="diagram-note" x="24" y="178">Representation simplifiee: verifier la norme applicable et faire valider par un professionnel.</text>
+    </svg>
+  `;
+}
+
+function buildSchemaPrompt() {
+  const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
+  const room = schemaRoom.value.trim() || "piece non precisee";
+  const usage = schemaUse.value.trim() || "usage non precise";
+  return [
+    "Explique ce schema electrique indicatif.",
+    `Type: ${typeLabel}.`,
+    `Piece: ${room}.`,
+    `Usage ou puissance: ${usage}.`,
+    "Donne une explication simple, les points de securite, et rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
   ].join("\n");
 }
 
@@ -179,6 +274,18 @@ issueButtons.forEach((button) => {
 
 startDiagnostic.addEventListener("click", async () => {
   await askAssistant(buildDiagnosticPrompt());
+});
+
+createSchema.addEventListener("click", async () => {
+  const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
+  const room = schemaRoom.value.trim();
+  const usage = schemaUse.value.trim();
+  addDiagramMessage(
+    typeLabel,
+    buildSchema(schemaType.value, room, usage),
+    "Schema indicatif genere par ELEC.AI. Ne pas intervenir sous tension."
+  );
+  await askAssistant(buildSchemaPrompt());
 });
 
 autosize();
