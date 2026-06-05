@@ -143,41 +143,143 @@ function buildDiagnosticPrompt() {
 function buildSchema(type, room, usage) {
   const safeRoom = escapeHtml(room || "piece a definir");
   const safeUsage = escapeHtml(usage || "usage a definir");
-  const baseLabels = {
-    prise: ["Tableau", "Disjoncteur 16A/20A", "Phase + Neutre + Terre", "Prise"],
-    eclairage: ["Tableau", "Disjoncteur 10A/16A", "Interrupteur", "Point lumineux"],
-    "va-et-vient": ["Tableau", "Interrupteur A", "Navettes", "Interrupteur B", "Point lumineux"],
-    tableau: ["Arrivee", "Interrupteur differentiel", "Disjoncteurs", "Circuits"]
-  };
-  const labels = baseLabels[type] || baseLabels.prise;
-  const blocks = labels.map((label, index) => {
-    const x = 35 + index * (460 / Math.max(labels.length - 1, 1));
-    const line = index === labels.length - 1 ? "" : `<line x1="${x + 70}" y1="96" x2="${35 + (index + 1) * (460 / Math.max(labels.length - 1, 1)) - 6}" y2="96" />`;
-    return `
-      <g>
-        <rect x="${x - 8}" y="58" width="86" height="74" rx="8" />
-        <text x="${x + 35}" y="88">${escapeHtml(label)}</text>
-        <text x="${x + 35}" y="108">${index + 1}</text>
-      </g>
-      ${line}
-    `;
-  }).join("");
-
-  return `
-    <svg viewBox="0 0 560 210" role="img" aria-label="Schema electrique simplifie">
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z"></path>
-        </marker>
-      </defs>
-      <text class="diagram-title" x="24" y="28">Schema indicatif - ${safeRoom}</text>
-      <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage}</text>
-      <g class="diagram-circuit" marker-end="url(#arrow)">
-        ${blocks}
-      </g>
-      <text class="diagram-note" x="24" y="178">Representation simplifiee: verifier la norme applicable et faire valider par un professionnel.</text>
-    </svg>
+  const header = `
+    <text class="diagram-title" x="24" y="28">Schema electrique - ${safeRoom}</text>
+    <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage}</text>
+    <g class="legend">
+      <line class="wire phase" x1="384" y1="24" x2="418" y2="24" /><text x="425" y="28">L phase</text>
+      <line class="wire neutral" x1="384" y1="42" x2="418" y2="42" /><text x="425" y="46">N neutre</text>
+      <line class="wire earth" x1="384" y1="60" x2="418" y2="60" /><text x="425" y="64">PE terre</text>
+    </g>
   `;
+
+  const note = `<text class="diagram-note" x="24" y="268">Schema de principe indicatif. Respecter la norme applicable et faire valider par un electricien qualifie.</text>`;
+
+  const templates = {
+    prise: `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema circuit prise">
+        ${header}
+        <g class="symbol board">
+          <rect x="28" y="88" width="118" height="126" rx="8" />
+          <text x="87" y="112">Tableau</text>
+          <rect x="48" y="130" width="78" height="38" rx="5" />
+          <text x="87" y="153">DJ 16/20A</text>
+        </g>
+        <g class="symbol socket">
+          <rect x="486" y="102" width="88" height="88" rx="12" />
+          <circle cx="520" cy="146" r="6" />
+          <circle cx="542" cy="146" r="6" />
+          <path d="M 531 166 v 14 m -11 0 h 22" />
+          <text x="530" y="212">Prise 2P+T</text>
+        </g>
+        <path class="wire phase" d="M 126 138 H 292 V 120 H 486" />
+        <path class="wire neutral" d="M 126 150 H 308 V 146 H 486" />
+        <path class="wire earth" d="M 126 162 H 292 V 174 H 486" />
+        <text class="wire-label" x="306" y="114">L</text>
+        <text class="wire-label" x="318" y="141">N</text>
+        <text class="wire-label" x="304" y="193">PE</text>
+        ${note}
+      </svg>
+    `,
+    eclairage: `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema eclairage simple allumage">
+        ${header}
+        <g class="symbol board">
+          <rect x="28" y="88" width="118" height="126" rx="8" />
+          <text x="87" y="112">Tableau</text>
+          <rect x="48" y="130" width="78" height="38" rx="5" />
+          <text x="87" y="153">DJ 10/16A</text>
+        </g>
+        <g class="symbol switch">
+          <circle cx="318" cy="137" r="8" />
+          <circle cx="358" cy="137" r="8" />
+          <line x1="326" y1="137" x2="352" y2="119" />
+          <text x="338" y="178">Interrupteur</text>
+        </g>
+        <g class="symbol lamp">
+          <circle cx="522" cy="137" r="30" />
+          <line x1="503" y1="118" x2="541" y2="156" />
+          <line x1="541" y1="118" x2="503" y2="156" />
+          <text x="522" y="185">Point lumineux</text>
+        </g>
+        <path class="wire phase" d="M 126 138 H 318" />
+        <path class="wire phase" d="M 358 137 H 492" />
+        <path class="wire neutral" d="M 126 158 H 230 V 212 H 522 V 167" />
+        <path class="wire earth" d="M 126 174 H 214 V 232 H 522 V 170" />
+        <text class="wire-label" x="220" y="132">L coupe par interrupteur</text>
+        <text class="wire-label" x="362" y="207">N direct lampe</text>
+        ${note}
+      </svg>
+    `,
+    "va-et-vient": `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema va-et-vient simplifie">
+        ${header}
+        <g class="symbol board">
+          <rect x="28" y="88" width="104" height="126" rx="8" />
+          <text x="80" y="112">Tableau</text>
+          <rect x="48" y="130" width="64" height="38" rx="5" />
+          <text x="80" y="153">DJ</text>
+        </g>
+        <g class="symbol switch">
+          <circle cx="230" cy="126" r="7" /><circle cx="230" cy="156" r="7" /><circle cx="270" cy="141" r="7" />
+          <line x1="237" y1="126" x2="263" y2="141" />
+          <text x="250" y="190">Va-et-vient A</text>
+        </g>
+        <g class="symbol switch">
+          <circle cx="378" cy="126" r="7" /><circle cx="378" cy="156" r="7" /><circle cx="418" cy="141" r="7" />
+          <line x1="385" y1="156" x2="411" y2="141" />
+          <text x="398" y="190">Va-et-vient B</text>
+        </g>
+        <g class="symbol lamp">
+          <circle cx="536" cy="141" r="28" />
+          <line x1="518" y1="123" x2="554" y2="159" />
+          <line x1="554" y1="123" x2="518" y2="159" />
+          <text x="536" y="190">Lampe</text>
+        </g>
+        <path class="wire phase" d="M 112 140 H 270" />
+        <path class="wire traveler" d="M 230 126 H 378" />
+        <path class="wire traveler" d="M 230 156 H 378" />
+        <path class="wire phase" d="M 418 141 H 508" />
+        <path class="wire neutral" d="M 112 160 H 168 V 222 H 536 V 169" />
+        <path class="wire earth" d="M 112 176 H 152 V 242 H 536 V 171" />
+        <text class="wire-label" x="300" y="118">Navette 1</text>
+        <text class="wire-label" x="300" y="171">Navette 2</text>
+        ${note}
+      </svg>
+    `,
+    tableau: `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema tableau electrique simplifie">
+        ${header}
+        <g class="symbol board large-board">
+          <rect x="44" y="82" width="500" height="146" rx="10" />
+          <text x="294" y="106">Tableau electrique simplifie</text>
+          <rect x="72" y="132" width="82" height="52" rx="5" />
+          <text x="113" y="154">Arrivee</text>
+          <text x="113" y="170">230V</text>
+          <rect x="190" y="126" width="112" height="64" rx="5" />
+          <text x="246" y="150">Interrupteur</text>
+          <text x="246" y="168">differentiel</text>
+          <rect x="342" y="118" width="70" height="80" rx="5" />
+          <text x="377" y="150">DJ</text>
+          <text x="377" y="168">prises</text>
+          <rect x="438" y="118" width="70" height="80" rx="5" />
+          <text x="473" y="150">DJ</text>
+          <text x="473" y="168">lumiere</text>
+        </g>
+        <path class="wire phase" d="M 154 148 H 190" />
+        <path class="wire neutral" d="M 154 168 H 190" />
+        <path class="wire phase" d="M 302 146 H 342" />
+        <path class="wire neutral" d="M 302 170 H 342" />
+        <path class="wire phase" d="M 302 138 H 438" />
+        <path class="wire neutral" d="M 302 178 H 438" />
+        <path class="wire earth" d="M 88 204 H 520" />
+        <text class="wire-label" x="392" y="220">barrette de terre PE</text>
+        ${note}
+      </svg>
+    `
+  };
+
+  return templates[type] || templates.prise;
 }
 
 function buildSchemaPrompt() {

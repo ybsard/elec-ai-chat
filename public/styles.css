@@ -470,19 +470,45 @@ textarea:focus {
   height: auto;
 }
 
-.diagram-frame rect {
+.diagram-frame .symbol rect {
   fill: white;
   stroke: #9fb4c1;
   stroke-width: 1.5;
 }
 
-.diagram-frame line {
-  stroke: var(--warning);
-  stroke-width: 3;
+.diagram-frame .symbol line,
+.diagram-frame .symbol path,
+.diagram-frame .symbol circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
 }
 
-.diagram-frame path {
-  fill: var(--warning);
+.diagram-frame .wire {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.diagram-frame .phase {
+  stroke: #c83e3e;
+}
+
+.diagram-frame .neutral {
+  stroke: #1d6f8f;
+}
+
+.diagram-frame .earth {
+  stroke: #24a873;
+}
+
+.diagram-frame .traveler {
+  stroke: #8e56c8;
+}
+
+.diagram-frame .large-board rect:first-child {
+  fill: #f8fbfd;
 }
 
 .diagram-frame text {
@@ -508,6 +534,16 @@ textarea:focus {
 .diagram-frame .diagram-note {
   fill: var(--muted);
   font-size: 11px;
+}
+
+.diagram-frame .wire-label,
+.diagram-frame .legend text {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.diagram-frame .legend line {
+  stroke-width: 4;
 }
 
 .message.user .bubble {
