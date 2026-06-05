@@ -295,9 +295,50 @@ function buildSchemaPrompt() {
   ].join("\n");
 }
 
-async function askAssistant(content) {
+function isSchemaRequest(content) {
+  return /\bsch[eé]ma\b|\bplan electrique\b|\bcircuit\b/i.test(content);
+}
+
+function inferSchemaType(content) {
+  const text = content.toLowerCase();
+  if (text.includes("va-et-vient") || text.includes("va et vient") || text.includes("navette")) {
+    return "va-et-vient";
+  }
+  if (text.includes("tableau") || text.includes("differentiel") || text.includes("disjoncteur")) {
+    return "tableau";
+  }
+  if (text.includes("lampe") || text.includes("lumiere") || text.includes("eclairage") || text.includes("interrupteur")) {
+    return "eclairage";
+  }
+  return "prise";
+}
+
+function schemaTitle(type) {
+  const titles = {
+    prise: "Circuit prise simple",
+    eclairage: "Eclairage simple allumage",
+    "va-et-vient": "Va-et-vient simplifie",
+    tableau: "Tableau electrique simplifie"
+  };
+  return titles[type] || titles.prise;
+}
+
+function addAutomaticSchema(content) {
+  const type = inferSchemaType(content);
+  addDiagramMessage(
+    schemaTitle(type),
+    buildSchema(type, "demande du chat", "schema demande"),
+    "Schema genere automatiquement depuis ta demande. Il reste indicatif et doit etre valide avant travaux."
+  );
+}
+
+async function askAssistant(content, options = {}) {
   messages.push({ role: "user", content });
   addMessage("user", content);
+
+  if (!options.skipAutoSchema && isSchemaRequest(content)) {
+    addAutomaticSchema(content);
+  }
 
   const pending = addMessage("assistant", "", { loading: true });
   sendButton.disabled = true;
@@ -387,7 +428,7 @@ createSchema.addEventListener("click", async () => {
     buildSchema(schemaType.value, room, usage),
     "Schema indicatif genere par ELEC.AI. Ne pas intervenir sous tension."
   );
-  await askAssistant(buildSchemaPrompt());
+  await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });
 });
 
 autosize();
