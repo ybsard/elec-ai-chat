@@ -93,7 +93,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function addDiagramMessage(title, svgMarkup, note) {
+function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
   const item = document.createElement("article");
   item.className = "message assistant";
 
@@ -112,6 +112,7 @@ function addDiagramMessage(title, svgMarkup, note) {
   bubble.className = "bubble diagram-bubble";
   bubble.innerHTML = `
     <strong>${escapeHtml(title)}</strong>
+    ${lineSchema ? `<pre class="line-schema">${escapeHtml(lineSchema)}</pre>` : ""}
     <div class="diagram-frame">${svgMarkup}</div>
     <p>${escapeHtml(note)}</p>
   `;
@@ -282,6 +283,87 @@ function buildSchema(type, room, usage) {
   return templates[type] || templates.prise;
 }
 
+function buildLineSchema(type) {
+  const schemas = {
+    prise: `
+TABLEAU ELECTRIQUE                      BOITE / PRISE 2P+T
+┌────────────────────┐                  ┌────────────────────┐
+│ Disjoncteur 16/20A │                  │        PRISE       │
+│                    │                  │                    │
+│ borne L   o────────┼──── phase L ─────┼──> borne L         │
+│ borne N   o────────┼──── neutre N ────┼──> borne N         │
+│ terre PE o─────────┼──── terre PE ────┼──> borne terre     │
+└────────────────────┘                  └────────────────────┘
+
+Lecture:
+L  = phase, fil alimente
+N  = neutre, retour du courant
+PE = terre, protection des personnes
+    `,
+    eclairage: `
+TABLEAU ELECTRIQUE        INTERRUPTEUR              POINT LUMINEUX
+┌────────────────────┐    ┌──────────────┐          ┌──────────────┐
+│ Disjoncteur 10/16A │    │              │          │    LAMPE     │
+│                    │    │ entree L  o──┼──┐       │              │
+│ borne L   o────────┼────┤              │  │       │ borne L  <───┘
+│                    │    │ sortie   o───┼──┴──────>│              │
+│ borne N   o────────┼─────────────────────────────>│ borne N      │
+│ terre PE o─────────┼─────────────────────────────>│ terre PE     │
+└────────────────────┘                              └──────────────┘
+
+Lecture:
+La phase L passe par l'interrupteur.
+Le neutre N va directement a la lampe.
+La terre PE va au point lumineux si le materiel en a besoin.
+    `,
+    "va-et-vient": `
+TABLEAU          VA-ET-VIENT A             VA-ET-VIENT B           LAMPE
+┌─────────┐      ┌─────────────┐           ┌─────────────┐        ┌────────┐
+│ DJ 10A  │      │ commun  o   │           │   o commun  │        │        │
+│         │      │         │   │           │   │         │        │ borne L│
+│ L o─────┼─────>│         │   │           │   │         ├────────>│        │
+│         │      │ nav 1 o─┼───┼───────────┼───o nav 1   │        │ borne N│
+│         │      │ nav 2 o─┼───┼───────────┼───o nav 2   │        │ terre  │
+│ N o─────┼───────────────────────────────────────────────────────>│        │
+│PE o─────┼───────────────────────────────────────────────────────>│        │
+└─────────┘                                                        └────────┘
+
+Lecture:
+La phase arrive sur le commun du premier va-et-vient.
+Les deux navettes relient les deux interrupteurs.
+Le commun du deuxieme interrupteur devient le retour lampe.
+Le neutre et la terre vont directement au point lumineux.
+    `,
+    tableau: `
+ARRIVEE 230V
+┌─────────────┐
+│ L  N  PE    │
+└────┬──┬──┬──┘
+     │  │  │
+     │  │  └──────────────> Barrette de terre PE
+     │  │
+     v  v
+┌──────────────────────────┐
+│ Interrupteur differentiel│ 30mA
+│ entree L/N -> sortie L/N │
+└────────────┬─────────────┘
+             │
+             ├──> [DJ prises 16/20A]  -> circuit prises
+             │
+             ├──> [DJ lumiere 10/16A] -> circuit eclairage
+             │
+             └──> [DJ dedie]          -> four, chauffe-eau, etc.
+
+Lecture:
+Le differentiel protege les personnes.
+Les disjoncteurs protegent chaque circuit.
+La terre PE est distribuee vers tous les circuits concernes.
+    `
+  };
+
+  return (schemas[type] || schemas.prise).trim();
+}
+
 function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
   const room = schemaRoom.value.trim() || "piece non precisee";
@@ -328,7 +410,8 @@ function addAutomaticSchema(content) {
   addDiagramMessage(
     schemaTitle(type),
     buildSchema(type, "demande du chat", "schema demande"),
-    "Schema genere automatiquement depuis ta demande. Il reste indicatif et doit etre valide avant travaux."
+    "Schema genere automatiquement depuis ta demande. Il reste indicatif et doit etre valide avant travaux.",
+    buildLineSchema(type)
   );
 }
 
@@ -426,7 +509,8 @@ createSchema.addEventListener("click", async () => {
   addDiagramMessage(
     typeLabel,
     buildSchema(schemaType.value, room, usage),
-    "Schema indicatif genere par ELEC.AI. Ne pas intervenir sous tension."
+    "Schema indicatif genere par ELEC.AI. Ne pas intervenir sous tension.",
+    buildLineSchema(schemaType.value)
   );
   await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });
 });
