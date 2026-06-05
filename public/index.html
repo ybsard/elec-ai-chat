@@ -8,82 +8,129 @@
   </head>
   <body>
     <main class="app">
-      <section class="brand-panel" aria-label="Presentation ELEC.AI">
-        <nav class="topbar" aria-label="Navigation">
-          <div class="brand-lockup">
-            <div class="brand-mark">E</div>
-            <span>ELEC.AI</span>
+      <section class="workspace" aria-label="Assistant ELEC.AI">
+        <aside class="diagnostic-panel">
+          <nav class="topbar" aria-label="Navigation">
+            <div class="brand-lockup">
+              <div class="brand-mark">E</div>
+              <span>ELEC.AI</span>
+            </div>
+            <span class="pill">Assistant electricite</span>
+          </nav>
+
+          <div class="hero-copy">
+            <p class="eyebrow">Un probleme ? Une solution.</p>
+            <h1>Ton nouvel assistant en electricite.</h1>
+            <p class="intro">
+              Decris une panne, choisis le type de probleme et ELEC.AI t'aide a comprendre
+              les causes possibles, les verifications simples et le bon niveau de prudence.
+            </p>
           </div>
-          <span class="pill">Diagnostic IA</span>
-        </nav>
 
-        <div class="hero-copy">
-          <p class="eyebrow">Electricite simple et claire</p>
-          <h1>Ton nouvel assistant en electricite.</h1>
-          <p class="intro">
-            Un probleme ? Une question ? Une solution. ELEC.AI t'aide a comprendre
-            une panne, preparer une intervention et trouver les bonnes pistes avant d'agir.
-          </p>
-        </div>
-
-        <div class="feature-grid" aria-label="Capacites">
-          <div>
-            <strong>Pannes</strong>
-            <span>Disjoncteur, prise, lumiere ou appareil qui ne fonctionne plus.</span>
+          <div class="safety-banner">
+            <strong>Priorite securite</strong>
+            <span>Odeur de brule, fumee, fil denude, eau ou echauffement : coupe le courant et contacte un electricien.</span>
           </div>
-          <div>
-            <strong>Conseils</strong>
-            <span>Explications simples pour mieux comprendre le probleme.</span>
-          </div>
-          <div>
-            <strong>Securite</strong>
-            <span>Rappels utiles avant toute manipulation electrique.</span>
-          </div>
-        </div>
 
-        <div class="status-card">
-          <span class="status-dot"></span>
-          <span>Assistant disponible. Pour les risques reels, coupe le courant et appelle un pro.</span>
-        </div>
-      </section>
-
-      <section class="chat-shell" aria-label="Chat IA">
-        <header class="chat-header">
-          <div>
-            <p class="chat-kicker">Une question electrique ?</p>
-            <h2>Un probleme, une solution</h2>
-          </div>
-          <button id="clearChat" class="icon-button" type="button" title="Effacer la conversation" aria-label="Effacer la conversation">
-            Reset
-          </button>
-        </header>
-
-        <div class="suggestions" aria-label="Suggestions">
-          <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
-          <button type="button" data-prompt="Une prise ne fonctionne plus, que verifier sans prendre de risque ?">Prise en panne</button>
-          <button type="button" data-prompt="Explique-moi la difference entre interrupteur differentiel et disjoncteur.">Comprendre le tableau</button>
-        </div>
-
-        <div id="messages" class="messages" aria-live="polite">
-          <article class="message assistant">
-            <div class="avatar">AI</div>
-            <div class="message-stack">
-              <span class="message-label">ELEC.AI</span>
-              <div class="bubble">
-                Bonjour, je suis ton assistant en electricite. Decris ton probleme et je t'aide a y voir clair.
+          <div class="diagnostic-card">
+            <div class="card-heading">
+              <span class="step-badge">1</span>
+              <div>
+                <h2>Diagnostic rapide</h2>
+                <p>Choisis ce qui ressemble le plus a ton probleme.</p>
               </div>
             </div>
-          </article>
-        </div>
 
-        <form id="chatForm" class="composer">
-          <div class="input-wrap">
-            <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Decris ton probleme electrique..." autocomplete="off"></textarea>
-            <span id="counter" class="counter">0 / 1200</span>
+            <div class="issue-grid" aria-label="Types de problemes">
+              <button type="button" class="issue-card active" data-issue="Disjoncteur qui saute">
+                <strong>Disjoncteur</strong>
+                <span>Ca saute, ca coupe, ca revient</span>
+              </button>
+              <button type="button" class="issue-card" data-issue="Prise ou interrupteur en panne">
+                <strong>Prise</strong>
+                <span>Plus de courant ou faux contact</span>
+              </button>
+              <button type="button" class="issue-card" data-issue="Lumiere qui ne fonctionne plus">
+                <strong>Lumiere</strong>
+                <span>Ampoule, va-et-vient, plafonnier</span>
+              </button>
+              <button type="button" class="issue-card" data-issue="Tableau electrique a comprendre">
+                <strong>Tableau</strong>
+                <span>Differentiel, fusible, circuit</span>
+              </button>
+            </div>
+
+            <label class="field">
+              <span>Ce que tu observes</span>
+              <input id="symptomInput" type="text" placeholder="Ex: le disjoncteur saute quand j'allume le four">
+            </label>
+
+            <label class="field">
+              <span>Niveau de risque</span>
+              <select id="riskSelect">
+                <option>Normal: pas de fumee, pas d'odeur, pas de fil visible</option>
+                <option>Urgent: odeur de brule, fumee, eau, fil denude ou chaleur</option>
+                <option>Je ne sais pas</option>
+              </select>
+            </label>
+
+            <button id="startDiagnostic" class="primary-action" type="button">Lancer le diagnostic</button>
           </div>
-          <button id="sendButton" type="submit">Envoyer</button>
-        </form>
-        <p id="hint" class="hint">Astuce: explique ce que tu observes, depuis quand, et ce qui a deja ete teste.</p>
+
+          <div class="trust-row" aria-label="Points forts">
+            <div>
+              <strong>Simple</strong>
+              <span>Des mots clairs</span>
+            </div>
+            <div>
+              <strong>Prudent</strong>
+              <span>Pas de prise de risque</span>
+            </div>
+            <div>
+              <strong>Rapide</strong>
+              <span>Des pistes en quelques secondes</span>
+            </div>
+          </div>
+        </aside>
+
+        <section class="chat-shell" aria-label="Chat IA">
+          <header class="chat-header">
+            <div>
+              <p class="chat-kicker">Conversation</p>
+              <h2>Un probleme, une solution</h2>
+            </div>
+            <button id="clearChat" class="icon-button" type="button" title="Effacer la conversation" aria-label="Effacer la conversation">
+              Reset
+            </button>
+          </header>
+
+          <div class="suggestions" aria-label="Suggestions">
+            <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
+            <button type="button" data-prompt="Une prise ne fonctionne plus, que verifier sans prendre de risque ?">Prise en panne</button>
+            <button type="button" data-prompt="Explique-moi la difference entre interrupteur differentiel et disjoncteur.">Comprendre le tableau</button>
+          </div>
+
+          <div id="messages" class="messages" aria-live="polite">
+            <article class="message assistant">
+              <div class="avatar">AI</div>
+              <div class="message-stack">
+                <span class="message-label">ELEC.AI</span>
+                <div class="bubble">
+                  Bonjour, je suis ton assistant en electricite. Lance un diagnostic ou decris directement ton probleme.
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <form id="chatForm" class="composer">
+            <div class="input-wrap">
+              <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Decris ton probleme electrique..." autocomplete="off"></textarea>
+              <span id="counter" class="counter">0 / 1200</span>
+            </div>
+            <button id="sendButton" type="submit">Envoyer</button>
+          </form>
+          <p id="hint" class="hint">Astuce: indique ce qui saute, quand, et ce qui a change recemment.</p>
+        </section>
       </section>
     </main>
     <div class="signature" aria-label="Signature ELEC.AI">by yb</div>

@@ -6,9 +6,14 @@ const hint = document.querySelector("#hint");
 const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
+const issueButtons = document.querySelectorAll("[data-issue]");
+const symptomInput = document.querySelector("#symptomInput");
+const riskSelect = document.querySelector("#riskSelect");
+const startDiagnostic = document.querySelector("#startDiagnostic");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
+let selectedIssue = "Disjoncteur qui saute";
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -41,22 +46,7 @@ function addMessage(role, content, options = {}) {
   stack.append(label, bubble);
 
   if (role === "assistant" && !options.loading && content) {
-    const actions = document.createElement("div");
-    actions.className = "message-actions";
-
-    const copyButton = document.createElement("button");
-    copyButton.type = "button";
-    copyButton.textContent = "Copier";
-    copyButton.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(content);
-      copyButton.textContent = "Copie";
-      setTimeout(() => {
-        copyButton.textContent = "Copier";
-      }, 1200);
-    });
-
-    actions.append(copyButton);
-    stack.append(actions);
+    stack.append(createCopyAction(content));
   }
 
   item.append(avatar, stack);
@@ -65,10 +55,7 @@ function addMessage(role, content, options = {}) {
   return item;
 }
 
-function setAssistantMessage(item, content) {
-  const bubble = item.querySelector(".bubble");
-  bubble.textContent = content;
-
+function createCopyAction(content) {
   const actions = document.createElement("div");
   actions.className = "message-actions";
 
@@ -84,13 +71,31 @@ function setAssistantMessage(item, content) {
   });
 
   actions.append(copyButton);
-  item.querySelector(".message-stack").append(actions);
+  return actions;
+}
+
+function setAssistantMessage(item, content) {
+  const bubble = item.querySelector(".bubble");
+  bubble.textContent = content;
+  item.querySelector(".message-stack").append(createCopyAction(content));
 }
 
 function autosize() {
   promptInput.style.height = "auto";
   promptInput.style.height = `${promptInput.scrollHeight}px`;
   updateCounter();
+}
+
+function buildDiagnosticPrompt() {
+  const symptom = symptomInput.value.trim() || "L'utilisateur n'a pas encore donne de detail.";
+  const risk = riskSelect.value;
+  return [
+    "Demande de diagnostic electrique guide.",
+    `Type de probleme: ${selectedIssue}.`,
+    `Observation: ${symptom}.`,
+    `Niveau de risque indique: ${risk}.`,
+    "Reponds avec: 1) danger immediat ou non, 2) causes possibles, 3) verifications simples sans danger, 4) quand appeler un electricien."
+  ].join("\n");
 }
 
 async function askAssistant(content) {
@@ -100,7 +105,7 @@ async function askAssistant(content) {
   const pending = addMessage("assistant", "", { loading: true });
   sendButton.disabled = true;
   promptInput.disabled = true;
-    hint.textContent = "ELEC.AI analyse les pistes possibles...";
+  hint.textContent = "ELEC.AI analyse les pistes possibles...";
 
   try {
     const response = await fetch("/api/chat", {
@@ -150,7 +155,7 @@ form.addEventListener("submit", async (event) => {
 clearButton.addEventListener("click", () => {
   messages.length = 0;
   messagesEl.innerHTML = "";
-  addMessage("assistant", "Conversation effacee. Decris ton prochain probleme electrique.");
+  addMessage("assistant", "Conversation effacee. Lance un diagnostic ou decris ton prochain probleme electrique.");
   hint.textContent = "Nouvelle recherche demarree.";
   promptInput.focus();
 });
@@ -161,6 +166,19 @@ suggestionButtons.forEach((button) => {
     autosize();
     promptInput.focus();
   });
+});
+
+issueButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    issueButtons.forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    selectedIssue = button.dataset.issue;
+    hint.textContent = `Type choisi: ${selectedIssue}. Ajoute ce que tu observes puis lance le diagnostic.`;
+  });
+});
+
+startDiagnostic.addEventListener("click", async () => {
+  await askAssistant(buildDiagnosticPrompt());
 });
 
 autosize();
