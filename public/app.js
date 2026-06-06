@@ -204,6 +204,19 @@ function getSchemaCounts() {
   };
 }
 
+function syncSchemaDefaults() {
+  if (schemaType.value === "prise" && Number(socketCount.value) === 0) {
+    socketCount.value = "1";
+  }
+  if (schemaType.value === "eclairage") {
+    if (Number(lightCount.value) === 0) lightCount.value = "1";
+    if (Number(switchCount.value) === 0) switchCount.value = "1";
+  }
+  if (schemaType.value === "va-et-vient" && Number(switchCount.value) < 2) {
+    switchCount.value = "2";
+  }
+}
+
 function buildSchema(type, room, usage, counts = {}) {
   const safeRoom = escapeHtml(room || "piece a definir");
   const safeUsage = escapeHtml(usage || "usage a definir");
@@ -222,6 +235,139 @@ function buildSchema(type, room, usage, counts = {}) {
   `;
 
   const note = `<text class="diagram-note" x="24" y="268">Schema de principe indicatif. Respecter la norme applicable et faire valider par un electricien qualifie.</text>`;
+
+  const socketSymbols = Array.from({ length: Math.max(socketTotal, 1) }, (_, index) => {
+    const y = 86 + index * 42;
+    return `
+      <g class="symbol socket">
+        <rect x="486" y="${y - 16}" width="72" height="34" rx="7" />
+        <circle cx="512" cy="${y}" r="4" />
+        <circle cx="532" cy="${y}" r="4" />
+        <path d="M 522 ${y + 8} v 9 m -8 0 h 16" />
+        <text x="522" y="${y + 31}">Prise ${index + 1}</text>
+      </g>
+      <path class="wire phase" d="M 126 132 H 300 V ${y - 10} H 486" />
+      <path class="wire neutral" d="M 126 150 H 318 V ${y} H 486" />
+      <path class="wire earth" d="M 126 168 H 300 V ${y + 10} H 486" />
+    `;
+  }).join("");
+
+  const switchSymbols = Array.from({ length: Math.max(switchTotal, 1) }, (_, index) => {
+    const x = 214 + index * 78;
+    return `
+      <g class="symbol switch">
+        <circle cx="${x}" cy="132" r="7" />
+        <circle cx="${x + 36}" cy="132" r="7" />
+        <line x1="${x + 7}" y1="132" x2="${x + 30}" y2="118" />
+        <text x="${x + 18}" y="166">INT ${index + 1}</text>
+      </g>
+    `;
+  }).join("");
+
+  const lightSymbols = Array.from({ length: Math.max(lightTotal, 1) }, (_, index) => {
+    const y = 92 + index * 48;
+    return `
+      <g class="symbol lamp">
+        <circle cx="536" cy="${y}" r="22" />
+        <line x1="522" y1="${y - 14}" x2="550" y2="${y + 14}" />
+        <line x1="550" y1="${y - 14}" x2="522" y2="${y + 14}" />
+        <text x="536" y="${y + 38}">Lampe ${index + 1}</text>
+      </g>
+      <path class="wire phase" d="M ${214 + Math.max(switchTotal - 1, 0) * 78 + 36} 132 H 430 V ${y} H 514" />
+      <path class="wire neutral" d="M 126 158 H 178 V ${y + 8} H 514" />
+      <path class="wire earth" d="M 126 174 H 162 V ${y + 16} H 514" />
+    `;
+  }).join("");
+
+  const vaSwitchSymbols = Array.from({ length: Math.max(switchTotal, 2) }, (_, index) => {
+    const x = 180 + index * 88;
+    return `
+      <g class="symbol switch">
+        <circle cx="${x}" cy="120" r="6" />
+        <circle cx="${x}" cy="152" r="6" />
+        <circle cx="${x + 36}" cy="136" r="6" />
+        <line x1="${x + 6}" y1="${index % 2 === 0 ? 120 : 152}" x2="${x + 30}" y2="136" />
+        <text x="${x + 18}" y="184">VA ${index + 1}</text>
+      </g>
+    `;
+  }).join("");
+
+  const vaLightSymbols = Array.from({ length: Math.max(lightTotal, 1) }, (_, index) => {
+    const y = 104 + index * 42;
+    const lastSwitchX = 180 + (Math.max(switchTotal, 2) - 1) * 88 + 36;
+    return `
+      <g class="symbol lamp">
+        <circle cx="548" cy="${y}" r="20" />
+        <line x1="535" y1="${y - 13}" x2="561" y2="${y + 13}" />
+        <line x1="561" y1="${y - 13}" x2="535" y2="${y + 13}" />
+        <text x="548" y="${y + 34}">Lampe ${index + 1}</text>
+      </g>
+      <path class="wire phase" d="M ${lastSwitchX} 136 H 476 V ${y} H 528" />
+      <path class="wire neutral" d="M 112 160 H 150 V ${y + 8} H 528" />
+      <path class="wire earth" d="M 112 176 H 138 V ${y + 16} H 528" />
+    `;
+  }).join("");
+
+  if (type === "prise") {
+    return `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema circuit prise dynamique">
+        ${header}
+        <g class="symbol board">
+          <rect x="28" y="88" width="118" height="126" rx="8" />
+          <text x="87" y="112">Tableau</text>
+          <rect x="48" y="130" width="78" height="38" rx="5" />
+          <text x="87" y="153">DJ 16/20A</text>
+        </g>
+        ${socketSymbols}
+        <text class="wire-label" x="205" y="118">Alimentation prise(s) en parallele</text>
+        ${note}
+      </svg>
+    `;
+  }
+
+  if (type === "eclairage") {
+    return `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema eclairage dynamique">
+        ${header}
+        <g class="symbol board">
+          <rect x="28" y="88" width="118" height="126" rx="8" />
+          <text x="87" y="112">Tableau</text>
+          <rect x="48" y="130" width="78" height="38" rx="5" />
+          <text x="87" y="153">DJ 10/16A</text>
+        </g>
+        ${switchSymbols}
+        <path class="wire phase" d="M 126 138 H 214" />
+        ${lightSymbols}
+        <text class="wire-label" x="232" y="106">Commande(s)</text>
+        <text class="wire-label" x="390" y="230">N et PE distribues vers point(s) lumineux</text>
+        ${note}
+      </svg>
+    `;
+  }
+
+  if (type === "va-et-vient") {
+    const firstX = 180;
+    const lastX = 180 + (Math.max(switchTotal, 2) - 1) * 88;
+    return `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema va-et-vient dynamique">
+        ${header}
+        <g class="symbol board">
+          <rect x="28" y="88" width="104" height="126" rx="8" />
+          <text x="80" y="112">Tableau</text>
+          <rect x="48" y="130" width="64" height="38" rx="5" />
+          <text x="80" y="153">DJ</text>
+        </g>
+        ${vaSwitchSymbols}
+        <path class="wire phase" d="M 112 140 H ${firstX + 36}" />
+        <path class="wire traveler" d="M ${firstX} 120 H ${lastX}" />
+        <path class="wire traveler" d="M ${firstX} 152 H ${lastX}" />
+        ${vaLightSymbols}
+        <text class="wire-label" x="310" y="112">Navette 1</text>
+        <text class="wire-label" x="310" y="170">Navette 2</text>
+        ${note}
+      </svg>
+    `;
+  }
 
   const templates = {
     prise: `
@@ -640,6 +786,7 @@ startDiagnostic.addEventListener("click", async () => {
 });
 
 createSchema.addEventListener("click", async () => {
+  syncSchemaDefaults();
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
@@ -651,6 +798,11 @@ createSchema.addEventListener("click", async () => {
     buildLineSchema(schemaType.value, counts)
   );
   await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });
+});
+
+schemaType.addEventListener("change", () => {
+  syncSchemaDefaults();
+  hint.textContent = "Type de schema mis a jour. Ajuste les quantites puis cree le schema.";
 });
 
 photoInput.addEventListener("change", () => {
