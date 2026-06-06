@@ -54,6 +54,9 @@ function addMessage(role, content, options = {}) {
 
   if (options.loading) {
     bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+  } else if (role === "assistant") {
+    bubble.classList.add("formatted-response");
+    bubble.innerHTML = renderAssistantContent(content);
   } else {
     bubble.textContent = content;
   }
@@ -91,7 +94,8 @@ function createCopyAction(content) {
 
 function setAssistantMessage(item, content) {
   const bubble = item.querySelector(".bubble");
-  bubble.textContent = content;
+  bubble.classList.add("formatted-response");
+  bubble.innerHTML = renderAssistantContent(content);
   item.querySelector(".message-stack").append(createCopyAction(content));
 }
 
@@ -102,6 +106,78 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function formatInline(value) {
+  return escapeHtml(value)
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+function renderAssistantContent(content) {
+  const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
+  const html = [];
+  let listItems = [];
+  let codeLines = [];
+  let inCode = false;
+
+  function flushList() {
+    if (!listItems.length) return;
+    html.push(`<ul>${listItems.map((item) => `<li>${formatInline(item)}</li>`).join("")}</ul>`);
+    listItems = [];
+  }
+
+  function flushCode() {
+    if (!codeLines.length) return;
+    html.push(`<pre class="response-code">${escapeHtml(codeLines.join("\n"))}</pre>`);
+    codeLines = [];
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (line.startsWith("```")) {
+      if (inCode) {
+        flushCode();
+        inCode = false;
+      } else {
+        flushList();
+        inCode = true;
+      }
+      continue;
+    }
+
+    if (inCode) {
+      codeLines.push(rawLine);
+      continue;
+    }
+
+    if (!line) {
+      flushList();
+      continue;
+    }
+
+    const headingMatch = /^(?:#{1,3}\s*)?(?:\d+[.)]\s*)?([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9\s'’/-]{2,38})\s*:?\s*$/.exec(line);
+    const listMatch = /^(?:[-*•]|\d+[.)])\s+(.+)$/.exec(line);
+
+    if (listMatch) {
+      listItems.push(listMatch[1]);
+      continue;
+    }
+
+    flushList();
+
+    if (headingMatch && line.length <= 48) {
+      html.push(`<h3>${formatInline(headingMatch[1])}</h3>`);
+    } else {
+      html.push(`<p>${formatInline(line)}</p>`);
+    }
+  }
+
+  flushList();
+  flushCode();
+
+  return html.join("") || "<p>Je n'ai pas pu generer de reponse.</p>";
 }
 
 function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
@@ -189,7 +265,8 @@ function buildDiagnosticPrompt() {
     `Observation: ${symptom}.`,
     `Niveau de risque indique: ${risk}.`,
     buildLevelInstruction(),
-    "Reponds avec: 1) danger immediat ou non, 2) causes possibles, 3) verifications simples sans danger, 4) quand appeler un electricien."
+    buildResponseFormatInstruction(),
+    "Reponds avec: 1) verdict securite, 2) causes possibles, 3) verifications simples sans danger, 4) quand appeler un electricien, 5) resume final."
   ].join("\n");
 }
 
@@ -200,6 +277,16 @@ function buildLevelInstruction() {
     expert: "Niveau de reponse: expert. Reponds de facon approfondie, avec hypotheses, logique de diagnostic, limites, points normatifs generaux et details techniques utiles, sans donner d'instructions dangereuses sous tension."
   };
   return instructions[selectedLevel] || instructions.debutant;
+}
+
+function buildResponseFormatInstruction() {
+  return [
+    "Organisation obligatoire de la reponse:",
+    "Utilise des titres courts suivis de listes.",
+    "Structure recommandee: Resume rapide, Securite, Causes possibles, A verifier sans danger, Prochaines etapes, Conclusion.",
+    "Ne fais pas de gros paragraphes: 1 idee par ligne ou par puce.",
+    "Mets les avertissements importants dans la section Securite."
+  ].join("\n");
 }
 
 function clampCount(value, fallback, min, max) {
@@ -625,7 +712,8 @@ function buildSchemaPrompt() {
     `Nombre de lumieres: ${counts.lights}.`,
     `Nombre d'interrupteurs: ${counts.switches}.`,
     buildLevelInstruction(),
-    "Donne une explication simple, les points de securite, et rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
+    buildResponseFormatInstruction(),
+    "Donne une explication simple, les points de securite, les limites du schema, puis rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
   ].join("\n");
 }
 
@@ -760,7 +848,7 @@ function addAutomaticSchema(content) {
 }
 
 async function askAssistant(content, options = {}) {
-  const contentForModel = `${content}\n\n${buildLevelInstruction()}\nFormat attendu: reponse claire, bien organisee, avec titres courts, listes lisibles et conclusion pratique.`;
+  const contentForModel = `${content}\n\n${buildLevelInstruction()}\n${buildResponseFormatInstruction()}`;
   messages.push({ role: "user", content: contentForModel });
   addMessage("user", content);
 
