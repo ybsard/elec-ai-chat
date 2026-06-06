@@ -7,6 +7,7 @@ const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
+const levelButtons = document.querySelectorAll("[data-level]");
 const symptomInput = document.querySelector("#symptomInput");
 const riskSelect = document.querySelector("#riskSelect");
 const startDiagnostic = document.querySelector("#startDiagnostic");
@@ -27,6 +28,7 @@ const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
 let selectedIssue = "Disjoncteur qui saute";
 let selectedPhotoDataUrl = "";
+let selectedLevel = "debutant";
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -186,8 +188,18 @@ function buildDiagnosticPrompt() {
     `Type de probleme: ${selectedIssue}.`,
     `Observation: ${symptom}.`,
     `Niveau de risque indique: ${risk}.`,
+    buildLevelInstruction(),
     "Reponds avec: 1) danger immediat ou non, 2) causes possibles, 3) verifications simples sans danger, 4) quand appeler un electricien."
   ].join("\n");
+}
+
+function buildLevelInstruction() {
+  const instructions = {
+    debutant: "Niveau de reponse: debutant. Reponds avec des mots simples, des etapes courtes, une organisation tres lisible et peu de jargon.",
+    confirme: "Niveau de reponse: confirme. Reponds avec des explications plus completes, les raisons techniques principales, et une structure claire.",
+    expert: "Niveau de reponse: expert. Reponds de facon approfondie, avec hypotheses, logique de diagnostic, limites, points normatifs generaux et details techniques utiles, sans donner d'instructions dangereuses sous tension."
+  };
+  return instructions[selectedLevel] || instructions.debutant;
 }
 
 function clampCount(value, fallback, min, max) {
@@ -612,6 +624,7 @@ function buildSchemaPrompt() {
     `Nombre de prises: ${counts.sockets}.`,
     `Nombre de lumieres: ${counts.lights}.`,
     `Nombre d'interrupteurs: ${counts.switches}.`,
+    buildLevelInstruction(),
     "Donne une explication simple, les points de securite, et rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
   ].join("\n");
 }
@@ -655,7 +668,8 @@ function addAutomaticSchema(content) {
 }
 
 async function askAssistant(content, options = {}) {
-  messages.push({ role: "user", content });
+  const contentForModel = `${content}\n\n${buildLevelInstruction()}\nFormat attendu: reponse claire, bien organisee, avec titres courts, listes lisibles et conclusion pratique.`;
+  messages.push({ role: "user", content: contentForModel });
   addMessage("user", content);
 
   if (!options.skipAutoSchema && isSchemaRequest(content)) {
@@ -778,6 +792,15 @@ issueButtons.forEach((button) => {
     button.classList.add("active");
     selectedIssue = button.dataset.issue;
     hint.textContent = `Type choisi: ${selectedIssue}. Ajoute ce que tu observes puis lance le diagnostic.`;
+  });
+});
+
+levelButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    levelButtons.forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    selectedLevel = button.dataset.level;
+    hint.textContent = `Niveau choisi: ${button.textContent}. Les prochaines reponses seront adaptees.`;
   });
 });
 

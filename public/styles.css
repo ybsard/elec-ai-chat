@@ -186,11 +186,16 @@ h2 {
 
 .diagnostic-card,
 .schema-card,
-.photo-card {
+.photo-card,
+.level-card {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: linear-gradient(180deg, #ffffff, #fbfcfd);
+}
+
+.level-card {
+  border-color: rgba(242, 165, 26, 0.35);
 }
 
 .schema-card {
@@ -204,6 +209,10 @@ h2 {
 .card-heading {
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.compact-heading {
+  margin-bottom: 12px;
 }
 
 .card-heading p {
@@ -358,6 +367,29 @@ textarea:focus {
 
 .schema-counts {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.level-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.level-option {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.level-option.active {
+  border-color: var(--warning);
+  background: #fff8e8;
+  color: var(--warning-dark);
+  box-shadow: 0 0 0 3px rgba(242, 165, 26, 0.13);
 }
 
 .trust-row {
@@ -797,6 +829,11 @@ textarea:disabled {
   }
 
   .schema-row {
+    grid-template-columns: 1fr;
+  }
+
+  .schema-counts,
+  .level-options {
     grid-template-columns: 1fr;
   }
 
