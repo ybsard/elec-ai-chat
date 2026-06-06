@@ -629,12 +629,40 @@ function buildSchemaPrompt() {
   ].join("\n");
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function hasAnyWord(text, words) {
+  return words.some((word) => text.includes(word));
+}
+
 function isSchemaRequest(content) {
-  return /\bsch[eé]ma\b|\bplan electrique\b|\bcircuit\b/i.test(content);
+  const text = normalizeText(content);
+  const asksForDrawing = /\bschema\b|\bplan electrique\b|\bcircuit\b|\bdessin(e|er)?\b|\btrace\b/.test(text);
+  const asksForWiring = /\bbranch(e|er|ement)\b|\braccord(e|er|ement)\b|\bcabl(e|er|age)\b|\binstaller\b|\bcre(e|er)\b|\bfais\b|\bfaire\b|\bmontre\b|\bexplique\b/.test(text);
+  const hasElectricalTarget = hasAnyWord(text, [
+    "prise",
+    "luminaire",
+    "lumiere",
+    "lampe",
+    "interrupteur",
+    "va-et-vient",
+    "va et vient",
+    "navette",
+    "tableau",
+    "differentiel",
+    "disjoncteur"
+  ]);
+
+  return asksForDrawing || (asksForWiring && hasElectricalTarget);
 }
 
 function inferSchemaType(content) {
-  const text = content.toLowerCase();
+  const text = normalizeText(content);
   if (text.includes("va-et-vient") || text.includes("va et vient") || text.includes("navette")) {
     return "va-et-vient";
   }
@@ -645,6 +673,69 @@ function inferSchemaType(content) {
     return "eclairage";
   }
   return "prise";
+}
+
+function extractMentionedCount(text, words, fallback) {
+  const numberWords = {
+    un: 1,
+    une: 1,
+    deux: 2,
+    trois: 3,
+    quatre: 4,
+    cinq: 5,
+    six: 6,
+    sept: 7,
+    huit: 8,
+    neuf: 9,
+    dix: 10,
+    onze: 11,
+    douze: 12
+  };
+  const numberPattern = `(?:\\d+|${Object.keys(numberWords).join("|")})`;
+
+  for (const word of words) {
+    const before = new RegExp(`\\b(${numberPattern})\\s+${word}s?\\b`, "i").exec(text);
+    const after = new RegExp(`\\b${word}s?\\s*(?:x|:|=)?\\s*(${numberPattern})\\b`, "i").exec(text);
+    const match = before || after;
+
+    if (match) {
+      const rawValue = match[1].toLowerCase();
+      return Number.parseInt(rawValue, 10) || numberWords[rawValue] || fallback;
+    }
+  }
+
+  return fallback;
+}
+
+function inferSchemaCounts(content, type) {
+  const text = normalizeText(content);
+  const defaults = {
+    sockets: type === "prise" ? 1 : 0,
+    lights: type === "eclairage" || type === "va-et-vient" ? 1 : 0,
+    switches: type === "eclairage" ? 1 : 0
+  };
+
+  const counts = {
+    sockets: extractMentionedCount(text, ["prise"], defaults.sockets),
+    lights: extractMentionedCount(text, ["lumiere", "lampe", "luminaire"], defaults.lights),
+    switches: extractMentionedCount(text, ["interrupteur", "bouton", "commande"], defaults.switches)
+  };
+
+  if (type === "va-et-vient") {
+    counts.lights = Math.max(counts.lights, 1);
+    counts.switches = Math.max(counts.switches, 2);
+  }
+
+  if (type === "eclairage") {
+    counts.lights = Math.max(counts.lights, 1);
+    counts.switches = Math.max(counts.switches, 1);
+  }
+
+  if (type === "prise") {
+    counts.sockets = Math.max(counts.sockets, 1);
+  }
+
+  return counts;
 }
 
 function schemaTitle(type) {
@@ -659,11 +750,12 @@ function schemaTitle(type) {
 
 function addAutomaticSchema(content) {
   const type = inferSchemaType(content);
+  const counts = inferSchemaCounts(content, type);
   addDiagramMessage(
     schemaTitle(type),
-    buildSchema(type, "demande du chat", "schema demande"),
+    buildSchema(type, "demande du chat", content.slice(0, 90), counts),
     "Schema genere automatiquement depuis ta demande. Il reste indicatif et doit etre valide avant travaux.",
-    buildLineSchema(type)
+    buildLineSchema(type, counts)
   );
 }
 
