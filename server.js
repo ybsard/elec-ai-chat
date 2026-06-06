@@ -48,6 +48,19 @@ async function readRequestJson(req) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
+async function readUpstreamJson(response) {
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {
+      error: {
+        message: text || "Reponse OpenAI illisible."
+      }
+    };
+  }
+}
+
 async function handleChat(req, res) {
   if (!process.env.OPENAI_API_KEY) {
     sendJson(res, 500, {
@@ -76,7 +89,7 @@ async function handleChat(req, res) {
       })
     });
 
-    const data = await response.json();
+    const data = await readUpstreamJson(response);
     if (!response.ok) {
       sendJson(res, response.status, { error: data.error?.message || "Erreur API OpenAI." });
       return;
@@ -137,7 +150,7 @@ async function handlePhotoSchema(req, res) {
       })
     });
 
-    const data = await response.json();
+    const data = await readUpstreamJson(response);
     if (!response.ok) {
       sendJson(res, response.status, { error: data.error?.message || "Erreur API OpenAI." });
       return;

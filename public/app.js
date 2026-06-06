@@ -167,6 +167,17 @@ function autosize() {
   updateCounter();
 }
 
+async function readJsonResponse(response) {
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {
+      error: text || "Reponse serveur illisible."
+    };
+  }
+}
+
 function buildDiagnosticPrompt() {
   const symptom = symptomInput.value.trim() || "L'utilisateur n'a pas encore donne de detail.";
   const risk = riskSelect.value;
@@ -517,7 +528,7 @@ async function askAssistant(content, options = {}) {
       body: JSON.stringify({ messages })
     });
 
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(data.error || "Erreur inconnue.");
     }
@@ -560,7 +571,7 @@ async function analyzePhotoToSchema() {
       })
     });
 
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(data.error || "Erreur inconnue.");
     }
