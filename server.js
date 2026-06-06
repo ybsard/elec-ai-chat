@@ -88,6 +88,67 @@ async function handleChat(req, res) {
   }
 }
 
+async function handlePhotoSchema(req, res) {
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(res, 500, {
+      error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+    });
+    return;
+  }
+
+  try {
+    const { image, context = "" } = await readRequestJson(req);
+    if (!image || !String(image).startsWith("data:image/")) {
+      sendJson(res, 400, { error: "Image manquante ou format non supporte." });
+      return;
+    }
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        instructions: [
+          "Tu es ELEC.AI, un assistant francais specialise dans l'electricite domestique.",
+          "Analyse la photo fournie pour retranscrire ce qui est visible en schema electrique simple.",
+          "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
+          "Reponds en francais avec exactement ces sections: 1) Ce que je vois, 2) Schema en traits, 3) Legende, 4) Points a verifier, 5) Securite.",
+          "Le schema en traits doit utiliser des caracteres simples avec L phase, N neutre, PE terre, protections, interrupteurs, lampes, prises ou borniers si visibles.",
+          "Rappelle que le schema est indicatif et qu'il faut couper le courant et faire valider par un electricien qualifie avant toute intervention."
+        ].join(" "),
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: `Contexte utilisateur: ${String(context || "aucun contexte").slice(0, 800)}`
+              },
+              {
+                type: "input_image",
+                image_url: image
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      sendJson(res, response.status, { error: data.error?.message || "Erreur API OpenAI." });
+      return;
+    }
+
+    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu analyser cette photo." });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
 async function serveStatic(req, res) {
   const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
   const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
@@ -106,6 +167,11 @@ async function serveStatic(req, res) {
 createServer(async (req, res) => {
   if (req.method === "POST" && req.url === "/api/chat") {
     await handleChat(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/photo-schema") {
+    await handlePhotoSchema(req, res);
     return;
   }
 

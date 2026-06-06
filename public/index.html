@@ -110,6 +110,31 @@
             <button id="createSchema" class="secondary-action" type="button">Creer un schema</button>
           </div>
 
+          <div class="photo-card">
+            <div class="card-heading">
+              <span class="step-badge">3</span>
+              <div>
+                <h2>Photo vers schema</h2>
+                <p>Importe une photo et ELEC.AI la retranscrit en schema simple.</p>
+              </div>
+            </div>
+
+            <label class="upload-zone" for="photoInput">
+              <span id="photoLabel">Choisir une photo</span>
+              <small>Tableau, prise, boite, montage ou croquis.</small>
+              <input id="photoInput" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+
+            <div id="photoPreview" class="photo-preview" hidden></div>
+
+            <label class="field">
+              <span>Contexte optionnel</span>
+              <input id="photoContext" type="text" placeholder="Ex: tableau electrique garage, prise cuisine">
+            </label>
+
+            <button id="analyzePhoto" class="secondary-action" type="button">Analyser la photo</button>
+          </div>
+
           <div class="trust-row" aria-label="Points forts">
             <div>
               <strong>Simple</strong>

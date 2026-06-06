@@ -14,10 +14,16 @@ const schemaType = document.querySelector("#schemaType");
 const schemaRoom = document.querySelector("#schemaRoom");
 const schemaUse = document.querySelector("#schemaUse");
 const createSchema = document.querySelector("#createSchema");
+const photoInput = document.querySelector("#photoInput");
+const photoLabel = document.querySelector("#photoLabel");
+const photoPreview = document.querySelector("#photoPreview");
+const photoContext = document.querySelector("#photoContext");
+const analyzePhoto = document.querySelector("#analyzePhoto");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
 let selectedIssue = "Disjoncteur qui saute";
+let selectedPhotoDataUrl = "";
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -115,6 +121,35 @@ function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
     ${lineSchema ? `<pre class="line-schema">${escapeHtml(lineSchema)}</pre>` : ""}
     <div class="diagram-frame">${svgMarkup}</div>
     <p>${escapeHtml(note)}</p>
+  `;
+
+  stack.append(label, bubble);
+  item.append(avatar, stack);
+  messagesEl.append(item);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addPhotoMessage(dataUrl, context) {
+  const item = document.createElement("article");
+  item.className = "message user";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "VO";
+
+  const stack = document.createElement("div");
+  stack.className = "message-stack";
+
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = "Vous";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble photo-bubble";
+  bubble.innerHTML = `
+    <strong>Photo a retranscrire en schema</strong>
+    <img src="${dataUrl}" alt="Photo envoyee pour analyse">
+    <span>${escapeHtml(context || "Sans contexte ajoute")}</span>
   `;
 
   stack.append(label, bubble);
@@ -454,6 +489,50 @@ async function askAssistant(content, options = {}) {
   }
 }
 
+async function analyzePhotoToSchema() {
+  if (!selectedPhotoDataUrl) {
+    hint.textContent = "Ajoute une photo avant de lancer l'analyse.";
+    photoInput.focus();
+    return;
+  }
+
+  const context = photoContext.value.trim();
+  addPhotoMessage(selectedPhotoDataUrl, context);
+
+  const pending = addMessage("assistant", "", { loading: true });
+  analyzePhoto.disabled = true;
+  hint.textContent = "ELEC.AI analyse la photo et prepare un schema...";
+
+  try {
+    const response = await fetch("/api/photo-schema", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: selectedPhotoDataUrl,
+        context
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+
+    const reply = (data.reply || "").trim() || "Je n'ai pas pu analyser cette photo.";
+    setAssistantMessage(pending, reply);
+    messages.push({
+      role: "assistant",
+      content: `Analyse photo vers schema:\n${reply}`
+    });
+    hint.textContent = "Photo analysee. Verifie toujours avec un electricien avant intervention.";
+  } catch (error) {
+    setAssistantMessage(pending, `Je ne peux pas analyser cette photo pour l'instant: ${error.message}`);
+    hint.textContent = "Verifie la cle API, le quota OpenAI ou essaye une image plus nette.";
+  } finally {
+    analyzePhoto.disabled = false;
+  }
+}
+
 promptInput.addEventListener("input", autosize);
 
 promptInput.addEventListener("keydown", (event) => {
@@ -514,5 +593,32 @@ createSchema.addEventListener("click", async () => {
   );
   await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });
 });
+
+photoInput.addEventListener("change", () => {
+  const file = photoInput.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    hint.textContent = "Le fichier doit etre une image.";
+    return;
+  }
+
+  if (file.size > 6 * 1024 * 1024) {
+    hint.textContent = "Image trop lourde. Choisis une photo de moins de 6 Mo.";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    selectedPhotoDataUrl = String(reader.result || "");
+    photoLabel.textContent = file.name;
+    photoPreview.hidden = false;
+    photoPreview.innerHTML = `<img src="${selectedPhotoDataUrl}" alt="Apercu de la photo">`;
+    hint.textContent = "Photo chargee. Ajoute un contexte si besoin puis lance l'analyse.";
+  });
+  reader.readAsDataURL(file);
+});
+
+analyzePhoto.addEventListener("click", analyzePhotoToSchema);
 
 autosize();

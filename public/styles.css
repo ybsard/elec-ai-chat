@@ -185,7 +185,8 @@ h2 {
 }
 
 .diagnostic-card,
-.schema-card {
+.schema-card,
+.photo-card {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -194,6 +195,10 @@ h2 {
 
 .schema-card {
   border-color: rgba(29, 111, 143, 0.28);
+}
+
+.photo-card {
+  border-color: rgba(36, 168, 115, 0.28);
 }
 
 .card-heading {
@@ -293,6 +298,50 @@ textarea:focus {
   color: white;
   font-weight: 950;
   cursor: pointer;
+}
+
+.secondary-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.upload-zone {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px dashed rgba(29, 111, 143, 0.45);
+  border-radius: 8px;
+  background: #f5fbfd;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.upload-zone span {
+  font-weight: 950;
+}
+
+.upload-zone small {
+  color: var(--muted);
+}
+
+.upload-zone input {
+  display: none;
+}
+
+.photo-preview {
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f9fb;
+}
+
+.photo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
 }
 
 .secondary-action {
@@ -564,6 +613,23 @@ textarea:focus {
   border-color: #15566f;
   background: var(--blue);
   color: white;
+}
+
+.photo-bubble {
+  display: grid;
+  gap: 8px;
+}
+
+.photo-bubble img {
+  max-width: 260px;
+  max-height: 220px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.photo-bubble span {
+  font-size: 13px;
+  opacity: 0.9;
 }
 
 .message-actions {
