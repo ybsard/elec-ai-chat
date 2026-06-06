@@ -13,6 +13,9 @@ const startDiagnostic = document.querySelector("#startDiagnostic");
 const schemaType = document.querySelector("#schemaType");
 const schemaRoom = document.querySelector("#schemaRoom");
 const schemaUse = document.querySelector("#schemaUse");
+const socketCount = document.querySelector("#socketCount");
+const lightCount = document.querySelector("#lightCount");
+const switchCount = document.querySelector("#switchCount");
 const createSchema = document.querySelector("#createSchema");
 const photoInput = document.querySelector("#photoInput");
 const photoLabel = document.querySelector("#photoLabel");
@@ -176,12 +179,30 @@ function buildDiagnosticPrompt() {
   ].join("\n");
 }
 
-function buildSchema(type, room, usage) {
+function clampCount(value, fallback, min, max) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.min(Math.max(parsed, min), max);
+}
+
+function getSchemaCounts() {
+  return {
+    sockets: clampCount(socketCount.value, 1, 0, 12),
+    lights: clampCount(lightCount.value, 1, 0, 8),
+    switches: clampCount(switchCount.value, 1, 0, 6)
+  };
+}
+
+function buildSchema(type, room, usage, counts = {}) {
   const safeRoom = escapeHtml(room || "piece a definir");
   const safeUsage = escapeHtml(usage || "usage a definir");
+  const socketTotal = clampCount(counts.sockets, 1, 0, 12);
+  const lightTotal = clampCount(counts.lights, 1, 0, 8);
+  const switchTotal = clampCount(counts.switches, type === "va-et-vient" ? 2 : 1, 0, 6);
+  const quantityLine = `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
   const header = `
     <text class="diagram-title" x="24" y="28">Schema electrique - ${safeRoom}</text>
-    <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage}</text>
+    <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage} | ${quantityLine}</text>
     <g class="legend">
       <line class="wire phase" x1="384" y1="24" x2="418" y2="24" /><text x="425" y="28">L phase</text>
       <line class="wire neutral" x1="384" y1="42" x2="418" y2="42" /><text x="425" y="46">N neutre</text>
@@ -318,7 +339,20 @@ function buildSchema(type, room, usage) {
   return templates[type] || templates.prise;
 }
 
-function buildLineSchema(type) {
+function numberedRows(label, count, prefix = "") {
+  const total = Math.max(count, 1);
+  return Array.from({ length: total }, (_, index) => `${prefix}${label} ${index + 1}`).join("\n");
+}
+
+function buildLineSchema(type, counts = {}) {
+  const socketTotal = clampCount(counts.sockets, 1, 0, 12);
+  const lightTotal = clampCount(counts.lights, 1, 0, 8);
+  const switchTotal = clampCount(counts.switches, type === "va-et-vient" ? 2 : 1, 0, 6);
+  const socketBranches = numberedRows("[ PRISE 2P+T ]", socketTotal, "             ├──────────────> ");
+  const lightBranches = numberedRows("[ LAMPE ]", lightTotal, "             ├──────────────> ");
+  const switchChain = Array.from({ length: Math.max(switchTotal, 1) }, (_, index) => `[INT ${index + 1}]`).join(" ---- ");
+  const vaSwitches = Math.max(switchTotal, 2);
+  const vaChain = Array.from({ length: vaSwitches }, (_, index) => `[VA ${index + 1}]`).join(" == navettes == ");
   const schemas = {
     prise: `
 TABLEAU ELECTRIQUE                      BOITE / PRISE 2P+T
@@ -334,40 +368,49 @@ Lecture:
 L  = phase, fil alimente
 N  = neutre, retour du courant
 PE = terre, protection des personnes
+
+Repartition demandee:
+${socketBranches}
     `,
     eclairage: `
-TABLEAU ELECTRIQUE        INTERRUPTEUR              POINT LUMINEUX
-┌────────────────────┐    ┌──────────────┐          ┌──────────────┐
-│ Disjoncteur 10/16A │    │              │          │    LAMPE     │
-│                    │    │ entree L  o──┼──┐       │              │
-│ borne L   o────────┼────┤              │  │       │ borne L  <───┘
-│                    │    │ sortie   o───┼──┴──────>│              │
-│ borne N   o────────┼─────────────────────────────>│ borne N      │
-│ terre PE o─────────┼─────────────────────────────>│ terre PE     │
-└────────────────────┘                              └──────────────┘
+TABLEAU ELECTRIQUE        COMMANDE(S)                         POINT(S) LUMINEUX
+┌────────────────────┐    ┌────────────────────────────┐      ┌──────────────┐
+│ Disjoncteur 10/16A │    │ ${switchChain.padEnd(26, " ")} │      │ LAMPE(S)     │
+│                    │    │ entree L -> sortie retour  │      │              │
+│ borne L   o────────┼────┤ phase coupee par commande  ├─────>│ borne L      │
+│ borne N   o────────┼───────────────────────────────────────>│ borne N      │
+│ terre PE o─────────┼───────────────────────────────────────>│ terre PE     │
+└────────────────────┘                                        └──────────────┘
 
 Lecture:
 La phase L passe par l'interrupteur.
 Le neutre N va directement a la lampe.
 La terre PE va au point lumineux si le materiel en a besoin.
+
+Points lumineux demandes:
+${lightBranches}
     `,
     "va-et-vient": `
-TABLEAU          VA-ET-VIENT A             VA-ET-VIENT B           LAMPE
-┌─────────┐      ┌─────────────┐           ┌─────────────┐        ┌────────┐
-│ DJ 10A  │      │ commun  o   │           │   o commun  │        │        │
-│         │      │         │   │           │   │         │        │ borne L│
-│ L o─────┼─────>│         │   │           │   │         ├────────>│        │
-│         │      │ nav 1 o─┼───┼───────────┼───o nav 1   │        │ borne N│
-│         │      │ nav 2 o─┼───┼───────────┼───o nav 2   │        │ terre  │
-│ N o─────┼───────────────────────────────────────────────────────>│        │
-│PE o─────┼───────────────────────────────────────────────────────>│        │
-└─────────┘                                                        └────────┘
+TABLEAU                         VA-ET-VIENT / COMMANDES                         LAMPE(S)
+┌─────────┐       ┌──────────────────────────────────────────────────┐          ┌────────┐
+│ DJ 10A  │       │ ${vaChain.padEnd(48, " ")} │          │        │
+│ L o─────┼──────>│ commun entree -> navettes -> commun retour lampe ├─────────>│ borne L│
+│ N o─────┼───────────────────────────────────────────────────────────────────>│ borne N│
+│PE o─────┼───────────────────────────────────────────────────────────────────>│ terre  │
+└─────────┘                                                                    └────────┘
+
+Detail navettes:
+VA 1 navette 1 ============================= VA 2 navette 1
+VA 1 navette 2 ============================= VA 2 navette 2
 
 Lecture:
 La phase arrive sur le commun du premier va-et-vient.
 Les deux navettes relient les deux interrupteurs.
 Le commun du deuxieme interrupteur devient le retour lampe.
 Le neutre et la terre vont directement au point lumineux.
+
+Points lumineux demandes:
+${lightBranches}
     `,
     tableau: `
 ARRIVEE 230V
@@ -403,11 +446,15 @@ function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
   const room = schemaRoom.value.trim() || "piece non precisee";
   const usage = schemaUse.value.trim() || "usage non precise";
+  const counts = getSchemaCounts();
   return [
     "Explique ce schema electrique indicatif.",
     `Type: ${typeLabel}.`,
     `Piece: ${room}.`,
     `Usage ou puissance: ${usage}.`,
+    `Nombre de prises: ${counts.sockets}.`,
+    `Nombre de lumieres: ${counts.lights}.`,
+    `Nombre d'interrupteurs: ${counts.switches}.`,
     "Donne une explication simple, les points de securite, et rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
   ].join("\n");
 }
@@ -585,11 +632,12 @@ createSchema.addEventListener("click", async () => {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
+  const counts = getSchemaCounts();
   addDiagramMessage(
     typeLabel,
-    buildSchema(schemaType.value, room, usage),
+    buildSchema(schemaType.value, room, usage, counts),
     "Schema indicatif genere par ELEC.AI. Ne pas intervenir sous tension.",
-    buildLineSchema(schemaType.value)
+    buildLineSchema(schemaType.value, counts)
   );
   await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });
 });
