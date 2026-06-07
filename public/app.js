@@ -360,6 +360,10 @@ function updateAccountUi(user, meta = {}) {
   upgradeButton.hidden = currentUser.plan === "pro";
 }
 
+function setAccountNotice(message) {
+  accountStatus.textContent = message;
+}
+
 async function refreshAccount() {
   try {
     const response = await fetch("/api/auth/me");
@@ -376,12 +380,14 @@ async function submitAuth(mode) {
   const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
 
   if (!email || !password) {
+    setAccountNotice("Entre un email et un mot de passe.");
     hint.textContent = "Entre un email et un mot de passe.";
     return;
   }
 
   signupButton.disabled = true;
   loginButton.disabled = true;
+  setAccountNotice(mode === "signup" ? "Creation du compte en cours..." : "Connexion en cours...");
   hint.textContent = mode === "signup" ? "Creation du compte..." : "Connexion...";
 
   try {
@@ -397,8 +403,15 @@ async function submitAuth(mode) {
 
     authPassword.value = "";
     updateAccountUi(data.user);
-    hint.textContent = mode === "signup" ? "Compte cree. Tu es connecte." : "Connexion reussie.";
+    if (mode === "signup") {
+      setAccountNotice(`${data.user.email} | Compte gratuit cree. Clique sur Passer Pro pour activer l'abonnement.`);
+      hint.textContent = "Compte cree. Tu peux maintenant cliquer sur Passer Pro.";
+    } else {
+      setAccountNotice(`${data.user.email} | Connexion reussie. Clique sur Passer Pro si tu veux t'abonner.`);
+      hint.textContent = "Connexion reussie.";
+    }
   } catch (error) {
+    setAccountNotice(error.message);
     hint.textContent = error.message;
   } finally {
     signupButton.disabled = false;
@@ -414,11 +427,13 @@ async function logoutAccount() {
 
 async function startCheckout() {
   if (!currentUser) {
+    setAccountNotice("Connecte-toi ou cree un compte avant de passer en Pro.");
     hint.textContent = "Connecte-toi avant de passer en Pro.";
     return;
   }
 
   upgradeButton.disabled = true;
+  setAccountNotice("Preparation du paiement Stripe...");
   hint.textContent = "Preparation du paiement Stripe...";
 
   try {
@@ -427,8 +442,10 @@ async function startCheckout() {
     if (!response.ok) {
       throw new Error(data.error || "Erreur inconnue.");
     }
+    setAccountNotice("Redirection vers Stripe...");
     window.location.href = data.url;
   } catch (error) {
+    setAccountNotice(error.message);
     hint.textContent = error.message;
   } finally {
     upgradeButton.disabled = false;
