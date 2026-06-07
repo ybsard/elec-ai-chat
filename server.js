@@ -1,11 +1,18 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(__dirname, "public");
+const dataDir = join(__dirname, "data");
+const usersFile = join(dataDir, "users.json");
 const port = Number(process.env.PORT || 3000);
+const freeDailyLimit = Number(process.env.FREE_DAILY_LIMIT || 10);
+const anonDailyLimit = Number(process.env.ANON_DAILY_LIMIT || 3);
+const sessionDays = 30;
+const anonymousUsage = new Map();
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -18,6 +25,143 @@ const mimeTypes = {
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(body));
+}
+
+function sendJsonWithHeaders(res, status, body, headers = {}) {
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...headers });
+  res.end(JSON.stringify(body));
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function publicUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    plan: user.plan || "free",
+    subscriptionStatus: user.subscriptionStatus || "free",
+    usageToday: user.usage?.date === todayKey() ? user.usage.count : 0,
+    freeDailyLimit
+  };
+}
+
+function parseCookies(req) {
+  return Object.fromEntries(
+    String(req.headers.cookie || "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const index = part.indexOf("=");
+        return index === -1 ? [part, ""] : [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
+      })
+  );
+}
+
+function sessionCookie(token) {
+  const maxAge = sessionDays * 24 * 60 * 60;
+  return `elec_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly`;
+}
+
+function clearSessionCookie() {
+  return "elec_session=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly";
+}
+
+async function loadUserStore() {
+  try {
+    return JSON.parse(await readFile(usersFile, "utf8"));
+  } catch {
+    return { users: [], sessions: {} };
+  }
+}
+
+async function saveUserStore(store) {
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(usersFile, JSON.stringify(store, null, 2), "utf8");
+}
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+  const [salt, hash] = String(storedHash || "").split(":");
+  if (!salt || !hash) return false;
+  const candidate = Buffer.from(scryptSync(password, salt, 64).toString("hex"), "hex");
+  const expected = Buffer.from(hash, "hex");
+  return expected.length === candidate.length && timingSafeEqual(expected, candidate);
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function isProUser(user) {
+  return user?.plan === "pro" && ["active", "trialing"].includes(user.subscriptionStatus || "");
+}
+
+async function getSessionUser(req, store = null) {
+  const activeStore = store || await loadUserStore();
+  const token = parseCookies(req).elec_session;
+  const session = token ? activeStore.sessions[token] : null;
+  if (!session) return { store: activeStore, token: "", user: null };
+
+  if (session.expiresAt && new Date(session.expiresAt).getTime() < Date.now()) {
+    delete activeStore.sessions[token];
+    await saveUserStore(activeStore);
+    return { store: activeStore, token: "", user: null };
+  }
+
+  const user = activeStore.users.find((item) => item.id === session.userId) || null;
+  return { store: activeStore, token, user };
+}
+
+function getClientKey(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return forwarded || req.socket.remoteAddress || "anonymous";
+}
+
+async function consumeUsage(req, res, feature) {
+  const auth = await getSessionUser(req);
+  const date = todayKey();
+
+  if (isProUser(auth.user)) {
+    return { allowed: true, user: auth.user };
+  }
+
+  if (auth.user) {
+    if (!auth.user.usage || auth.user.usage.date !== date) {
+      auth.user.usage = { date, count: 0 };
+    }
+    if (auth.user.usage.count >= freeDailyLimit) {
+      sendJson(res, 402, {
+        error: `Limite gratuite atteinte (${freeDailyLimit} utilisations aujourd'hui). Passe en Pro pour continuer.`,
+        upgradeRequired: true
+      });
+      return { allowed: false, user: auth.user };
+    }
+    auth.user.usage.count += 1;
+    auth.user.lastFeature = feature;
+    await saveUserStore(auth.store);
+    return { allowed: true, user: auth.user };
+  }
+
+  const key = `${date}:${getClientKey(req)}`;
+  const current = anonymousUsage.get(key) || 0;
+  if (current >= anonDailyLimit) {
+    sendJson(res, 402, {
+      error: `Limite libre-service atteinte (${anonDailyLimit} essais gratuits aujourd'hui). Cree un compte gratuit pour continuer.`,
+      signupRequired: true
+    });
+    return { allowed: false, user: null };
+  }
+  anonymousUsage.set(key, current + 1);
+  return { allowed: true, user: null };
 }
 
 function extractResponseText(data) {
@@ -61,6 +205,216 @@ async function readUpstreamJson(response) {
   }
 }
 
+async function handleSignup(req, res) {
+  try {
+    const { email, password } = await readRequestJson(req);
+    const cleanEmail = normalizeEmail(email);
+    const cleanPassword = String(password || "");
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      sendJson(res, 400, { error: "Adresse email invalide." });
+      return;
+    }
+    if (cleanPassword.length < 8) {
+      sendJson(res, 400, { error: "Le mot de passe doit contenir au moins 8 caracteres." });
+      return;
+    }
+
+    const store = await loadUserStore();
+    if (store.users.some((user) => user.email === cleanEmail)) {
+      sendJson(res, 409, { error: "Un compte existe deja avec cet email." });
+      return;
+    }
+
+    const user = {
+      id: randomBytes(12).toString("hex"),
+      email: cleanEmail,
+      passwordHash: hashPassword(cleanPassword),
+      plan: "free",
+      subscriptionStatus: "free",
+      usage: { date: todayKey(), count: 0 },
+      createdAt: new Date().toISOString()
+    };
+    const token = randomBytes(32).toString("hex");
+    store.users.push(user);
+    store.sessions[token] = {
+      userId: user.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + sessionDays * 24 * 60 * 60 * 1000).toISOString()
+    };
+    await saveUserStore(store);
+
+    sendJsonWithHeaders(res, 201, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(token) });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
+async function handleLogin(req, res) {
+  try {
+    const { email, password } = await readRequestJson(req);
+    const cleanEmail = normalizeEmail(email);
+    const store = await loadUserStore();
+    const user = store.users.find((item) => item.email === cleanEmail);
+
+    if (!user || !verifyPassword(String(password || ""), user.passwordHash)) {
+      sendJson(res, 401, { error: "Email ou mot de passe incorrect." });
+      return;
+    }
+
+    const token = randomBytes(32).toString("hex");
+    store.sessions[token] = {
+      userId: user.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + sessionDays * 24 * 60 * 60 * 1000).toISOString()
+    };
+    await saveUserStore(store);
+
+    sendJsonWithHeaders(res, 200, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(token) });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
+async function handleLogout(req, res) {
+  const auth = await getSessionUser(req);
+  if (auth.token) {
+    delete auth.store.sessions[auth.token];
+    await saveUserStore(auth.store);
+  }
+  sendJsonWithHeaders(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
+}
+
+async function handleMe(req, res) {
+  const auth = await getSessionUser(req);
+  sendJson(res, 200, {
+    user: publicUser(auth.user),
+    anonymousDailyLimit: anonDailyLimit
+  });
+}
+
+function stripeFormBody(values) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== null && value !== "") {
+      params.append(key, value);
+    }
+  }
+  return params;
+}
+
+async function handleCreateCheckout(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi avant de passer en Pro." });
+    return;
+  }
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
+    sendJson(res, 501, {
+      error: "Stripe n'est pas encore configure. Ajoute STRIPE_SECRET_KEY et STRIPE_PRICE_ID sur Render."
+    });
+    return;
+  }
+
+  try {
+    const host = req.headers.host || `localhost:${port}`;
+    const protocol = host.includes("localhost") ? "http" : "https";
+    const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: stripeFormBody({
+        mode: "subscription",
+        "line_items[0][price]": process.env.STRIPE_PRICE_ID,
+        "line_items[0][quantity]": "1",
+        success_url: `${protocol}://${host}/?checkout=success`,
+        cancel_url: `${protocol}://${host}/?checkout=cancel`,
+        client_reference_id: auth.user.id,
+        customer_email: auth.user.email,
+        "metadata[userId]": auth.user.id
+      })
+    });
+
+    const data = await readUpstreamJson(response);
+    if (!response.ok) {
+      sendJson(res, response.status, { error: data.error?.message || "Erreur Stripe." });
+      return;
+    }
+
+    sendJson(res, 200, { url: data.url });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
+async function readRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function verifyStripeSignature(rawBody, signature, secret) {
+  const parts = Object.fromEntries(
+    String(signature || "")
+      .split(",")
+      .map((part) => part.split("="))
+      .filter((part) => part.length === 2)
+  );
+  if (!parts.t || !parts.v1) return false;
+  const payload = `${parts.t}.${rawBody.toString("utf8")}`;
+  const expected = createHmac("sha256", secret).update(payload).digest("hex");
+  const expectedBuffer = Buffer.from(expected);
+  const actualBuffer = Buffer.from(parts.v1);
+  return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer);
+}
+
+async function handleStripeWebhook(req, res) {
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    sendJson(res, 501, { error: "STRIPE_WEBHOOK_SECRET manquant." });
+    return;
+  }
+
+  const rawBody = await readRawBody(req);
+  if (!verifyStripeSignature(rawBody, req.headers["stripe-signature"], process.env.STRIPE_WEBHOOK_SECRET)) {
+    sendJson(res, 400, { error: "Signature Stripe invalide." });
+    return;
+  }
+
+  const event = JSON.parse(rawBody.toString("utf8"));
+  const store = await loadUserStore();
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data?.object || {};
+    const userId = session.client_reference_id || session.metadata?.userId;
+    const user = store.users.find((item) => item.id === userId);
+    if (user) {
+      user.plan = "pro";
+      user.subscriptionStatus = "active";
+      user.stripeCustomerId = session.customer;
+      user.stripeSubscriptionId = session.subscription;
+      user.updatedAt = new Date().toISOString();
+      await saveUserStore(store);
+    }
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data?.object || {};
+    const user = store.users.find((item) => item.stripeSubscriptionId === subscription.id);
+    if (user) {
+      user.plan = "free";
+      user.subscriptionStatus = "canceled";
+      user.updatedAt = new Date().toISOString();
+      await saveUserStore(store);
+    }
+  }
+
+  sendJson(res, 200, { received: true });
+}
+
 async function handleChat(req, res) {
   if (!process.env.OPENAI_API_KEY) {
     sendJson(res, 500, {
@@ -70,6 +424,9 @@ async function handleChat(req, res) {
   }
 
   try {
+    const usage = await consumeUsage(req, res, "chat");
+    if (!usage.allowed) return;
+
     const { messages = [] } = await readRequestJson(req);
     const input = messages.map((message) => ({
       role: message.role === "assistant" ? "assistant" : "user",
@@ -119,6 +476,9 @@ async function handlePhotoSchema(req, res) {
   }
 
   try {
+    const usage = await consumeUsage(req, res, "photo-schema");
+    if (!usage.allowed) return;
+
     const { image, context = "" } = await readRequestJson(req);
     if (!image || !String(image).startsWith("data:image/")) {
       sendJson(res, 400, { error: "Image manquante ou format non supporte." });
@@ -180,6 +540,9 @@ async function handleManualSearch(req, res) {
   }
 
   try {
+    const usage = await consumeUsage(req, res, "manual-search");
+    if (!usage.allowed) return;
+
     const { reference = "", image = "" } = await readRequestJson(req);
     const cleanReference = String(reference || "").slice(0, 300).trim();
     const hasImage = image && String(image).startsWith("data:image/");
@@ -257,6 +620,9 @@ async function handleLightingPlan(req, res) {
   }
 
   try {
+    const usage = await consumeUsage(req, res, "lighting-plan");
+    if (!usage.allowed) return;
+
     const {
       image,
       room = "",
@@ -343,6 +709,36 @@ async function serveStatic(req, res) {
 }
 
 createServer(async (req, res) => {
+  if (req.method === "POST" && req.url === "/api/auth/signup") {
+    await handleSignup(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/login") {
+    await handleLogin(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/logout") {
+    await handleLogout(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/auth/me") {
+    await handleMe(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/billing/checkout") {
+    await handleCreateCheckout(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/stripe-webhook") {
+    await handleStripeWebhook(req, res);
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/api/chat") {
     await handleChat(req, res);
     return;

@@ -47,6 +47,38 @@
             </div>
           </div>
 
+          <div class="account-card">
+            <div class="card-heading compact-heading">
+              <span class="step-badge">PRO</span>
+              <div>
+                <h2>Compte & abonnement</h2>
+                <p>Utilise gratuitement, puis passe en Pro si besoin.</p>
+              </div>
+            </div>
+
+            <div id="accountStatus" class="account-status">Libre-service: 3 essais gratuits par jour.</div>
+
+            <div id="authFields">
+              <label class="field">
+                <span>Email</span>
+                <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+              </label>
+              <label class="field">
+                <span>Mot de passe</span>
+                <input id="authPassword" type="password" placeholder="8 caracteres minimum" autocomplete="current-password">
+              </label>
+              <div class="account-actions">
+                <button id="signupButton" class="secondary-action" type="button">Creer un compte</button>
+                <button id="loginButton" class="secondary-action" type="button">Connexion</button>
+              </div>
+            </div>
+
+            <div id="memberActions" class="member-actions" hidden>
+              <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
+              <button id="logoutButton" class="secondary-action" type="button">Deconnexion</button>
+            </div>
+          </div>
+
           <div class="diagnostic-card">
             <div class="card-heading">
               <span class="step-badge">1</span>

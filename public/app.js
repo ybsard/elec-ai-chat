@@ -8,6 +8,15 @@ const sendButton = document.querySelector("#sendButton");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
+const accountStatus = document.querySelector("#accountStatus");
+const authFields = document.querySelector("#authFields");
+const authEmail = document.querySelector("#authEmail");
+const authPassword = document.querySelector("#authPassword");
+const signupButton = document.querySelector("#signupButton");
+const loginButton = document.querySelector("#loginButton");
+const memberActions = document.querySelector("#memberActions");
+const upgradeButton = document.querySelector("#upgradeButton");
+const logoutButton = document.querySelector("#logoutButton");
 const symptomInput = document.querySelector("#symptomInput");
 const riskSelect = document.querySelector("#riskSelect");
 const startDiagnostic = document.querySelector("#startDiagnostic");
@@ -44,6 +53,7 @@ let selectedPhotoDataUrl = "";
 let selectedManualPhotoDataUrl = "";
 let selectedLightingPlanDataUrl = "";
 let selectedLevel = "debutant";
+let currentUser = null;
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -326,6 +336,102 @@ async function readJsonResponse(response) {
     return {
       error: text || "Reponse serveur illisible."
     };
+  }
+}
+
+function updateAccountUi(user, meta = {}) {
+  currentUser = user || null;
+
+  if (!currentUser) {
+    accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 3} essais gratuits par jour. Cree un compte gratuit pour plus d'essais.`;
+    authFields.hidden = false;
+    memberActions.hidden = true;
+    return;
+  }
+
+  const planLabel = currentUser.plan === "pro" ? "Pro" : "Gratuit";
+  const usage = currentUser.plan === "pro"
+    ? "utilisation etendue"
+    : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} utilisations aujourd'hui`;
+
+  accountStatus.textContent = `${currentUser.email} | Offre ${planLabel} | ${usage}`;
+  authFields.hidden = true;
+  memberActions.hidden = false;
+  upgradeButton.hidden = currentUser.plan === "pro";
+}
+
+async function refreshAccount() {
+  try {
+    const response = await fetch("/api/auth/me");
+    const data = await readJsonResponse(response);
+    updateAccountUi(data.user, data);
+  } catch {
+    updateAccountUi(null);
+  }
+}
+
+async function submitAuth(mode) {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+
+  if (!email || !password) {
+    hint.textContent = "Entre un email et un mot de passe.";
+    return;
+  }
+
+  signupButton.disabled = true;
+  loginButton.disabled = true;
+  hint.textContent = mode === "signup" ? "Creation du compte..." : "Connexion...";
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+
+    authPassword.value = "";
+    updateAccountUi(data.user);
+    hint.textContent = mode === "signup" ? "Compte cree. Tu es connecte." : "Connexion reussie.";
+  } catch (error) {
+    hint.textContent = error.message;
+  } finally {
+    signupButton.disabled = false;
+    loginButton.disabled = false;
+  }
+}
+
+async function logoutAccount() {
+  await fetch("/api/auth/logout", { method: "POST" });
+  updateAccountUi(null);
+  hint.textContent = "Tu es deconnecte.";
+}
+
+async function startCheckout() {
+  if (!currentUser) {
+    hint.textContent = "Connecte-toi avant de passer en Pro.";
+    return;
+  }
+
+  upgradeButton.disabled = true;
+  hint.textContent = "Preparation du paiement Stripe...";
+
+  try {
+    const response = await fetch("/api/billing/checkout", { method: "POST" });
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+    window.location.href = data.url;
+  } catch (error) {
+    hint.textContent = error.message;
+  } finally {
+    upgradeButton.disabled = false;
   }
 }
 
@@ -949,6 +1055,7 @@ async function askAssistant(content, options = {}) {
     const reply = (data.reply || "").trim() || "Je n'ai pas pu generer de reponse.";
     setAssistantMessage(pending, reply);
     messages.push({ role: "assistant", content: reply });
+    await refreshAccount();
     hint.textContent = "Reponse generee. Precise le contexte si tu veux une piste plus exacte.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas repondre pour l'instant: ${error.message}`);
@@ -995,6 +1102,7 @@ async function analyzePhotoToSchema() {
       role: "assistant",
       content: `Analyse photo vers schema:\n${reply}`
     });
+    await refreshAccount();
     hint.textContent = "Photo analysee. Verifie toujours avec un electricien avant intervention.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas analyser cette photo pour l'instant: ${error.message}`);
@@ -1040,6 +1148,7 @@ async function searchManualNotice() {
       role: "assistant",
       content: `Recherche de notice:\n${reply}`
     });
+    await refreshAccount();
     hint.textContent = "Recherche terminee. Verifie toujours que la reference correspond exactement a ton appareil.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas rechercher la notice pour l'instant: ${error.message}`);
@@ -1098,6 +1207,7 @@ async function analyzeLightingPlan() {
       role: "assistant",
       content: `Dimensionnement eclairage:\n${reply}`
     });
+    await refreshAccount();
     hint.textContent = "Dimensionnement genere. Verifie les cotes et fais valider avant travaux.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner l'eclairage pour l'instant: ${error.message}`);
@@ -1159,6 +1269,11 @@ levelButtons.forEach((button) => {
     hint.textContent = `Niveau choisi: ${button.textContent}. Les prochaines reponses seront adaptees.`;
   });
 });
+
+signupButton.addEventListener("click", () => submitAuth("signup"));
+loginButton.addEventListener("click", () => submitAuth("login"));
+logoutButton.addEventListener("click", logoutAccount);
+upgradeButton.addEventListener("click", startCheckout);
 
 startDiagnostic.addEventListener("click", async () => {
   await askAssistant(buildDiagnosticPrompt());
@@ -1263,4 +1378,5 @@ analyzePhoto.addEventListener("click", analyzePhotoToSchema);
 searchManual.addEventListener("click", searchManualNotice);
 analyzeLighting.addEventListener("click", analyzeLightingPlan);
 
+refreshAccount();
 autosize();
