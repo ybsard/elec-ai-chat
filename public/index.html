@@ -165,6 +165,31 @@
             <button id="analyzePhoto" class="secondary-action" type="button">Analyser la photo</button>
           </div>
 
+          <div class="manual-card">
+            <div class="card-heading">
+              <span class="step-badge">4</span>
+              <div>
+                <h2>Recherche de notice</h2>
+                <p>Trouve une notice depuis une reference ou une photo d'etiquette.</p>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Reference appareil</span>
+              <input id="manualReference" type="text" placeholder="Ex: Legrand 412170, Hager CDA743F">
+            </label>
+
+            <label class="upload-zone" for="manualPhotoInput">
+              <span id="manualPhotoLabel">Choisir une photo de reference</span>
+              <small>Etiquette, plaque signaletique, emballage ou face avant.</small>
+              <input id="manualPhotoInput" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+
+            <div id="manualPhotoPreview" class="photo-preview" hidden></div>
+
+            <button id="searchManual" class="secondary-action" type="button">Rechercher la notice</button>
+          </div>
+
           <div class="trust-row" aria-label="Points forts">
             <div>
               <strong>Simple</strong>

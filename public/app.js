@@ -23,11 +23,17 @@ const photoLabel = document.querySelector("#photoLabel");
 const photoPreview = document.querySelector("#photoPreview");
 const photoContext = document.querySelector("#photoContext");
 const analyzePhoto = document.querySelector("#analyzePhoto");
+const manualReference = document.querySelector("#manualReference");
+const manualPhotoInput = document.querySelector("#manualPhotoInput");
+const manualPhotoLabel = document.querySelector("#manualPhotoLabel");
+const manualPhotoPreview = document.querySelector("#manualPhotoPreview");
+const searchManual = document.querySelector("#searchManual");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
 let selectedIssue = "Disjoncteur qui saute";
 let selectedPhotoDataUrl = "";
+let selectedManualPhotoDataUrl = "";
 let selectedLevel = "debutant";
 
 function updateCounter() {
@@ -231,6 +237,35 @@ function addPhotoMessage(dataUrl, context) {
     <strong>Photo a retranscrire en schema</strong>
     <img src="${dataUrl}" alt="Photo envoyee pour analyse">
     <span>${escapeHtml(context || "Sans contexte ajoute")}</span>
+  `;
+
+  stack.append(label, bubble);
+  item.append(avatar, stack);
+  messagesEl.append(item);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addManualSearchMessage(reference, dataUrl) {
+  const item = document.createElement("article");
+  item.className = "message user";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "VO";
+
+  const stack = document.createElement("div");
+  stack.className = "message-stack";
+
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = "Vous";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble photo-bubble";
+  bubble.innerHTML = `
+    <strong>Recherche de notice</strong>
+    ${dataUrl ? `<img src="${dataUrl}" alt="Photo de reference envoyee">` : ""}
+    <span>${escapeHtml(reference || "Recherche depuis la photo uniquement")}</span>
   `;
 
   stack.append(label, bubble);
@@ -931,6 +966,51 @@ async function analyzePhotoToSchema() {
   }
 }
 
+async function searchManualNotice() {
+  const reference = manualReference.value.trim();
+
+  if (!reference && !selectedManualPhotoDataUrl) {
+    hint.textContent = "Ajoute une reference ou une photo avant de rechercher une notice.";
+    manualReference.focus();
+    return;
+  }
+
+  addManualSearchMessage(reference, selectedManualPhotoDataUrl);
+
+  const pending = addMessage("assistant", "", { loading: true });
+  searchManual.disabled = true;
+  hint.textContent = "ELEC.AI cherche la notice et les liens probables...";
+
+  try {
+    const response = await fetch("/api/manual-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reference,
+        image: selectedManualPhotoDataUrl
+      })
+    });
+
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+
+    const reply = (data.reply || "").trim() || "Je n'ai pas pu trouver de notice fiable.";
+    setAssistantMessage(pending, reply);
+    messages.push({
+      role: "assistant",
+      content: `Recherche de notice:\n${reply}`
+    });
+    hint.textContent = "Recherche terminee. Verifie toujours que la reference correspond exactement a ton appareil.";
+  } catch (error) {
+    setAssistantMessage(pending, `Je ne peux pas rechercher la notice pour l'instant: ${error.message}`);
+    hint.textContent = "Verifie la cle API, le quota OpenAI ou retente avec une reference plus complete.";
+  } finally {
+    searchManual.disabled = false;
+  }
+}
+
 promptInput.addEventListener("input", autosize);
 
 promptInput.addEventListener("keydown", (event) => {
@@ -1033,6 +1113,32 @@ photoInput.addEventListener("change", () => {
   reader.readAsDataURL(file);
 });
 
+manualPhotoInput.addEventListener("change", () => {
+  const file = manualPhotoInput.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    hint.textContent = "Le fichier doit etre une image.";
+    return;
+  }
+
+  if (file.size > 6 * 1024 * 1024) {
+    hint.textContent = "Image trop lourde. Choisis une photo de moins de 6 Mo.";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    selectedManualPhotoDataUrl = String(reader.result || "");
+    manualPhotoLabel.textContent = file.name;
+    manualPhotoPreview.hidden = false;
+    manualPhotoPreview.innerHTML = `<img src="${selectedManualPhotoDataUrl}" alt="Apercu de la reference">`;
+    hint.textContent = "Photo de reference chargee. Tu peux lancer la recherche de notice.";
+  });
+  reader.readAsDataURL(file);
+});
+
 analyzePhoto.addEventListener("click", analyzePhotoToSchema);
+searchManual.addEventListener("click", searchManualNotice);
 
 autosize();

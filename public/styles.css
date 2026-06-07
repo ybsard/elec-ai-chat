@@ -187,6 +187,7 @@ h2 {
 .diagnostic-card,
 .schema-card,
 .photo-card,
+.manual-card,
 .level-card {
   padding: 18px;
   border: 1px solid var(--line);
@@ -204,6 +205,10 @@ h2 {
 
 .photo-card {
   border-color: rgba(36, 168, 115, 0.28);
+}
+
+.manual-card {
+  border-color: rgba(142, 86, 200, 0.28);
 }
 
 .card-heading {
