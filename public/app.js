@@ -46,6 +46,15 @@ const lightingDimensions = document.querySelector("#lightingDimensions");
 const lightingHeight = document.querySelector("#lightingHeight");
 const lightingType = document.querySelector("#lightingType");
 const analyzeLighting = document.querySelector("#analyzeLighting");
+const climateArea = document.querySelector("#climateArea");
+const climateHeight = document.querySelector("#climateHeight");
+const climateRoom = document.querySelector("#climateRoom");
+const climateInsulation = document.querySelector("#climateInsulation");
+const climateSun = document.querySelector("#climateSun");
+const climatePeople = document.querySelector("#climatePeople");
+const climateHeatSources = document.querySelector("#climateHeatSources");
+const climateRegion = document.querySelector("#climateRegion");
+const sizeClimate = document.querySelector("#sizeClimate");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
@@ -316,6 +325,31 @@ function addLightingPlanMessage(details, dataUrl) {
     ${dataUrl ? `<img src="${dataUrl}" alt="Plan envoye pour dimensionnement">` : ""}
     <span>${escapeHtml(details || "Plan et contexte envoyes")}</span>
   `;
+
+  stack.append(label, bubble);
+  item.append(avatar, stack);
+  messagesEl.append(item);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addClimateSizingMessage(details) {
+  const item = document.createElement("article");
+  item.className = "message user";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "VO";
+
+  const stack = document.createElement("div");
+  stack.className = "message-stack";
+
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = "Vous";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = `Dimensionnement climatisation\n${details}`;
 
   stack.append(label, bubble);
   item.append(avatar, stack);
@@ -1245,6 +1279,73 @@ async function analyzeLightingPlan() {
   }
 }
 
+async function sizeClimateSystem() {
+  const area = Number(climateArea.value);
+  const height = Number(climateHeight.value || 2.5);
+
+  if (!area || area < 5) {
+    hint.textContent = "Indique une superficie valide pour dimensionner la clim.";
+    climateArea.focus();
+    return;
+  }
+
+  const payload = {
+    area,
+    height,
+    room: climateRoom.value,
+    insulation: climateInsulation.value,
+    sun: climateSun.value,
+    people: Number(climatePeople.value || 1),
+    heatSources: climateHeatSources.value,
+    region: climateRegion.value,
+    level: selectedLevel
+  };
+
+  const details = [
+    `${payload.area} m2`,
+    `${payload.height} m de hauteur`,
+    payload.room,
+    `isolation ${payload.insulation.toLowerCase()}`,
+    `exposition ${payload.sun.toLowerCase()}`,
+    `${payload.people} personne(s)`,
+    `appareils: ${payload.heatSources.toLowerCase()}`,
+    `climat ${payload.region.toLowerCase()}`
+  ].join(" | ");
+
+  addClimateSizingMessage(details);
+
+  const pending = addMessage("assistant", "", { loading: true });
+  sizeClimate.disabled = true;
+  hint.textContent = "Voltia estime la puissance de climatisation...";
+
+  try {
+    const response = await fetch("/api/climate-sizing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+
+    const reply = (data.reply || "").trim() || "Je n'ai pas pu dimensionner cette climatisation.";
+    setAssistantMessage(pending, reply);
+    messages.push({
+      role: "assistant",
+      content: `Dimensionnement climatisation:\n${reply}`
+    });
+    await refreshAccount();
+    hint.textContent = "Estimation clim generee. Verifie avec un frigoriste avant achat ou pose.";
+  } catch (error) {
+    setAssistantMessage(pending, `Je ne peux pas dimensionner la clim pour l'instant: ${error.message}`);
+    hint.textContent = "Verifie les donnees ou les logs Render si le site est en ligne.";
+  } finally {
+    sizeClimate.disabled = false;
+  }
+}
+
 promptInput.addEventListener("input", autosize);
 
 promptInput.addEventListener("keydown", (event) => {
@@ -1405,6 +1506,7 @@ lightingPlanInput.addEventListener("change", () => {
 analyzePhoto.addEventListener("click", analyzePhotoToSchema);
 searchManual.addEventListener("click", searchManualNotice);
 analyzeLighting.addEventListener("click", analyzeLightingPlan);
+sizeClimate.addEventListener("click", sizeClimateSystem);
 
 refreshAccount();
 autosize();

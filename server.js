@@ -701,6 +701,144 @@ async function handleLightingPlan(req, res) {
   }
 }
 
+function climateCoefficient(value, map, fallback = 1) {
+  return map[String(value || "").toLowerCase()] || fallback;
+}
+
+function estimateClimateSizing(input) {
+  const area = Math.min(Math.max(Number(input.area || 0), 5), 250);
+  const height = Math.min(Math.max(Number(input.height || 2.5), 2), 5);
+  const people = Math.min(Math.max(Number(input.people || 1), 1), 20);
+  const room = String(input.room || "Salon / sejour");
+
+  const baseWattsPerM2 = room.toLowerCase().includes("cuisine")
+    ? 120
+    : room.toLowerCase().includes("bureau")
+      ? 105
+      : 100;
+
+  const insulationCoef = climateCoefficient(input.insulation, {
+    "bonne": 0.9,
+    "correcte": 1,
+    "moyenne": 1.12,
+    "faible": 1.28
+  });
+  const sunCoef = climateCoefficient(input.sun, {
+    "peu exposee": 0.92,
+    "normale": 1,
+    "tres ensoleillee": 1.18
+  });
+  const heatCoef = climateCoefficient(input.heatSources, {
+    "peu": 0.96,
+    "normaux": 1,
+    "nombreux": 1.12
+  });
+  const regionCoef = climateCoefficient(input.region, {
+    "tempere": 1,
+    "chaud": 1.12,
+    "tres chaud": 1.24
+  });
+  const heightCoef = height > 2.5 ? height / 2.5 : 1;
+  const peopleExtraWatts = Math.max(people - 1, 0) * 100;
+
+  const rawWatts = area * baseWattsPerM2 * heightCoef * insulationCoef * sunCoef * heatCoef * regionCoef + peopleExtraWatts;
+  const recommendedWatts = Math.round(rawWatts / 100) * 100;
+  const recommendedKw = Number((recommendedWatts / 1000).toFixed(1));
+  const recommendedBtu = Math.round((recommendedWatts * 3.412) / 500) * 500;
+
+  return {
+    area,
+    height,
+    volume: Number((area * height).toFixed(1)),
+    recommendedWatts,
+    recommendedKw,
+    recommendedBtu,
+    baseWattsPerM2,
+    coefficients: {
+      isolation: insulationCoef,
+      soleil: sunCoef,
+      hauteur: Number(heightCoef.toFixed(2)),
+      appareils: heatCoef,
+      region: regionCoef,
+      personnesSupplementaires: peopleExtraWatts
+    }
+  };
+}
+
+async function handleClimateSizing(req, res) {
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(res, 500, {
+      error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+    });
+    return;
+  }
+
+  try {
+    const usage = await consumeUsage(req, res, "climate-sizing");
+    if (!usage.allowed) return;
+
+    const input = await readRequestJson(req);
+    const estimate = estimateClimateSizing(input);
+
+    if (!estimate.area || estimate.area < 5) {
+      sendJson(res, 400, { error: "Superficie manquante ou trop faible." });
+      return;
+    }
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        instructions: [
+          "Tu es Voltia, un assistant francais specialise dans le dimensionnement indicatif de climatisation domestique.",
+          "Explique une estimation de puissance de climatiseur a partir des donnees fournies.",
+          "Ne presente jamais le resultat comme une etude thermique professionnelle.",
+          "Rappelle qu'un bilan thermique reel depend des vitrages, murs, orientation, apports internes, ventilation, region, humidite et contraintes de pose.",
+          "Reponds avec exactement ces sections: Resume rapide, Donnees prises en compte, Calcul indicatif, Puissance conseillee, Type de climatiseur, Points de vigilance, Conclusion.",
+          "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait etre sous-dimensionne ou surdimensionne."
+        ].join(" "),
+        input: [
+          {
+            role: "user",
+            content: [
+              "Dimensionne une climatisation avec ces donnees.",
+              `Superficie: ${estimate.area} m2.`,
+              `Hauteur: ${estimate.height} m.`,
+              `Volume: ${estimate.volume} m3.`,
+              `Piece: ${String(input.room || "non precise").slice(0, 80)}.`,
+              `Isolation: ${String(input.insulation || "non precisee").slice(0, 80)}.`,
+              `Exposition soleil: ${String(input.sun || "non precisee").slice(0, 80)}.`,
+              `Personnes: ${String(input.people || "1").slice(0, 20)}.`,
+              `Appareils chauffants: ${String(input.heatSources || "non precise").slice(0, 80)}.`,
+              `Region/climat: ${String(input.region || "non precise").slice(0, 80)}.`,
+              `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
+              `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
+              `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`
+            ].join(" ")
+          }
+        ]
+      })
+    });
+
+    const data = await readUpstreamJson(response);
+    if (!response.ok) {
+      sendJson(res, response.status, { error: data.error?.message || "Erreur API OpenAI." });
+      return;
+    }
+
+    sendJson(res, 200, {
+      reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cette climatisation.",
+      estimate
+    });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
 async function serveStatic(req, res) {
   const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
   const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
@@ -764,6 +902,11 @@ createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/api/lighting-plan") {
     await handleLightingPlan(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/climate-sizing") {
+    await handleClimateSizing(req, res);
     return;
   }
 

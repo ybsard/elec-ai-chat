@@ -293,6 +293,85 @@
             <button id="analyzeLighting" class="secondary-action" type="button">Dimensionner l'eclairage</button>
           </div>
 
+          <div class="climate-card">
+            <div class="card-heading">
+              <span class="step-badge">6</span>
+              <div>
+                <h2>Dimensionnement clim</h2>
+                <p>Estime la puissance du climatiseur selon la piece et les conditions.</p>
+              </div>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Superficie</span>
+                <input id="climateArea" type="number" min="5" max="250" step="1" placeholder="Ex: 28">
+              </label>
+              <label class="field">
+                <span>Hauteur plafond</span>
+                <input id="climateHeight" type="number" min="2" max="5" step="0.1" placeholder="Ex: 2.5">
+              </label>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Type de piece</span>
+                <select id="climateRoom">
+                  <option>Salon / sejour</option>
+                  <option>Chambre</option>
+                  <option>Bureau</option>
+                  <option>Cuisine</option>
+                  <option>Local professionnel</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Isolation</span>
+                <select id="climateInsulation">
+                  <option>Correcte</option>
+                  <option>Bonne</option>
+                  <option>Moyenne</option>
+                  <option>Faible</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Exposition soleil</span>
+                <select id="climateSun">
+                  <option>Normale</option>
+                  <option>Peu exposee</option>
+                  <option>Tres ensoleillee</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Nombre de personnes</span>
+                <input id="climatePeople" type="number" min="1" max="20" step="1" value="1">
+              </label>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Appareils chauffants</span>
+                <select id="climateHeatSources">
+                  <option>Peu</option>
+                  <option>Normaux</option>
+                  <option>Nombreux</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Region / climat</span>
+                <select id="climateRegion">
+                  <option>Tempere</option>
+                  <option>Chaud</option>
+                  <option>Tres chaud</option>
+                </select>
+              </label>
+            </div>
+
+            <button id="sizeClimate" class="secondary-action" type="button">Estimer la clim</button>
+          </div>
+
           <div class="trust-row" aria-label="Points forts">
             <div>
               <strong>Simple</strong>

@@ -224,6 +224,7 @@ h2 {
 .photo-card,
 .manual-card,
 .lighting-card,
+.climate-card,
 .account-card,
 .level-card {
   padding: 18px;
@@ -345,6 +346,10 @@ h2 {
 
 .lighting-card {
   border-color: rgba(242, 165, 26, 0.38);
+}
+
+.climate-card {
+  border-color: rgba(29, 111, 143, 0.38);
 }
 
 .card-heading {
