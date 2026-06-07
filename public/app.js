@@ -28,12 +28,21 @@ const manualPhotoInput = document.querySelector("#manualPhotoInput");
 const manualPhotoLabel = document.querySelector("#manualPhotoLabel");
 const manualPhotoPreview = document.querySelector("#manualPhotoPreview");
 const searchManual = document.querySelector("#searchManual");
+const lightingPlanInput = document.querySelector("#lightingPlanInput");
+const lightingPlanLabel = document.querySelector("#lightingPlanLabel");
+const lightingPlanPreview = document.querySelector("#lightingPlanPreview");
+const lightingRoom = document.querySelector("#lightingRoom");
+const lightingDimensions = document.querySelector("#lightingDimensions");
+const lightingHeight = document.querySelector("#lightingHeight");
+const lightingType = document.querySelector("#lightingType");
+const analyzeLighting = document.querySelector("#analyzeLighting");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
 let selectedIssue = "Disjoncteur qui saute";
 let selectedPhotoDataUrl = "";
 let selectedManualPhotoDataUrl = "";
+let selectedLightingPlanDataUrl = "";
 let selectedLevel = "debutant";
 
 function updateCounter() {
@@ -266,6 +275,35 @@ function addManualSearchMessage(reference, dataUrl) {
     <strong>Recherche de notice</strong>
     ${dataUrl ? `<img src="${dataUrl}" alt="Photo de reference envoyee">` : ""}
     <span>${escapeHtml(reference || "Recherche depuis la photo uniquement")}</span>
+  `;
+
+  stack.append(label, bubble);
+  item.append(avatar, stack);
+  messagesEl.append(item);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addLightingPlanMessage(details, dataUrl) {
+  const item = document.createElement("article");
+  item.className = "message user";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "VO";
+
+  const stack = document.createElement("div");
+  stack.className = "message-stack";
+
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = "Vous";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble photo-bubble";
+  bubble.innerHTML = `
+    <strong>Dimensionnement eclairage</strong>
+    ${dataUrl ? `<img src="${dataUrl}" alt="Plan envoye pour dimensionnement">` : ""}
+    <span>${escapeHtml(details || "Plan et contexte envoyes")}</span>
   `;
 
   stack.append(label, bubble);
@@ -1011,6 +1049,64 @@ async function searchManualNotice() {
   }
 }
 
+async function analyzeLightingPlan() {
+  if (!selectedLightingPlanDataUrl) {
+    hint.textContent = "Ajoute un plan avant de lancer le dimensionnement eclairage.";
+    lightingPlanInput.focus();
+    return;
+  }
+
+  const room = lightingRoom.value.trim();
+  const dimensions = lightingDimensions.value.trim();
+  const height = lightingHeight.value.trim();
+  const type = lightingType.value;
+  const details = [
+    room ? `Piece: ${room}` : "",
+    dimensions ? `Dimensions: ${dimensions}` : "",
+    height ? `Hauteur: ${height}` : "",
+    type ? `Type souhaite: ${type}` : ""
+  ].filter(Boolean).join(" | ");
+
+  addLightingPlanMessage(details, selectedLightingPlanDataUrl);
+
+  const pending = addMessage("assistant", "", { loading: true });
+  analyzeLighting.disabled = true;
+  hint.textContent = "ELEC.AI analyse le plan et calcule une implantation d'eclairage...";
+
+  try {
+    const response = await fetch("/api/lighting-plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: selectedLightingPlanDataUrl,
+        room,
+        dimensions,
+        height,
+        type,
+        level: selectedLevel
+      })
+    });
+
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+
+    const reply = (data.reply || "").trim() || "Je n'ai pas pu dimensionner cet eclairage.";
+    setAssistantMessage(pending, reply);
+    messages.push({
+      role: "assistant",
+      content: `Dimensionnement eclairage:\n${reply}`
+    });
+    hint.textContent = "Dimensionnement genere. Verifie les cotes et fais valider avant travaux.";
+  } catch (error) {
+    setAssistantMessage(pending, `Je ne peux pas dimensionner l'eclairage pour l'instant: ${error.message}`);
+    hint.textContent = "Verifie la cle API, le quota OpenAI ou ajoute un plan plus lisible.";
+  } finally {
+    analyzeLighting.disabled = false;
+  }
+}
+
 promptInput.addEventListener("input", autosize);
 
 promptInput.addEventListener("keydown", (event) => {
@@ -1138,7 +1234,33 @@ manualPhotoInput.addEventListener("change", () => {
   reader.readAsDataURL(file);
 });
 
+lightingPlanInput.addEventListener("change", () => {
+  const file = lightingPlanInput.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    hint.textContent = "Le fichier doit etre une image.";
+    return;
+  }
+
+  if (file.size > 6 * 1024 * 1024) {
+    hint.textContent = "Image trop lourde. Choisis une photo de moins de 6 Mo.";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    selectedLightingPlanDataUrl = String(reader.result || "");
+    lightingPlanLabel.textContent = file.name;
+    lightingPlanPreview.hidden = false;
+    lightingPlanPreview.innerHTML = `<img src="${selectedLightingPlanDataUrl}" alt="Apercu du plan">`;
+    hint.textContent = "Plan charge. Ajoute les dimensions connues puis lance le dimensionnement.";
+  });
+  reader.readAsDataURL(file);
+});
+
 analyzePhoto.addEventListener("click", analyzePhotoToSchema);
 searchManual.addEventListener("click", searchManualNotice);
+analyzeLighting.addEventListener("click", analyzeLightingPlan);
 
 autosize();

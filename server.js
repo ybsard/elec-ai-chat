@@ -248,6 +248,85 @@ async function handleManualSearch(req, res) {
   }
 }
 
+async function handleLightingPlan(req, res) {
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(res, 500, {
+      error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+    });
+    return;
+  }
+
+  try {
+    const {
+      image,
+      room = "",
+      dimensions = "",
+      height = "",
+      type = "",
+      level = "debutant"
+    } = await readRequestJson(req);
+
+    if (!image || !String(image).startsWith("data:image/")) {
+      sendJson(res, 400, { error: "Plan manquant ou format non supporte." });
+      return;
+    }
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        instructions: [
+          "Tu es ELEC.AI, un assistant francais specialise dans l'eclairage domestique et le dimensionnement indicatif.",
+          "Analyse le plan fourni et propose une implantation logique des eclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la piece.",
+          "Si l'echelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
+          "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
+          "Calcule une puissance indicative a partir des lumens, en rappelant qu'une LED courante donne environ 80 a 120 lm/W selon modele.",
+          "Propose le type de luminaire adapte: spot encastre, suspension, plafonnier, rail, applique, ruban LED ou eclairage de tache.",
+          "Ne presente pas le resultat comme une etude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un electricien qualifie.",
+          "Reponds avec exactement ces sections: Resume rapide, Lecture du plan, Hypotheses, Calcul indicatif, Implantation proposee, Plan en traits, Type et puissance des luminaires, Securite, Conclusion.",
+          "Dans Plan en traits, fais un petit plan ASCII simple avec les points lumineux notes L1, L2, L3 et les zones importantes."
+        ].join(" "),
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: [
+                  `Piece ou usage: ${String(room || "non precise").slice(0, 120)}.`,
+                  `Dimensions connues: ${String(dimensions || "non precisees").slice(0, 120)}.`,
+                  `Hauteur sous plafond: ${String(height || "non precisee").slice(0, 80)}.`,
+                  `Type de luminaire souhaite: ${String(type || "non precise").slice(0, 80)}.`,
+                  `Niveau de detail demande: ${String(level || "debutant").slice(0, 40)}.`,
+                  "Donne une proposition claire, lisible et exploitable pour placer les points lumineux."
+                ].join(" ")
+              },
+              {
+                type: "input_image",
+                image_url: image
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    const data = await readUpstreamJson(response);
+    if (!response.ok) {
+      sendJson(res, response.status, { error: data.error?.message || "Erreur API OpenAI." });
+      return;
+    }
+
+    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cet eclairage." });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
 async function serveStatic(req, res) {
   const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
   const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
@@ -276,6 +355,11 @@ createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/api/manual-search") {
     await handleManualSearch(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/lighting-plan") {
+    await handleLightingPlan(req, res);
     return;
   }
 

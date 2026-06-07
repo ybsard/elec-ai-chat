@@ -190,6 +190,55 @@
             <button id="searchManual" class="secondary-action" type="button">Rechercher la notice</button>
           </div>
 
+          <div class="lighting-card">
+            <div class="card-heading">
+              <span class="step-badge">5</span>
+              <div>
+                <h2>Dimensionnement eclairage</h2>
+                <p>Analyse un plan et propose les emplacements, types et puissances.</p>
+              </div>
+            </div>
+
+            <label class="upload-zone" for="lightingPlanInput">
+              <span id="lightingPlanLabel">Choisir un plan</span>
+              <small>Plan cote, croquis, piece meublee ou capture de plan.</small>
+              <input id="lightingPlanInput" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+
+            <div id="lightingPlanPreview" class="photo-preview" hidden></div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Piece / usage</span>
+                <input id="lightingRoom" type="text" placeholder="Ex: salon, cuisine, chambre">
+              </label>
+              <label class="field">
+                <span>Dimensions si connues</span>
+                <input id="lightingDimensions" type="text" placeholder="Ex: 4,2 m x 3,1 m">
+              </label>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Hauteur plafond</span>
+                <input id="lightingHeight" type="text" placeholder="Ex: 2,50 m">
+              </label>
+              <label class="field">
+                <span>Type souhaite</span>
+                <select id="lightingType">
+                  <option>Je ne sais pas</option>
+                  <option>Spots encastres</option>
+                  <option>Plafonnier</option>
+                  <option>Suspension</option>
+                  <option>Appliques murales</option>
+                  <option>Rails ou spots orientables</option>
+                </select>
+              </label>
+            </div>
+
+            <button id="analyzeLighting" class="secondary-action" type="button">Dimensionner l'eclairage</button>
+          </div>
+
           <div class="trust-row" aria-label="Points forts">
             <div>
               <strong>Simple</strong>

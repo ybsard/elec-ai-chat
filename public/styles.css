@@ -188,6 +188,7 @@ h2 {
 .schema-card,
 .photo-card,
 .manual-card,
+.lighting-card,
 .level-card {
   padding: 18px;
   border: 1px solid var(--line);
@@ -209,6 +210,10 @@ h2 {
 
 .manual-card {
   border-color: rgba(142, 86, 200, 0.28);
+}
+
+.lighting-card {
+  border-color: rgba(242, 165, 26, 0.38);
 }
 
 .card-heading {
