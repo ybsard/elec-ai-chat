@@ -40,6 +40,7 @@ function publicUser(user) {
   if (!user) return null;
   return {
     id: user.id,
+    name: user.name || "",
     email: user.email,
     plan: user.plan || "free",
     subscriptionStatus: user.subscriptionStatus || "free",
@@ -207,10 +208,15 @@ async function readUpstreamJson(response) {
 
 async function handleSignup(req, res) {
   try {
-    const { email, password } = await readRequestJson(req);
+    const { name = "", email, password } = await readRequestJson(req);
+    const cleanName = String(name || "").trim().slice(0, 80);
     const cleanEmail = normalizeEmail(email);
     const cleanPassword = String(password || "");
 
+    if (!cleanName) {
+      sendJson(res, 400, { error: "Ajoute ton nom ou prenom." });
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       sendJson(res, 400, { error: "Adresse email invalide." });
       return;
@@ -228,6 +234,7 @@ async function handleSignup(req, res) {
 
     const user = {
       id: randomBytes(12).toString("hex"),
+      name: cleanName,
       email: cleanEmail,
       passwordHash: hashPassword(cleanPassword),
       plan: "free",
@@ -333,6 +340,7 @@ async function handleCreateCheckout(req, res) {
         cancel_url: `${protocol}://${host}/?checkout=cancel`,
         client_reference_id: auth.user.id,
         customer_email: auth.user.email,
+        "metadata[name]": auth.user.name || "",
         "metadata[userId]": auth.user.id
       })
     });

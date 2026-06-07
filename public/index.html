@@ -52,13 +52,32 @@
               <span class="step-badge">PRO</span>
               <div>
                 <h2>Compte & abonnement</h2>
-                <p>Utilise gratuitement, puis passe en Pro si besoin.</p>
+                <p>Libre-service gratuit, espace personnel et abonnement Pro.</p>
               </div>
             </div>
 
-            <div id="accountStatus" class="account-status">Libre-service: 3 essais gratuits par jour.</div>
+            <div class="plan-preview">
+              <div>
+                <span class="plan-label">ELEC.AI Pro</span>
+                <strong>9,99 EUR / mois</strong>
+              </div>
+              <small>Sans engagement. Paiement securise par Stripe.</small>
+            </div>
+
+            <ul class="plan-benefits" aria-label="Avantages ELEC.AI Pro">
+              <li>Plus de diagnostics et de recherches IA</li>
+              <li>Analyse de photos, plans et notices</li>
+              <li>Dimensionnement eclairage plus complet</li>
+              <li>Reponses organisees pour gagner du temps</li>
+            </ul>
+
+            <div id="accountStatus" class="account-status">Cree ton compte gratuit pour continuer avec ton nom.</div>
 
             <div id="authFields">
+              <label class="field">
+                <span>Nom ou prenom</span>
+                <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
+              </label>
               <label class="field">
                 <span>Email</span>
                 <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">

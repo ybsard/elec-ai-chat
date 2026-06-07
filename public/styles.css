@@ -221,6 +221,70 @@ h2 {
   line-height: 1.45;
 }
 
+.plan-preview {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid rgba(242, 165, 26, 0.32);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.plan-preview div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plan-preview strong {
+  color: var(--warning-dark);
+  font-size: 16px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.plan-preview small {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.plan-label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.plan-benefits {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-benefits li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.plan-benefits li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.52em;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--warning);
+}
+
 .account-actions,
 .member-actions {
   display: grid;
@@ -958,6 +1022,17 @@ textarea:disabled {
 
   .message-stack {
     max-width: 86%;
+  }
+
+  .account-actions,
+  .member-actions,
+  .plan-preview div {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-preview div {
+    display: grid;
+    align-items: start;
   }
 
   .signature {

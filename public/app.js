@@ -10,6 +10,7 @@ const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const accountStatus = document.querySelector("#accountStatus");
 const authFields = document.querySelector("#authFields");
+const authName = document.querySelector("#authName");
 const authEmail = document.querySelector("#authEmail");
 const authPassword = document.querySelector("#authPassword");
 const signupButton = document.querySelector("#signupButton");
@@ -343,18 +344,19 @@ function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
 
   if (!currentUser) {
-    accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 3} essais gratuits par jour. Cree un compte gratuit pour plus d'essais.`;
+    accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 3} essais gratuits par jour. Cree ton compte gratuit, puis passe en Pro si tu veux plus de credits.`;
     authFields.hidden = false;
     memberActions.hidden = true;
     return;
   }
 
   const planLabel = currentUser.plan === "pro" ? "Pro" : "Gratuit";
+  const displayName = currentUser.name || currentUser.email;
   const usage = currentUser.plan === "pro"
     ? "utilisation etendue"
     : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} utilisations aujourd'hui`;
 
-  accountStatus.textContent = `${currentUser.email} | Offre ${planLabel} | ${usage}`;
+  accountStatus.textContent = `Bonjour ${displayName} | Offre ${planLabel} | ${usage}`;
   authFields.hidden = true;
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
@@ -375,9 +377,17 @@ async function refreshAccount() {
 }
 
 async function submitAuth(mode) {
+  const name = authName.value.trim();
   const email = authEmail.value.trim();
   const password = authPassword.value;
   const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+
+  if (mode === "signup" && !name) {
+    setAccountNotice("Entre ton nom ou prenom pour personnaliser ton compte.");
+    hint.textContent = "Entre ton nom ou prenom.";
+    authName.focus();
+    return;
+  }
 
   if (!email || !password) {
     setAccountNotice("Entre un email et un mot de passe.");
@@ -394,7 +404,7 @@ async function submitAuth(mode) {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ name, email, password })
     });
     const data = await readJsonResponse(response);
     if (!response.ok) {
@@ -403,11 +413,12 @@ async function submitAuth(mode) {
 
     authPassword.value = "";
     updateAccountUi(data.user);
+    const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
-      setAccountNotice(`${data.user.email} | Compte gratuit cree. Clique sur Passer Pro pour activer l'abonnement.`);
-      hint.textContent = "Compte cree. Tu peux maintenant cliquer sur Passer Pro.";
+      setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est pret. Clique sur Passer Pro pour activer l'abonnement.`);
+      hint.textContent = `Compte cree pour ${displayName}. Tu peux maintenant cliquer sur Passer Pro.`;
     } else {
-      setAccountNotice(`${data.user.email} | Connexion reussie. Clique sur Passer Pro si tu veux t'abonner.`);
+      setAccountNotice(`Bonjour ${displayName}. Connexion reussie. Clique sur Passer Pro si tu veux t'abonner.`);
       hint.textContent = "Connexion reussie.";
     }
   } catch (error) {
