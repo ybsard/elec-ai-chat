@@ -73,7 +73,7 @@ function addMessage(role, content, options = {}) {
 
   const label = document.createElement("span");
   label.className = "message-label";
-  label.textContent = role === "user" ? "Vous" : "ELEC.AI";
+  label.textContent = role === "user" ? "Vous" : "Voltia";
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
@@ -219,7 +219,7 @@ function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
 
   const label = document.createElement("span");
   label.className = "message-label";
-  label.textContent = "ELEC.AI";
+  label.textContent = "Voltia";
 
   const bubble = document.createElement("div");
   bubble.className = "bubble diagram-bubble";
@@ -1066,7 +1066,7 @@ async function askAssistant(content, options = {}) {
   const pending = addMessage("assistant", "", { loading: true });
   sendButton.disabled = true;
   promptInput.disabled = true;
-  hint.textContent = "ELEC.AI analyse les pistes possibles...";
+  hint.textContent = "Voltia analyse les pistes possibles...";
 
   try {
     const response = await fetch("/api/chat", {
@@ -1107,7 +1107,7 @@ async function analyzePhotoToSchema() {
 
   const pending = addMessage("assistant", "", { loading: true });
   analyzePhoto.disabled = true;
-  hint.textContent = "ELEC.AI analyse la photo et prepare un schema...";
+  hint.textContent = "Voltia analyse la photo et prepare un schema...";
 
   try {
     const response = await fetch("/api/photo-schema", {
@@ -1153,7 +1153,7 @@ async function searchManualNotice() {
 
   const pending = addMessage("assistant", "", { loading: true });
   searchManual.disabled = true;
-  hint.textContent = "ELEC.AI cherche la notice et les liens probables...";
+  hint.textContent = "Voltia cherche la notice et les liens probables...";
 
   try {
     const response = await fetch("/api/manual-search", {
@@ -1208,7 +1208,7 @@ async function analyzeLightingPlan() {
 
   const pending = addMessage("assistant", "", { loading: true });
   analyzeLighting.disabled = true;
-  hint.textContent = "ELEC.AI analyse le plan et calcule une implantation d'eclairage...";
+  hint.textContent = "Voltia analyse le plan et calcule une implantation d'eclairage...";
 
   try {
     const response = await fetch("/api/lighting-plan", {
@@ -1316,7 +1316,7 @@ createSchema.addEventListener("click", async () => {
   addDiagramMessage(
     typeLabel,
     buildSchema(schemaType.value, room, usage, counts),
-    "Schema indicatif genere par ELEC.AI. Ne pas intervenir sous tension.",
+    "Schema indicatif genere par Voltia. Ne pas intervenir sous tension.",
     buildLineSchema(schemaType.value, counts)
   );
   await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });

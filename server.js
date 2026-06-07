@@ -450,7 +450,7 @@ async function handleChat(req, res) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         instructions: [
-          "Tu es ELEC.AI, un assistant francais specialise dans l'electricite domestique.",
+          "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
           "Aide l'utilisateur a comprendre les causes possibles, les verifications simples et les prochaines etapes.",
           "Organise toujours tes reponses avec des titres courts et des listes lisibles.",
           "Structure recommandee: Resume rapide, Securite, Causes possibles, A verifier sans danger, Prochaines etapes, Conclusion.",
@@ -502,7 +502,7 @@ async function handlePhotoSchema(req, res) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         instructions: [
-          "Tu es ELEC.AI, un assistant francais specialise dans l'electricite domestique.",
+          "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
           "Analyse la photo fournie pour retranscrire ce qui est visible en schema electrique simple.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
           "Reponds en francais avec exactement ces sections: Resume rapide, Ce que je vois, Schema en traits, Legende, Points a verifier, Securite, Conclusion.",
@@ -591,7 +591,7 @@ async function handleManualSearch(req, res) {
         model: process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini",
         tools: [{ type: "web_search_preview" }],
         instructions: [
-          "Tu es ELEC.AI, un assistant francais specialise dans l'electricite domestique.",
+          "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
           "Tu aides a retrouver des notices constructeur a partir d'une reference texte ou d'une photo.",
           "Priorise les sources constructeur, distributeurs techniques reconnus, catalogues officiels et PDF de notice.",
           "Ne donne pas de certitude si la reference ne correspond pas exactement.",
@@ -654,7 +654,7 @@ async function handleLightingPlan(req, res) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         instructions: [
-          "Tu es ELEC.AI, un assistant francais specialise dans l'eclairage domestique et le dimensionnement indicatif.",
+          "Tu es Voltia, un assistant francais specialise dans l'eclairage domestique et le dimensionnement indicatif.",
           "Analyse le plan fourni et propose une implantation logique des eclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la piece.",
           "Si l'echelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
           "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
@@ -775,5 +775,5 @@ createServer(async (req, res) => {
   res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8" });
   res.end("Méthode non autorisée");
 }).listen(port, () => {
-  console.log(`ELEC.AI chat site: http://localhost:${port}`);
+  console.log(`Voltia chat site: http://localhost:${port}`);
 });
