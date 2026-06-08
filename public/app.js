@@ -11,6 +11,7 @@ const normsSearchToggle = document.querySelector("#normsSearchToggle");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
+const toolCards = document.querySelectorAll(".diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card");
 const accountStatus = document.querySelector("#accountStatus");
 const authFields = document.querySelector("#authFields");
 const accessCodeFields = document.querySelector("#accessCodeFields");
@@ -1497,6 +1498,17 @@ clearButton.addEventListener("click", () => {
   addMessage("assistant", "Conversation effacee. Lance un diagnostic ou decris ton prochain probleme electrique.");
   hint.textContent = "Nouvelle recherche demarree.";
   promptInput.focus();
+});
+
+toolCards.forEach((card) => {
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("input, select, textarea, button, label, .upload-zone")) return;
+    const alreadyOpen = card.classList.contains("is-open");
+    toolCards.forEach((item) => item.classList.remove("is-open"));
+    if (!alreadyOpen) {
+      card.classList.add("is-open");
+    }
+  });
 });
 
 suggestionButtons.forEach((button) => {
