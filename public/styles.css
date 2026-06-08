@@ -225,7 +225,6 @@ h2 {
 .manual-card,
 .lighting-card,
 .climate-card,
-.account-card,
 .level-card {
   padding: 18px;
   border: 1px solid var(--line);
@@ -238,11 +237,45 @@ h2 {
 }
 
 .account-card {
-  border-color: rgba(20, 85, 109, 0.32);
+  padding: 20px;
+  border: 1px solid rgba(16, 24, 32, 0.12);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 251, 253, 0.98)),
+    radial-gradient(circle at 85% 0%, rgba(242, 165, 26, 0.2), transparent 34%);
+  box-shadow: 0 18px 40px rgba(16, 24, 32, 0.1);
 }
 
-.account-card .step-badge {
-  font-size: 10px;
+.account-hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.account-hero h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.account-hero p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.account-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 46px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
+  font-size: 11px;
+  font-weight: 950;
 }
 
 .account-status {
@@ -330,6 +363,15 @@ h2 {
 
 .member-actions {
   margin-top: 10px;
+}
+
+.auth-panel,
+.access-code-panel {
+  padding-top: 4px;
+}
+
+.access-code-panel {
+  margin-bottom: 12px;
 }
 
 .schema-card {

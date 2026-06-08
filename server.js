@@ -10,7 +10,7 @@ const dataDir = join(__dirname, "data");
 const usersFile = join(dataDir, "users.json");
 const port = Number(process.env.PORT || 3000);
 const freeDailyLimit = Number(process.env.FREE_DAILY_LIMIT || 10);
-const anonDailyLimit = Number(process.env.ANON_DAILY_LIMIT || 3);
+const anonDailyLimit = Number(process.env.ANON_DAILY_LIMIT || 5);
 const sessionDays = 30;
 const anonymousUsage = new Map();
 
@@ -118,8 +118,12 @@ async function getSessionUser(req, store = null) {
     return { store: activeStore, token: "", user: null };
   }
 
+  if (session.accessPass) {
+    return { store: activeStore, token, user: null, accessPass: true, accessName: session.name || "Acces invite" };
+  }
+
   const user = activeStore.users.find((item) => item.id === session.userId) || null;
-  return { store: activeStore, token, user };
+  return { store: activeStore, token, user, accessPass: false };
 }
 
 function getClientKey(req) {
@@ -133,6 +137,10 @@ async function consumeUsage(req, res, feature) {
 
   if (isProUser(auth.user)) {
     return { allowed: true, user: auth.user };
+  }
+
+  if (auth.accessPass) {
+    return { allowed: true, user: null };
   }
 
   if (auth.user) {
@@ -292,10 +300,47 @@ async function handleLogout(req, res) {
   sendJsonWithHeaders(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
 }
 
+async function handleAccessCode(req, res) {
+  try {
+    const { code = "" } = await readRequestJson(req);
+    const expectedCode = String(process.env.ACCESS_CODE || "VOLTIA-YB-2026");
+
+    if (String(code || "").trim() !== expectedCode) {
+      sendJson(res, 401, { error: "Code d'acces incorrect." });
+      return;
+    }
+
+    const store = await loadUserStore();
+    const token = randomBytes(32).toString("hex");
+    store.sessions[token] = {
+      accessPass: true,
+      name: "Createur Voltia",
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + sessionDays * 24 * 60 * 60 * 1000).toISOString()
+    };
+    await saveUserStore(store);
+
+    sendJsonWithHeaders(
+      res,
+      200,
+      {
+        accessPass: true,
+        accessName: "Createur Voltia",
+        message: "Acces complet active."
+      },
+      { "Set-Cookie": sessionCookie(token) }
+    );
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
 async function handleMe(req, res) {
   const auth = await getSessionUser(req);
   sendJson(res, 200, {
     user: publicUser(auth.user),
+    accessPass: Boolean(auth.accessPass),
+    accessName: auth.accessName || "",
     anonymousDailyLimit: anonDailyLimit
   });
 }
@@ -867,6 +912,11 @@ createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/api/auth/logout") {
     await handleLogout(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/access-code") {
+    await handleAccessCode(req, res);
     return;
   }
 

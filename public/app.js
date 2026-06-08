@@ -10,6 +10,9 @@ const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const accountStatus = document.querySelector("#accountStatus");
 const authFields = document.querySelector("#authFields");
+const accessCodeFields = document.querySelector("#accessCodeFields");
+const accessCodeInput = document.querySelector("#accessCodeInput");
+const accessCodeButton = document.querySelector("#accessCodeButton");
 const authName = document.querySelector("#authName");
 const authEmail = document.querySelector("#authEmail");
 const authPassword = document.querySelector("#authPassword");
@@ -64,6 +67,7 @@ let selectedManualPhotoDataUrl = "";
 let selectedLightingPlanDataUrl = "";
 let selectedLevel = "debutant";
 let currentUser = null;
+let hasAccessPass = false;
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -376,9 +380,21 @@ async function readJsonResponse(response) {
 
 function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
+  hasAccessPass = Boolean(meta.accessPass);
+
+  if (hasAccessPass) {
+    accountStatus.textContent = `${meta.accessName || "Acces invite"} | Acces complet actif | Toutes les fonctionnalites sont debloquees.`;
+    authFields.hidden = false;
+    accessCodeFields.hidden = true;
+    authFields.hidden = true;
+    memberActions.hidden = false;
+    upgradeButton.hidden = true;
+    return;
+  }
 
   if (!currentUser) {
-    accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 3} essais gratuits par jour. Cree ton compte gratuit, puis passe en Pro si tu veux plus de credits.`;
+    accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 5} essais gratuits. Ensuite, cree un compte, passe Pro ou entre ton code d'acces.`;
+    accessCodeFields.hidden = false;
     authFields.hidden = false;
     memberActions.hidden = true;
     return;
@@ -391,6 +407,7 @@ function updateAccountUi(user, meta = {}) {
     : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} utilisations aujourd'hui`;
 
   accountStatus.textContent = `Bonjour ${displayName} | Offre ${planLabel} | ${usage}`;
+  accessCodeFields.hidden = true;
   authFields.hidden = true;
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
@@ -466,8 +483,42 @@ async function submitAuth(mode) {
 
 async function logoutAccount() {
   await fetch("/api/auth/logout", { method: "POST" });
-  updateAccountUi(null);
+  updateAccountUi(null, { anonymousDailyLimit: 5 });
   hint.textContent = "Tu es deconnecte.";
+}
+
+async function submitAccessCode() {
+  const code = accessCodeInput.value.trim();
+
+  if (!code) {
+    setAccountNotice("Entre ton code d'acces.");
+    accessCodeInput.focus();
+    return;
+  }
+
+  accessCodeButton.disabled = true;
+  setAccountNotice("Verification du code d'acces...");
+
+  try {
+    const response = await fetch("/api/access-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Erreur inconnue.");
+    }
+
+    accessCodeInput.value = "";
+    updateAccountUi(null, data);
+    hint.textContent = "Acces complet active sans compte.";
+  } catch (error) {
+    setAccountNotice(error.message);
+    hint.textContent = error.message;
+  } finally {
+    accessCodeButton.disabled = false;
+  }
 }
 
 async function startCheckout() {
@@ -1401,6 +1452,7 @@ levelButtons.forEach((button) => {
 
 signupButton.addEventListener("click", () => submitAuth("signup"));
 loginButton.addEventListener("click", () => submitAuth("login"));
+accessCodeButton.addEventListener("click", submitAccessCode);
 logoutButton.addEventListener("click", logoutAccount);
 upgradeButton.addEventListener("click", startCheckout);
 
