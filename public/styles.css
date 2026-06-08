@@ -67,7 +67,7 @@ button:hover {
 
 .intro-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 0.9fr) minmax(620px, 1.1fr);
   gap: 18px;
   align-items: center;
 }
@@ -294,11 +294,11 @@ h2 {
 .intro-account-card {
   order: 0;
   grid-column: auto;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(160px, 1fr) minmax(260px, 1.35fr) minmax(190px, 0.95fr);
   align-self: stretch;
   justify-self: end;
-  width: min(100%, 340px);
-  gap: 5px;
+  width: 100%;
+  gap: 8px 10px;
   padding: 9px;
   box-shadow:
     0 0 0 3px rgba(242, 165, 26, 0.08),
@@ -306,11 +306,20 @@ h2 {
 }
 
 .intro-account-card > .account-hero,
-.intro-account-card > .account-status,
+.intro-account-card > .account-status {
+  grid-column: 1;
+}
+
+.intro-account-card > .auth-panel {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+}
+
+.intro-account-card > .plan-preview,
 .intro-account-card > .member-actions,
 .intro-account-card > .access-code-panel,
 .intro-account-card > .plan-benefits {
-  grid-column: 1;
+  grid-column: 3;
 }
 
 .intro-account-card .account-hero h2 {
@@ -340,7 +349,16 @@ h2 {
 }
 
 .intro-account-card .auth-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-content: start;
   margin-bottom: 5px;
+}
+
+.intro-account-card .auth-panel .account-actions,
+.intro-account-card .auth-panel .signup-block {
+  grid-column: span 1;
 }
 
 .intro-account-card .field {
@@ -364,14 +382,24 @@ h2 {
 
 .intro-account-card .signup-block {
   gap: 6px;
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.intro-account-card .signup-fields {
+  grid-column: 1 / -1;
 }
 
 .intro-account-card .plan-preview {
   gap: 3px;
   margin-bottom: 4px;
   padding: 7px;
+}
+
+.intro-account-card .plan-preview div {
+  display: grid;
+  gap: 2px;
 }
 
 .intro-account-card .plan-preview strong {
@@ -1320,6 +1348,16 @@ textarea:disabled {
   font-size: 12px;
   font-weight: 950;
   box-shadow: 0 10px 24px rgba(16, 24, 32, 0.1);
+}
+
+@media (max-width: 1180px) {
+  .intro-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-account-card {
+    justify-self: stretch;
+  }
 }
 
 @media (max-width: 980px) {
