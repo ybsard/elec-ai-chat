@@ -294,11 +294,13 @@ h2 {
 .intro-account-card {
   order: 0;
   grid-column: auto;
-  grid-template-columns: minmax(160px, 1fr) minmax(260px, 1.35fr) minmax(190px, 0.95fr);
+  grid-template-columns: minmax(180px, 0.9fr) minmax(300px, 1.35fr) minmax(190px, 0.9fr);
+  grid-template-rows: auto 1fr;
   align-self: stretch;
   justify-self: end;
   width: 100%;
-  gap: 8px 10px;
+  align-items: start;
+  gap: 8px;
   padding: 9px;
   box-shadow:
     0 0 0 3px rgba(242, 165, 26, 0.08),
@@ -310,9 +312,17 @@ h2 {
   grid-column: 1;
 }
 
+.intro-account-card > .account-hero {
+  grid-row: 1;
+}
+
+.intro-account-card > .account-status {
+  grid-row: 2;
+}
+
 .intro-account-card > .auth-panel {
   grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-row: 1 / span 2;
 }
 
 .intro-account-card > .plan-preview,
@@ -320,6 +330,15 @@ h2 {
 .intro-account-card > .access-code-panel,
 .intro-account-card > .plan-benefits {
   grid-column: 3;
+}
+
+.intro-account-card > .plan-preview {
+  grid-row: 1;
+}
+
+.intro-account-card > .member-actions,
+.intro-account-card > .access-code-panel {
+  grid-row: 2;
 }
 
 .intro-account-card .account-hero h2 {
@@ -334,6 +353,11 @@ h2 {
 
 .intro-account-card .account-hero {
   margin-bottom: 3px;
+  min-height: 72px;
+  padding: 7px;
+  border: 1px solid rgba(29, 111, 143, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .intro-account-card .account-badge {
@@ -422,6 +446,7 @@ h2 {
   margin-bottom: 4px;
   padding: 7px;
   background: #fff8e8;
+  min-height: 72px;
 }
 
 .intro-account-card .plan-preview div {
@@ -442,8 +467,9 @@ h2 {
   grid-template-columns: 1fr auto;
   gap: 6px;
   align-items: end;
-  margin-top: 5px;
-  padding-top: 5px;
+  margin-top: 0;
+  padding-top: 6px;
+  border-top: 1px solid rgba(29, 111, 143, 0.14);
 }
 
 .intro-account-card .access-code-panel .secondary-action {
