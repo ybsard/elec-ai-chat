@@ -75,7 +75,7 @@ button:hover {
 .workspace {
   min-height: calc(100vh - 178px);
   display: grid;
-  grid-template-columns: minmax(420px, 520px) minmax(0, 1fr);
+  grid-template-columns: minmax(360px, 500px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -93,10 +93,21 @@ button:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   max-height: none;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 12px;
   scrollbar-width: thin;
   scrollbar-color: rgba(29, 111, 143, 0.34) transparent;
+}
+
+.diagnostic-panel * {
+  min-width: 0;
+}
+
+.diagnostic-panel button,
+.diagnostic-panel input,
+.diagnostic-panel select {
+  max-width: 100%;
 }
 
 .topbar,
@@ -252,6 +263,7 @@ h2 {
 .lighting-card,
 .climate-card,
 .level-card {
+  min-width: 0;
   min-height: 78px;
   padding: 12px;
   border: 1px solid var(--line);
@@ -538,10 +550,11 @@ h2 {
 }
 
 .plan-preview div {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .plan-preview strong {
@@ -549,6 +562,10 @@ h2 {
   font-size: 16px;
   font-weight: 950;
   white-space: nowrap;
+}
+
+.diagnostic-panel .plan-preview strong {
+  white-space: normal;
 }
 
 .plan-preview small {
@@ -674,6 +691,25 @@ h2 {
   color: var(--muted);
 }
 
+.card-heading {
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.card-heading > div {
+  min-width: 0;
+}
+
+.card-heading h2,
+.card-heading p,
+.issue-card strong,
+.issue-card span,
+.trust-row strong,
+.trust-row span {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
 .diagnostic-panel > :is(.diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card) {
   cursor: pointer;
   transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
@@ -688,6 +724,21 @@ h2 {
   display: none;
 }
 
+.diagnostic-panel > :is(.diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card):not(.is-open) .card-heading {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.diagnostic-panel > :is(.diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card):not(.is-open) .card-heading h2 {
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.diagnostic-panel > :is(.diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card):not(.is-open) .card-heading p {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
 .diagnostic-panel > :is(.diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card).is-open {
   grid-column: 1 / -1;
   cursor: default;
@@ -700,6 +751,7 @@ h2 {
 .diagnostic-panel > :is(.diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card, .level-card) .card-heading::after {
   content: "Ouvrir";
   margin-left: auto;
+  flex: 0 0 auto;
   padding: 5px 7px;
   border-radius: 8px;
   background: #eef8fb;
@@ -855,22 +907,23 @@ textarea:focus {
 
 .schema-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .schema-counts {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
 .level-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
   gap: 8px;
 }
 
 .level-option {
   min-height: 42px;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: white;
@@ -1368,6 +1421,7 @@ textarea:disabled {
   color: white;
   font-weight: 950;
   cursor: pointer;
+  white-space: normal;
 }
 
 .composer button[type="submit"]:disabled {
