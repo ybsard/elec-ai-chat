@@ -67,7 +67,7 @@ button:hover {
 
 .intro-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 430px);
   gap: 18px;
   align-items: center;
 }
@@ -75,7 +75,7 @@ button:hover {
 .workspace {
   min-height: calc(100vh - 178px);
   display: grid;
-  grid-template-columns: minmax(460px, 560px) minmax(0, 1fr);
+  grid-template-columns: minmax(420px, 520px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -289,6 +289,51 @@ h2 {
 
 .account-card > .plan-benefits {
   grid-column: 2;
+}
+
+.intro-account-card {
+  order: 0;
+  grid-column: auto;
+  grid-template-columns: 1fr;
+  align-self: stretch;
+  gap: 8px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 3px rgba(242, 165, 26, 0.08),
+    0 12px 24px rgba(16, 24, 32, 0.1);
+}
+
+.intro-account-card > .account-hero,
+.intro-account-card > .account-status,
+.intro-account-card > .member-actions,
+.intro-account-card > .access-code-panel,
+.intro-account-card > .plan-benefits {
+  grid-column: 1;
+}
+
+.intro-account-card .account-hero h2 {
+  font-size: 18px;
+}
+
+.intro-account-card .account-hero p,
+.intro-account-card .account-status,
+.intro-account-card .plan-preview small {
+  font-size: 12px;
+}
+
+.intro-account-card .plan-benefits {
+  display: none;
+}
+
+.intro-account-card .access-code-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.intro-account-card .access-code-panel .secondary-action {
+  min-width: 96px;
 }
 
 .account-hero {

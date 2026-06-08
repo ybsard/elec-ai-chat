@@ -30,10 +30,77 @@
             </p>
           </div>
 
-          <div class="safety-banner">
-            <strong>Priorite securite</strong>
-            <span>Odeur de brule, fumee, fil denude, eau ou echauffement : coupe le courant et contacte un electricien.</span>
-          </div>
+          <section class="account-card intro-account-card" aria-label="Compte et abonnement Voltia">
+            <div class="account-hero">
+              <span class="account-badge">Pro</span>
+              <div>
+                <h2>Connecte-toi a Voltia</h2>
+                <p>Accede a tes outils, au mode Pro et a ton espace createur.</p>
+              </div>
+            </div>
+
+            <div id="accountStatus" class="account-status">Libre-service: 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'acces.</div>
+
+            <div id="authFields" class="auth-panel">
+              <label class="field">
+                <span>Email</span>
+                <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+              </label>
+              <label class="field">
+                <span>Mot de passe</span>
+                <input id="authPassword" type="password" placeholder="8 caracteres minimum" autocomplete="current-password">
+              </label>
+              <div class="account-actions">
+                <button id="loginButton" class="primary-action" type="button">Connexion</button>
+              </div>
+              <div class="signup-block">
+                <button id="signupToggleButton" class="secondary-action" type="button">Creer un compte</button>
+                <div id="signupFields" class="signup-fields" hidden>
+                  <label class="field">
+                    <span>Nom ou prenom</span>
+                    <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
+                  </label>
+                  <label class="field">
+                    <span>Email</span>
+                    <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+                  </label>
+                  <label class="field">
+                    <span>Mot de passe</span>
+                    <input id="signupPassword" type="password" placeholder="8 caracteres minimum" autocomplete="new-password">
+                  </label>
+                  <button id="signupButton" class="secondary-action" type="button">Valider la creation du compte</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="plan-preview">
+              <div>
+                <span class="plan-label">Voltia Pro</span>
+                <strong>9,99 EUR / mois</strong>
+              </div>
+              <small>Diagnostics, schemas, notices, plans, eclairage et clim.</small>
+            </div>
+
+            <ul class="plan-benefits" aria-label="Avantages Voltia Pro">
+              <li>Plus de recherches IA</li>
+              <li>Photos, plans et notices</li>
+              <li>Dimensionnements plus complets</li>
+              <li>Reponses personnalisees</li>
+            </ul>
+
+            <div id="memberActions" class="member-actions" hidden>
+              <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
+              <button id="logoutButton" class="secondary-action" type="button">Deconnexion</button>
+            </div>
+
+            <div id="accessCodeFields" class="access-code-panel">
+              <label class="field">
+                <span>Code createur</span>
+                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
+              </label>
+              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer</button>
+            </div>
+          </section>
         </div>
       </header>
 
@@ -324,78 +391,6 @@
 
             <button id="sizeClimate" class="secondary-action" type="button">Estimer la clim</button>
           </div>
-
-          <section class="account-card" aria-label="Compte et abonnement Voltia">
-            <div class="account-hero">
-              <span class="account-badge">Voltia Pro</span>
-              <div>
-                <h2>Compte & abonnement</h2>
-                <p>5 essais gratuits en libre-service. Cree un compte ou active Pro pour continuer.</p>
-              </div>
-            </div>
-
-            <div id="accountStatus" class="account-status">Libre-service: 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'acces.</div>
-
-            <div id="authFields" class="auth-panel">
-              <label class="field">
-                <span>Email</span>
-                <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
-              </label>
-              <label class="field">
-                <span>Mot de passe</span>
-                <input id="authPassword" type="password" placeholder="8 caracteres minimum" autocomplete="current-password">
-              </label>
-              <div class="account-actions">
-                <button id="loginButton" class="primary-action" type="button">Connexion</button>
-              </div>
-              <div class="signup-block">
-                <button id="signupToggleButton" class="secondary-action" type="button">Creer un compte</button>
-                <div id="signupFields" class="signup-fields" hidden>
-                  <label class="field">
-                    <span>Nom ou prenom</span>
-                    <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
-                  </label>
-                  <label class="field">
-                    <span>Email</span>
-                    <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email">
-                  </label>
-                  <label class="field">
-                    <span>Mot de passe</span>
-                    <input id="signupPassword" type="password" placeholder="8 caracteres minimum" autocomplete="new-password">
-                  </label>
-                  <button id="signupButton" class="secondary-action" type="button">Valider la creation du compte</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="plan-preview">
-              <div>
-                <span class="plan-label">Acces Pro</span>
-                <strong>9,99 EUR / mois</strong>
-              </div>
-              <small>Diagnostics, schemas, notices, plans, dimensionnement eclairage et clim.</small>
-            </div>
-
-            <ul class="plan-benefits" aria-label="Avantages Voltia Pro">
-              <li>Plus de diagnostics et de recherches IA</li>
-              <li>Analyse de photos, plans et notices</li>
-              <li>Dimensionnement eclairage et clim plus complet</li>
-              <li>Reponses organisees et personnalisees a ton nom</li>
-            </ul>
-
-            <div id="memberActions" class="member-actions" hidden>
-              <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
-              <button id="logoutButton" class="secondary-action" type="button">Deconnexion</button>
-            </div>
-
-            <div id="accessCodeFields" class="access-code-panel">
-              <label class="field">
-                <span>Code d'acces createur</span>
-                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
-              </label>
-              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer l'acces</button>
-            </div>
-          </section>
 
           <div class="trust-row" aria-label="Points forts">
             <div>
