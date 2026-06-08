@@ -214,6 +214,77 @@ async function readUpstreamJson(response) {
   }
 }
 
+function normalizeSourceUrl(rawUrl) {
+  let url;
+  try {
+    url = new URL(String(rawUrl || "").trim());
+  } catch {
+    throw new Error("URL de source invalide. Colle une adresse complete qui commence par https://");
+  }
+
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new Error("La source doit etre une URL web en http ou https.");
+  }
+
+  if (url.username || url.password) {
+    throw new Error("La source ne doit pas contenir d'identifiant ou de mot de passe.");
+  }
+
+  const hostname = url.hostname.toLowerCase();
+  const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
+  const blockedPrefixes = ["10.", "192.168.", "169.254."];
+  const private172 = /^172\.(1[6-9]|2\d|3[0-1])\./;
+  if (blockedHosts.includes(hostname) || blockedPrefixes.some((prefix) => hostname.startsWith(prefix)) || private172.test(hostname)) {
+    throw new Error("Cette adresse n'est pas acceptee comme source publique.");
+  }
+
+  return url.toString();
+}
+
+function cleanSourceText(html) {
+  return String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 18000);
+}
+
+async function readSourcePage(rawUrl) {
+  const sourceUrl = normalizeSourceUrl(rawUrl);
+  const response = await fetch(sourceUrl, {
+    headers: {
+      "Accept": "text/html,text/plain,application/xhtml+xml",
+      "User-Agent": "VoltiaSourceReader/1.0"
+    },
+    redirect: "follow"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Impossible de lire la source indiquee (${response.status}).`);
+  }
+
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  if (!contentType.includes("text/html") && !contentType.includes("text/plain") && !contentType.includes("application/xhtml")) {
+    throw new Error("La source doit etre une page web lisible en texte.");
+  }
+
+  const text = cleanSourceText(await response.text());
+  if (text.length < 80) {
+    throw new Error("La page source ne contient pas assez de texte lisible.");
+  }
+
+  return { url: sourceUrl, text };
+}
+
 async function handleSignup(req, res) {
   try {
     const { name = "", email, password } = await readRequestJson(req);
@@ -480,11 +551,23 @@ async function handleChat(req, res) {
     const usage = await consumeUsage(req, res, "chat");
     if (!usage.allowed) return;
 
-    const { messages = [] } = await readRequestJson(req);
+    const { messages = [], sourceOnly = false, sourceUrl = "" } = await readRequestJson(req);
+    const sourceContext = sourceOnly ? await readSourcePage(sourceUrl) : null;
     const input = messages.map((message) => ({
       role: message.role === "assistant" ? "assistant" : "user",
       content: String(message.content || "")
     }));
+
+    if (sourceContext) {
+      input.unshift({
+        role: "user",
+        content: [
+          `Source unique autorisee: ${sourceContext.url}`,
+          "Contenu lisible de cette source:",
+          sourceContext.text
+        ].join("\n\n")
+      });
+    }
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -501,6 +584,9 @@ async function handleChat(req, res) {
           "Structure recommandee: Resume rapide, Securite, Causes possibles, A verifier sans danger, Prochaines etapes, Conclusion.",
           "Evite les gros paragraphes. Fais une idee par ligne ou par puce.",
           "Adapte le niveau de detail au niveau demande par l'utilisateur: debutant, confirme ou expert.",
+          sourceContext
+            ? `L'utilisateur a active le mode source unique. Tu dois repondre uniquement avec la source fournie (${sourceContext.url}). Si la source ne contient pas l'information demandee, dis clairement que la source indiquee ne permet pas de repondre. Cite l'URL source en fin de reponse. N'utilise pas tes connaissances generales pour completer.`
+            : "",
           "Pour toute manipulation dangereuse, tableau electrique, fil denude, odeur de brule, fumee, echauffement, humidite, doute serieux ou intervention sous tension, conseille de couper le courant et de contacter un electricien qualifie.",
           "Ne donne pas d'instructions qui encouragent a travailler sous tension."
         ].join(" "),

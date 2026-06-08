@@ -5,6 +5,8 @@ const clearButton = document.querySelector("#clearChat");
 const hint = document.querySelector("#hint");
 const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
+const sourceOnlyToggle = document.querySelector("#sourceOnlyToggle");
+const sourceUrlInput = document.querySelector("#sourceUrlInput");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
@@ -424,6 +426,12 @@ function setAccountNotice(message) {
 function setHint(message, important = false) {
   hint.textContent = message;
   hint.classList.toggle("important-hint", important);
+}
+
+function getSourceSettings() {
+  const enabled = sourceOnlyToggle.checked;
+  const url = sourceUrlInput.value.trim();
+  return { enabled, url };
 }
 
 async function refreshAccount() {
@@ -1160,13 +1168,20 @@ async function askAssistant(content, options = {}) {
   const pending = addMessage("assistant", "", { loading: true });
   sendButton.disabled = true;
   promptInput.disabled = true;
-  hint.textContent = "Voltia analyse les pistes possibles...";
+  const sourceSettings = getSourceSettings();
+  hint.textContent = sourceSettings.enabled
+    ? "Voltia lit la source indiquee puis prepare la reponse..."
+    : "Voltia analyse les pistes possibles...";
 
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages })
+      body: JSON.stringify({
+        messages,
+        sourceOnly: sourceSettings.enabled,
+        sourceUrl: sourceSettings.url
+      })
     });
 
     const data = await readJsonResponse(response);
@@ -1178,7 +1193,9 @@ async function askAssistant(content, options = {}) {
     setAssistantMessage(pending, reply);
     messages.push({ role: "assistant", content: reply });
     await refreshAccount();
-    hint.textContent = "Reponse generee. Precise le contexte si tu veux une piste plus exacte.";
+    hint.textContent = sourceSettings.enabled
+      ? "Reponse generee uniquement avec la source indiquee."
+      : "Reponse generee. Precise le contexte si tu veux une piste plus exacte.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas repondre pour l'instant: ${error.message}`);
     hint.textContent = "Verifie OPENAI_API_KEY, le quota OpenAI et les logs Render si le site est en ligne.";
@@ -1408,6 +1425,16 @@ async function sizeClimateSystem() {
 
 promptInput.addEventListener("input", autosize);
 
+sourceOnlyToggle.addEventListener("change", () => {
+  sourceUrlInput.disabled = !sourceOnlyToggle.checked;
+  if (sourceOnlyToggle.checked) {
+    sourceUrlInput.focus();
+    hint.textContent = "Colle l'URL exacte de la page que Voltia doit utiliser comme seule source.";
+  } else {
+    hint.textContent = "Source libre: Voltia peut repondre avec ses connaissances generales.";
+  }
+});
+
 promptInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
@@ -1419,6 +1446,12 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const content = promptInput.value.trim();
   if (!content) return;
+  const sourceSettings = getSourceSettings();
+  if (sourceSettings.enabled && !sourceSettings.url) {
+    setHint("Colle l'URL de la source avant d'envoyer la question.", true);
+    sourceUrlInput.focus();
+    return;
+  }
 
   promptInput.value = "";
   autosize();

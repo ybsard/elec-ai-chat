@@ -426,6 +426,14 @@
             </article>
           </div>
 
+          <div class="source-control" aria-label="Source limitee">
+            <label class="source-toggle">
+              <input id="sourceOnlyToggle" type="checkbox">
+              <span>Limiter la reponse a une source precise</span>
+            </label>
+            <input id="sourceUrlInput" type="url" placeholder="https://exemple.fr/page-notice-ou-article" autocomplete="off" disabled>
+          </div>
+
           <form id="chatForm" class="composer">
             <div class="input-wrap">
               <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Decris ton probleme electrique..." autocomplete="off"></textarea>
