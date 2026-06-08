@@ -551,8 +551,9 @@ async function handleChat(req, res) {
     const usage = await consumeUsage(req, res, "chat");
     if (!usage.allowed) return;
 
-    const { messages = [], sourceOnly = false, sourceUrl = "" } = await readRequestJson(req);
+    const { messages = [], sourceOnly = false, sourceUrl = "", normsSearch = false } = await readRequestJson(req);
     const sourceContext = sourceOnly ? await readSourcePage(sourceUrl) : null;
+    const shouldSearchNorms = Boolean(normsSearch && !sourceContext);
     const input = messages.map((message) => ({
       role: message.role === "assistant" ? "assistant" : "user",
       content: String(message.content || "")
@@ -577,6 +578,26 @@ async function handleChat(req, res) {
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        tools: shouldSearchNorms ? [
+          {
+            type: "web_search",
+            search_context_size: "medium",
+            filters: {
+              allowed_domains: [
+                "afnor.org",
+                "boutique.afnor.org",
+                "legifrance.gouv.fr",
+                "service-public.fr",
+                "promotelec.com",
+                "qualifelec.fr",
+                "legrand.fr",
+                "schneider-electric.fr",
+                "hager.com"
+              ]
+            }
+          }
+        ] : undefined,
+        tool_choice: shouldSearchNorms ? "required" : undefined,
         instructions: [
           "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
           "Aide l'utilisateur a comprendre les causes possibles, les verifications simples et les prochaines etapes.",
@@ -586,6 +607,9 @@ async function handleChat(req, res) {
           "Adapte le niveau de detail au niveau demande par l'utilisateur: debutant, confirme ou expert.",
           sourceContext
             ? `L'utilisateur a active le mode source unique. Tu dois repondre uniquement avec la source fournie (${sourceContext.url}). Si la source ne contient pas l'information demandee, dis clairement que la source indiquee ne permet pas de repondre. Cite l'URL source en fin de reponse. N'utilise pas tes connaissances generales pour completer.`
+            : "",
+          shouldSearchNorms
+            ? "L'utilisateur a active le mode normes en vigueur. Lance une recherche web et traite la demande comme une recherche reglementaire francaise autour de la NF C 15-100, des textes publics applicables et des guides techniques fiables. Donne les exigences utiles au projet de l'utilisateur: hauteurs, volumes, protections, sections, calibres, emplacements, accessibilite, pieces d'eau, prises, eclairage, tableau et circuits quand c'est pertinent. Cite clairement les sources trouvees. Ne recopie pas de longs extraits de la NF C 15-100, car la norme officielle est protegee. Si l'information exacte n'est pas disponible dans les sources publiques, dis de verifier la NF C 15-100 officielle AFNOR ou de faire valider par un electricien qualifie. Ne presente jamais la reponse comme une attestation de conformite."
             : "",
           "Pour toute manipulation dangereuse, tableau electrique, fil denude, odeur de brule, fumee, echauffement, humidite, doute serieux ou intervention sous tension, conseille de couper le courant et de contacter un electricien qualifie.",
           "Ne donne pas d'instructions qui encouragent a travailler sous tension."

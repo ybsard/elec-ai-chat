@@ -969,7 +969,7 @@ textarea:focus {
 
 .source-control {
   display: grid;
-  grid-template-columns: auto minmax(220px, 1fr);
+  grid-template-columns: auto auto minmax(220px, 1fr);
   gap: 10px;
   align-items: center;
   padding: 12px 16px;
@@ -984,6 +984,11 @@ textarea:focus {
   color: var(--ink);
   font-size: 13px;
   font-weight: 900;
+}
+
+.norms-toggle {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
 }
 
 .source-toggle input {

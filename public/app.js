@@ -7,6 +7,7 @@ const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
 const sourceOnlyToggle = document.querySelector("#sourceOnlyToggle");
 const sourceUrlInput = document.querySelector("#sourceUrlInput");
+const normsSearchToggle = document.querySelector("#normsSearchToggle");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
@@ -152,7 +153,12 @@ function escapeHtml(value) {
 function formatInline(value) {
   return escapeHtml(value)
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>");
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/https?:\/\/[^\s<]+/g, (match) => {
+      const trailing = /[),.;:!?]+$/.exec(match)?.[0] || "";
+      const url = trailing ? match.slice(0, -trailing.length) : match;
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
+    });
 }
 
 function renderAssistantContent(content) {
@@ -431,7 +437,8 @@ function setHint(message, important = false) {
 function getSourceSettings() {
   const enabled = sourceOnlyToggle.checked;
   const url = sourceUrlInput.value.trim();
-  return { enabled, url };
+  const normsSearch = normsSearchToggle.checked && !enabled;
+  return { enabled, url, normsSearch };
 }
 
 async function refreshAccount() {
@@ -1171,6 +1178,8 @@ async function askAssistant(content, options = {}) {
   const sourceSettings = getSourceSettings();
   hint.textContent = sourceSettings.enabled
     ? "Voltia lit la source indiquee puis prepare la reponse..."
+    : sourceSettings.normsSearch
+      ? "Voltia recherche les normes en vigueur avant de repondre..."
     : "Voltia analyse les pistes possibles...";
 
   try {
@@ -1180,7 +1189,8 @@ async function askAssistant(content, options = {}) {
       body: JSON.stringify({
         messages,
         sourceOnly: sourceSettings.enabled,
-        sourceUrl: sourceSettings.url
+        sourceUrl: sourceSettings.url,
+        normsSearch: sourceSettings.normsSearch
       })
     });
 
@@ -1195,6 +1205,8 @@ async function askAssistant(content, options = {}) {
     await refreshAccount();
     hint.textContent = sourceSettings.enabled
       ? "Reponse generee uniquement avec la source indiquee."
+      : sourceSettings.normsSearch
+        ? "Reponse generee avec recherche de normes. Verifie toujours la NF C 15-100 officielle avant travaux."
       : "Reponse generee. Precise le contexte si tu veux une piste plus exacte.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas repondre pour l'instant: ${error.message}`);
@@ -1428,11 +1440,20 @@ promptInput.addEventListener("input", autosize);
 sourceOnlyToggle.addEventListener("change", () => {
   sourceUrlInput.disabled = !sourceOnlyToggle.checked;
   if (sourceOnlyToggle.checked) {
+    normsSearchToggle.checked = false;
+    normsSearchToggle.disabled = true;
     sourceUrlInput.focus();
     hint.textContent = "Colle l'URL exacte de la page que Voltia doit utiliser comme seule source.";
   } else {
+    normsSearchToggle.disabled = false;
     hint.textContent = "Source libre: Voltia peut repondre avec ses connaissances generales.";
   }
+});
+
+normsSearchToggle.addEventListener("change", () => {
+  hint.textContent = normsSearchToggle.checked
+    ? "Mode normes active: Voltia cherchera les regles en vigueur et citera les sources disponibles."
+    : "Mode normes desactive.";
 });
 
 promptInput.addEventListener("keydown", (event) => {
