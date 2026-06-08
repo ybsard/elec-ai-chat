@@ -332,14 +332,6 @@
 
             <div id="accountStatus" class="account-status">Libre-service: 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'acces.</div>
 
-            <div id="accessCodeFields" class="access-code-panel">
-              <label class="field">
-                <span>Code d'acces</span>
-                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
-              </label>
-              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer l'acces</button>
-            </div>
-
             <div id="authFields" class="auth-panel">
               <label class="field">
                 <span>Email</span>
@@ -353,12 +345,22 @@
                 <button id="loginButton" class="primary-action" type="button">Connexion</button>
               </div>
               <div class="signup-block">
-                <span class="signup-label">Pas encore de compte ?</span>
-                <label class="field">
-                  <span>Nom ou prenom</span>
-                  <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
-                </label>
-                <button id="signupButton" class="secondary-action" type="button">Creer un compte</button>
+                <button id="signupToggleButton" class="secondary-action" type="button">Creer un compte</button>
+                <div id="signupFields" class="signup-fields" hidden>
+                  <label class="field">
+                    <span>Nom ou prenom</span>
+                    <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
+                  </label>
+                  <label class="field">
+                    <span>Email</span>
+                    <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+                  </label>
+                  <label class="field">
+                    <span>Mot de passe</span>
+                    <input id="signupPassword" type="password" placeholder="8 caracteres minimum" autocomplete="new-password">
+                  </label>
+                  <button id="signupButton" class="secondary-action" type="button">Valider la creation du compte</button>
+                </div>
               </div>
             </div>
 
@@ -380,6 +382,14 @@
             <div id="memberActions" class="member-actions" hidden>
               <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
               <button id="logoutButton" class="secondary-action" type="button">Deconnexion</button>
+            </div>
+
+            <div id="accessCodeFields" class="access-code-panel">
+              <label class="field">
+                <span>Code d'acces createur</span>
+                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
+              </label>
+              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer l'acces</button>
             </div>
           </section>
 

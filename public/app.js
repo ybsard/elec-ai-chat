@@ -19,6 +19,10 @@ const accessCodeButton = document.querySelector("#accessCodeButton");
 const authName = document.querySelector("#authName");
 const authEmail = document.querySelector("#authEmail");
 const authPassword = document.querySelector("#authPassword");
+const signupFields = document.querySelector("#signupFields");
+const signupToggleButton = document.querySelector("#signupToggleButton");
+const signupEmail = document.querySelector("#signupEmail");
+const signupPassword = document.querySelector("#signupPassword");
 const signupButton = document.querySelector("#signupButton");
 const loginButton = document.querySelector("#loginButton");
 const memberActions = document.querySelector("#memberActions");
@@ -395,6 +399,7 @@ function updateAccountUi(user, meta = {}) {
     authFields.hidden = false;
     accessCodeFields.hidden = true;
     authFields.hidden = true;
+    signupFields.hidden = true;
     memberActions.hidden = false;
     upgradeButton.hidden = true;
     logoutButton.hidden = false;
@@ -405,6 +410,7 @@ function updateAccountUi(user, meta = {}) {
     accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 5} essais gratuits. Ensuite, cree un compte, passe Pro ou entre ton code d'acces.`;
     accessCodeFields.hidden = false;
     authFields.hidden = false;
+    signupFields.hidden = true;
     memberActions.hidden = true;
     upgradeButton.hidden = true;
     logoutButton.hidden = true;
@@ -420,6 +426,7 @@ function updateAccountUi(user, meta = {}) {
   accountStatus.textContent = `Bonjour ${displayName} | Offre ${planLabel} | ${usage}`;
   accessCodeFields.hidden = true;
   authFields.hidden = true;
+  signupFields.hidden = true;
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
   logoutButton.hidden = false;
@@ -453,8 +460,8 @@ async function refreshAccount() {
 
 async function submitAuth(mode) {
   const name = authName.value.trim();
-  const email = authEmail.value.trim();
-  const password = authPassword.value;
+  const email = mode === "signup" ? signupEmail.value.trim() : authEmail.value.trim();
+  const password = mode === "signup" ? signupPassword.value : authPassword.value;
   const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
 
   if (mode === "signup" && !name) {
@@ -467,9 +474,11 @@ async function submitAuth(mode) {
   if (!email || !password) {
     setAccountNotice("Entre un email et un mot de passe.");
     setHint("Entre un email et un mot de passe.");
+    (mode === "signup" ? signupEmail : authEmail).focus();
     return;
   }
 
+  signupToggleButton.disabled = true;
   signupButton.disabled = true;
   loginButton.disabled = true;
   setAccountNotice(mode === "signup" ? "Creation du compte en cours..." : "Connexion en cours...");
@@ -487,9 +496,11 @@ async function submitAuth(mode) {
     }
 
     authPassword.value = "";
+    signupPassword.value = "";
     updateAccountUi(data.user);
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
+      signupFields.hidden = true;
       setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est pret. Clique sur Passer Pro pour activer l'abonnement.`);
       setHint(`Compte cree pour ${displayName}. Tu peux maintenant cliquer sur Passer Pro.`);
     } else {
@@ -500,6 +511,7 @@ async function submitAuth(mode) {
     setAccountNotice(error.message);
     setHint(error.message);
   } finally {
+    signupToggleButton.disabled = false;
     signupButton.disabled = false;
     loginButton.disabled = false;
   }
@@ -1513,6 +1525,15 @@ levelButtons.forEach((button) => {
   });
 });
 
+signupToggleButton.addEventListener("click", () => {
+  signupFields.hidden = !signupFields.hidden;
+  if (!signupFields.hidden) {
+    authName.focus();
+    setHint("Remplis ton nom, ton email et ton mot de passe pour creer ton compte.");
+  } else {
+    setHint("Creation de compte repliee. Tu peux te connecter si tu as deja un compte.");
+  }
+});
 signupButton.addEventListener("click", () => submitAuth("signup"));
 loginButton.addEventListener("click", () => submitAuth("login"));
 accessCodeButton.addEventListener("click", submitAccessCode);

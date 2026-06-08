@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -380,10 +384,13 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
-.signup-label {
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 950;
+.signup-fields {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(242, 165, 26, 0.28);
+  border-radius: 8px;
+  background: #fffaf0;
 }
 
 .auth-panel,
@@ -396,7 +403,9 @@ h2 {
 }
 
 .access-code-panel {
-  margin-bottom: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
 .schema-card {
