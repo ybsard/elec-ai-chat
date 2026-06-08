@@ -374,8 +374,8 @@ h2 {
 
 .intro-account-card .auth-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  gap: 6px 8px;
+  grid-template-columns: 1fr;
+  gap: 6px;
   align-content: start;
   margin-bottom: 5px;
   padding: 7px;
@@ -422,8 +422,8 @@ h2 {
 .intro-account-card .signup-block {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: auto minmax(150px, 1fr);
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-items: stretch;
   gap: 6px;
   margin-top: 2px;
   padding-top: 7px;
@@ -432,7 +432,7 @@ h2 {
 
 .intro-account-card .signup-fields {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 6px;
   padding: 8px;
 }
@@ -464,16 +464,16 @@ h2 {
 
 .intro-account-card .access-code-panel {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   gap: 6px;
-  align-items: end;
+  align-items: stretch;
   margin-top: 0;
   padding-top: 6px;
   border-top: 1px solid rgba(29, 111, 143, 0.14);
 }
 
 .intro-account-card .access-code-panel .secondary-action {
-  min-width: 86px;
+  min-width: 0;
   padding-inline: 10px;
 }
 
