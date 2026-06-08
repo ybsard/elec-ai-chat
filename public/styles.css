@@ -983,6 +983,38 @@ textarea:focus {
   border-bottom: 1px solid rgba(217, 225, 231, 0.75);
 }
 
+.chat-level-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(217, 225, 231, 0.75);
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.chat-level-control strong,
+.chat-level-control span {
+  display: block;
+}
+
+.chat-level-control strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.chat-level-control span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.chat-level-control .level-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .icon-button {
   min-width: 74px;
   height: 40px;
@@ -1559,6 +1591,11 @@ textarea:disabled {
 
   .source-control {
     grid-template-columns: 1fr;
+  }
+
+  .chat-level-control {
+    grid-template-columns: 1fr;
+    padding: 12px 16px;
   }
 
   .composer button[type="submit"] {

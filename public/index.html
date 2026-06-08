@@ -108,21 +108,6 @@
 
       <section class="workspace" aria-label="Assistant Voltia">
         <aside class="diagnostic-panel">
-          <div class="level-card">
-            <div class="card-heading compact-heading">
-              <span class="step-badge">N</span>
-              <div>
-                <h2>Niveau de reponse</h2>
-                <p>Choisis le niveau de detail souhaite.</p>
-              </div>
-            </div>
-            <div class="level-options" aria-label="Niveau de reponse">
-              <button type="button" class="level-option active" data-level="debutant">Debutant</button>
-              <button type="button" class="level-option" data-level="confirme">Confirme</button>
-              <button type="button" class="level-option" data-level="expert">Expert</button>
-            </div>
-          </div>
-
           <div class="diagnostic-card">
             <div class="card-heading">
               <span class="step-badge">1</span>
@@ -420,6 +405,18 @@
               Reset
             </button>
           </header>
+
+          <div class="chat-level-control" aria-label="Niveau de reponse">
+            <div>
+              <strong>Quel niveau de reponse veux-tu ?</strong>
+              <span>Adapte la precision des explications de Voltia.</span>
+            </div>
+            <div class="level-options">
+              <button type="button" class="level-option active" data-level="debutant">Debutant</button>
+              <button type="button" class="level-option" data-level="confirme">Confirme</button>
+              <button type="button" class="level-option" data-level="expert">Expert</button>
+            </div>
+          </div>
 
           <div class="suggestions" aria-label="Suggestions">
             <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
