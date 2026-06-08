@@ -389,6 +389,7 @@ function updateAccountUi(user, meta = {}) {
     authFields.hidden = true;
     memberActions.hidden = false;
     upgradeButton.hidden = true;
+    logoutButton.hidden = false;
     return;
   }
 
@@ -397,6 +398,8 @@ function updateAccountUi(user, meta = {}) {
     accessCodeFields.hidden = false;
     authFields.hidden = false;
     memberActions.hidden = true;
+    upgradeButton.hidden = true;
+    logoutButton.hidden = true;
     return;
   }
 
@@ -411,10 +414,16 @@ function updateAccountUi(user, meta = {}) {
   authFields.hidden = true;
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
+  logoutButton.hidden = false;
 }
 
 function setAccountNotice(message) {
   accountStatus.textContent = message;
+}
+
+function setHint(message, important = false) {
+  hint.textContent = message;
+  hint.classList.toggle("important-hint", important);
 }
 
 async function refreshAccount() {
@@ -435,21 +444,21 @@ async function submitAuth(mode) {
 
   if (mode === "signup" && !name) {
     setAccountNotice("Entre ton nom ou prenom pour personnaliser ton compte.");
-    hint.textContent = "Entre ton nom ou prenom.";
+    setHint("Entre ton nom ou prenom.");
     authName.focus();
     return;
   }
 
   if (!email || !password) {
     setAccountNotice("Entre un email et un mot de passe.");
-    hint.textContent = "Entre un email et un mot de passe.";
+    setHint("Entre un email et un mot de passe.");
     return;
   }
 
   signupButton.disabled = true;
   loginButton.disabled = true;
   setAccountNotice(mode === "signup" ? "Creation du compte en cours..." : "Connexion en cours...");
-  hint.textContent = mode === "signup" ? "Creation du compte..." : "Connexion...";
+  setHint(mode === "signup" ? "Creation du compte..." : "Connexion...");
 
   try {
     const response = await fetch(endpoint, {
@@ -467,14 +476,14 @@ async function submitAuth(mode) {
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
       setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est pret. Clique sur Passer Pro pour activer l'abonnement.`);
-      hint.textContent = `Compte cree pour ${displayName}. Tu peux maintenant cliquer sur Passer Pro.`;
+      setHint(`Compte cree pour ${displayName}. Tu peux maintenant cliquer sur Passer Pro.`);
     } else {
       setAccountNotice(`Bonjour ${displayName}. Connexion reussie. Clique sur Passer Pro si tu veux t'abonner.`);
-      hint.textContent = "Connexion reussie.";
+      setHint("Connexion reussie.");
     }
   } catch (error) {
     setAccountNotice(error.message);
-    hint.textContent = error.message;
+    setHint(error.message);
   } finally {
     signupButton.disabled = false;
     loginButton.disabled = false;
@@ -484,7 +493,7 @@ async function submitAuth(mode) {
 async function logoutAccount() {
   await fetch("/api/auth/logout", { method: "POST" });
   updateAccountUi(null, { anonymousDailyLimit: 5 });
-  hint.textContent = "Tu es deconnecte.";
+  setHint("Tu es deconnecte.");
 }
 
 async function submitAccessCode() {
@@ -512,10 +521,10 @@ async function submitAccessCode() {
 
     accessCodeInput.value = "";
     updateAccountUi(null, data);
-    hint.textContent = "Acces complet active sans compte.";
+    setHint("Acces complet active sans compte.");
   } catch (error) {
     setAccountNotice(error.message);
-    hint.textContent = error.message;
+    setHint(error.message);
   } finally {
     accessCodeButton.disabled = false;
   }
@@ -524,13 +533,13 @@ async function submitAccessCode() {
 async function startCheckout() {
   if (!currentUser) {
     setAccountNotice("Connecte-toi ou cree un compte avant de passer en Pro.");
-    hint.textContent = "Connecte-toi avant de passer en Pro.";
+    setHint("Connecte-toi ou cree un compte avant de passer Pro.", true);
     return;
   }
 
   upgradeButton.disabled = true;
   setAccountNotice("Preparation du paiement Stripe...");
-  hint.textContent = "Preparation du paiement Stripe...";
+  setHint("Preparation du paiement Stripe...");
 
   try {
     const response = await fetch("/api/billing/checkout", { method: "POST" });
@@ -542,7 +551,7 @@ async function startCheckout() {
     window.location.href = data.url;
   } catch (error) {
     setAccountNotice(error.message);
-    hint.textContent = error.message;
+    setHint(error.message);
   } finally {
     upgradeButton.disabled = false;
   }
