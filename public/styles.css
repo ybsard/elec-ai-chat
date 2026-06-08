@@ -356,7 +356,12 @@ h2 {
   background: var(--warning);
 }
 
-.account-actions,
+.account-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
 .member-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -367,9 +372,27 @@ h2 {
   margin-top: 10px;
 }
 
+.signup-block {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.signup-label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
 .auth-panel,
 .access-code-panel {
   padding-top: 4px;
+}
+
+.auth-panel {
+  margin-bottom: 12px;
 }
 
 .access-code-panel {

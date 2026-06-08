@@ -330,6 +330,38 @@
               </div>
             </div>
 
+            <div id="accountStatus" class="account-status">Libre-service: 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'acces.</div>
+
+            <div id="accessCodeFields" class="access-code-panel">
+              <label class="field">
+                <span>Code d'acces</span>
+                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
+              </label>
+              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer l'acces</button>
+            </div>
+
+            <div id="authFields" class="auth-panel">
+              <label class="field">
+                <span>Email</span>
+                <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+              </label>
+              <label class="field">
+                <span>Mot de passe</span>
+                <input id="authPassword" type="password" placeholder="8 caracteres minimum" autocomplete="current-password">
+              </label>
+              <div class="account-actions">
+                <button id="loginButton" class="primary-action" type="button">Connexion</button>
+              </div>
+              <div class="signup-block">
+                <span class="signup-label">Pas encore de compte ?</span>
+                <label class="field">
+                  <span>Nom ou prenom</span>
+                  <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
+                </label>
+                <button id="signupButton" class="secondary-action" type="button">Creer un compte</button>
+              </div>
+            </div>
+
             <div class="plan-preview">
               <div>
                 <span class="plan-label">Acces Pro</span>
@@ -344,35 +376,6 @@
               <li>Dimensionnement eclairage et clim plus complet</li>
               <li>Reponses organisees et personnalisees a ton nom</li>
             </ul>
-
-            <div id="accountStatus" class="account-status">Libre-service: 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'acces.</div>
-
-            <div id="accessCodeFields" class="access-code-panel">
-              <label class="field">
-                <span>Code d'acces</span>
-                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
-              </label>
-              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer l'acces</button>
-            </div>
-
-            <div id="authFields" class="auth-panel">
-              <label class="field">
-                <span>Nom ou prenom</span>
-                <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
-              </label>
-              <label class="field">
-                <span>Email</span>
-                <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
-              </label>
-              <label class="field">
-                <span>Mot de passe</span>
-                <input id="authPassword" type="password" placeholder="8 caracteres minimum" autocomplete="current-password">
-              </label>
-              <div class="account-actions">
-                <button id="signupButton" class="secondary-action" type="button">Creer un compte</button>
-                <button id="loginButton" class="secondary-action" type="button">Connexion</button>
-              </div>
-            </div>
 
             <div id="memberActions" class="member-actions" hidden>
               <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
