@@ -67,7 +67,7 @@ button:hover {
 
 .intro-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(310px, 430px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: 18px;
   align-items: center;
 }
@@ -296,6 +296,8 @@ h2 {
   grid-column: auto;
   grid-template-columns: 1fr;
   align-self: stretch;
+  justify-self: end;
+  width: min(100%, 340px);
   gap: 5px;
   padding: 9px;
   box-shadow:
