@@ -3,6 +3,7 @@ const promptInput = document.querySelector("#prompt");
 const messagesEl = document.querySelector("#messages");
 const clearButton = document.querySelector("#clearChat");
 const exportReportButton = document.querySelector("#exportReport");
+const saveReportButton = document.querySelector("#saveReport");
 const hint = document.querySelector("#hint");
 const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
@@ -31,6 +32,8 @@ const loginButton = document.querySelector("#loginButton");
 const memberActions = document.querySelector("#memberActions");
 const upgradeButton = document.querySelector("#upgradeButton");
 const logoutButton = document.querySelector("#logoutButton");
+const reportHistory = document.querySelector("#reportHistory");
+const reportList = document.querySelector("#reportList");
 const symptomInput = document.querySelector("#symptomInput");
 const riskSelect = document.querySelector("#riskSelect");
 const startDiagnostic = document.querySelector("#startDiagnostic");
@@ -554,6 +557,21 @@ function buildReportDocument() {
     </html>`;
 }
 
+function getReportPreviewText() {
+  return Array.from(messagesEl.querySelectorAll(".bubble"))
+    .map((item) => item.textContent.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .slice(0, 220);
+}
+
+function getReportTitle() {
+  const lastUserBubble = Array.from(messagesEl.querySelectorAll(".message.user .bubble")).pop();
+  const base = lastUserBubble?.textContent?.trim().replace(/\s+/g, " ").slice(0, 72);
+  return base || `Rapport Voltia ${new Date().toLocaleDateString("fr-FR")}`;
+}
+
 function exportConversationReport() {
   const hasConversation = messagesEl.querySelectorAll(".message").length > 0;
   if (!hasConversation) {
@@ -575,6 +593,86 @@ function exportConversationReport() {
     reportWindow.print();
   }, 350);
   hint.textContent = "Rapport ouvert. Choisis Enregistrer en PDF dans la fenetre d'impression.";
+}
+
+function renderReportHistory(reports = []) {
+  if (!reportHistory || !reportList) return;
+
+  reportHistory.hidden = !currentUser;
+  reportList.innerHTML = "";
+
+  if (!currentUser) return;
+
+  if (!reports.length) {
+    reportList.innerHTML = '<p class="empty-history">Aucun rapport sauvegarde pour l\'instant.</p>';
+    return;
+  }
+
+  reports.forEach((report) => {
+    const item = document.createElement("article");
+    item.className = "report-history-item";
+    const date = report.createdAt ? new Date(report.createdAt).toLocaleDateString("fr-FR") : "Date inconnue";
+    item.innerHTML = `
+      <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
+      <span>${escapeHtml(date)} | ${escapeHtml(report.preview || "Rapport sauvegarde")}</span>
+    `;
+    reportList.append(item);
+  });
+}
+
+async function loadReportHistory() {
+  if (!currentUser) {
+    renderReportHistory([]);
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/reports");
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Historique indisponible.");
+    renderReportHistory(data.reports || []);
+  } catch {
+    renderReportHistory([]);
+  }
+}
+
+async function saveConversationReport() {
+  if (!currentUser) {
+    setHint("Connecte-toi pour sauvegarder tes rapports dans ton compte.", true);
+    setAccountNotice("Connecte-toi ou cree un compte pour sauvegarder un rapport.");
+    return;
+  }
+
+  const hasConversation = messagesEl.querySelectorAll(".message").length > 0;
+  if (!hasConversation) {
+    setHint("Lance d'abord une conversation avant de sauvegarder un rapport.", true);
+    return;
+  }
+
+  saveReportButton.disabled = true;
+  setHint("Sauvegarde du rapport en cours...");
+
+  try {
+    const response = await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: getReportTitle(),
+        preview: getReportPreviewText(),
+        html: buildReportDocument()
+      })
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Sauvegarde impossible.");
+
+    renderReportHistory(data.reports || []);
+    await refreshAccount();
+    setHint("Rapport sauvegarde dans ton compte.");
+  } catch (error) {
+    setHint(error.message, true);
+  } finally {
+    saveReportButton.disabled = false;
+  }
 }
 
 function autosize() {
@@ -608,6 +706,7 @@ function updateAccountUi(user, meta = {}) {
     memberActions.hidden = false;
     upgradeButton.hidden = true;
     logoutButton.hidden = false;
+    renderReportHistory([]);
     return;
   }
 
@@ -619,6 +718,7 @@ function updateAccountUi(user, meta = {}) {
     memberActions.hidden = true;
     upgradeButton.hidden = true;
     logoutButton.hidden = true;
+    renderReportHistory([]);
     return;
   }
 
@@ -635,6 +735,7 @@ function updateAccountUi(user, meta = {}) {
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
   logoutButton.hidden = false;
+  reportHistory.hidden = false;
 }
 
 function setAccountNotice(message) {
@@ -658,6 +759,7 @@ async function refreshAccount() {
     const response = await fetch("/api/auth/me");
     const data = await readJsonResponse(response);
     updateAccountUi(data.user, data);
+    await loadReportHistory();
   } catch {
     updateAccountUi(null);
   }
@@ -703,6 +805,7 @@ async function submitAuth(mode) {
     authPassword.value = "";
     signupPassword.value = "";
     updateAccountUi(data.user);
+    await loadReportHistory();
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
       signupFields.hidden = true;
@@ -725,6 +828,7 @@ async function submitAuth(mode) {
 async function logoutAccount() {
   await fetch("/api/auth/logout", { method: "POST" });
   updateAccountUi(null, { anonymousDailyLimit: 5 });
+  renderReportHistory([]);
   setHint("Tu es deconnecte.");
 }
 
@@ -1805,6 +1909,7 @@ clearButton.addEventListener("click", () => {
 });
 
 exportReportButton.addEventListener("click", exportConversationReport);
+saveReportButton.addEventListener("click", saveConversationReport);
 
 toolCards.forEach((card) => {
   card.addEventListener("click", (event) => {

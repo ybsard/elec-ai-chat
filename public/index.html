@@ -105,6 +105,14 @@
               </label>
               <button id="accessCodeButton" class="secondary-action" type="button">Debloquer</button>
             </div>
+
+            <div id="reportHistory" class="report-history" hidden>
+              <div class="report-history-heading">
+                <strong>Mes rapports</strong>
+                <span>Les derniers rapports sauvegardes.</span>
+              </div>
+              <div id="reportList" class="report-list"></div>
+            </div>
           </section>
         </div>
       </header>
@@ -418,6 +426,9 @@
             <div class="chat-header-actions">
               <button id="exportReport" class="icon-button report-button" type="button" title="Exporter le rapport en PDF" aria-label="Exporter le rapport en PDF">
                 Rapport PDF
+              </button>
+              <button id="saveReport" class="icon-button save-report-button" type="button" title="Sauvegarder le rapport dans ton compte" aria-label="Sauvegarder le rapport dans ton compte">
+                Sauvegarder
               </button>
               <button id="clearChat" class="icon-button" type="button" title="Effacer la conversation" aria-label="Effacer la conversation">
                 Reset

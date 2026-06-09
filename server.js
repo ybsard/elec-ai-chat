@@ -55,6 +55,7 @@ function publicUser(user) {
     email: user.email,
     plan: user.plan || "free",
     subscriptionStatus: user.subscriptionStatus || "free",
+    reportCount: Array.isArray(user.reports) ? user.reports.length : 0,
     usageToday: user.usage?.date === todayKey() ? user.usage.count : 0,
     freeDailyLimit
   };
@@ -511,6 +512,64 @@ async function handleMe(req, res) {
     accessName: auth.accessName || "",
     anonymousDailyLimit: anonDailyLimit
   });
+}
+
+function publicReport(report) {
+  return {
+    id: report.id,
+    title: report.title || "Rapport Voltia",
+    preview: report.preview || "",
+    createdAt: report.createdAt || ""
+  };
+}
+
+async function handleListReports(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour voir tes rapports." });
+    return;
+  }
+
+  const reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
+  sendJson(res, 200, { reports: reports.slice(0, 12).map(publicReport) });
+}
+
+async function handleSaveReport(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour sauvegarder un rapport." });
+    return;
+  }
+
+  try {
+    const { title = "", preview = "", html = "" } = await readRequestJson(req);
+    const cleanTitle = String(title || "Rapport Voltia").trim().slice(0, 120) || "Rapport Voltia";
+    const cleanPreview = String(preview || "").trim().replace(/\s+/g, " ").slice(0, 220);
+    const cleanHtml = String(html || "").slice(0, 180000);
+
+    if (!cleanHtml.includes("Rapport Voltia")) {
+      sendJson(res, 400, { error: "Rapport invalide ou vide." });
+      return;
+    }
+
+    auth.user.reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
+    const report = {
+      id: randomBytes(10).toString("hex"),
+      title: cleanTitle,
+      preview: cleanPreview,
+      html: cleanHtml,
+      createdAt: new Date().toISOString()
+    };
+
+    auth.user.reports.unshift(report);
+    auth.user.reports = auth.user.reports.slice(0, 20);
+    auth.user.updatedAt = new Date().toISOString();
+    await saveUserStore(auth.store);
+
+    sendJson(res, 201, { report: publicReport(report), reports: auth.user.reports.slice(0, 12).map(publicReport) });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
 }
 
 function stripeFormBody(values) {
@@ -1145,6 +1204,16 @@ createServer(async (req, res) => {
 
   if (req.method === "GET" && req.url === "/api/auth/me") {
     await handleMe(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/reports") {
+    await handleListReports(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/reports") {
+    await handleSaveReport(req, res);
     return;
   }
 
