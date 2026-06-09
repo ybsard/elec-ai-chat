@@ -11,6 +11,10 @@ const usersFile = join(dataDir, "users.json");
 const port = Number(process.env.PORT || 3000);
 const freeDailyLimit = Number(process.env.FREE_DAILY_LIMIT || 10);
 const anonDailyLimit = Number(process.env.ANON_DAILY_LIMIT || 5);
+const supabaseUrl = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
+const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+const supabaseStateTable = String(process.env.SUPABASE_STATE_TABLE || "app_state");
+const userStoreKey = "voltia_user_store";
 const sessionDays = 30;
 const anonymousUsage = new Map();
 
@@ -71,17 +75,84 @@ function clearSessionCookie() {
   return "elec_session=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly";
 }
 
+function emptyUserStore() {
+  return { users: [], sessions: {} };
+}
+
+function isSupabaseConfigured() {
+  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+}
+
+function normalizeUserStore(store) {
+  return {
+    users: Array.isArray(store?.users) ? store.users : [],
+    sessions: store?.sessions && typeof store.sessions === "object" ? store.sessions : {}
+  };
+}
+
+async function fetchSupabaseState() {
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseStateTable)}?key=eq.${encodeURIComponent(userStoreKey)}&select=value`,
+    {
+      headers: {
+        apikey: supabaseServiceRoleKey,
+        Authorization: `Bearer ${supabaseServiceRoleKey}`,
+        Accept: "application/json"
+      }
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase lecture impossible: ${text || response.status}`);
+  }
+
+  const rows = await response.json();
+  return normalizeUserStore(rows?.[0]?.value || emptyUserStore());
+}
+
+async function saveSupabaseState(store) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseStateTable)}`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates"
+    },
+    body: JSON.stringify({
+      key: userStoreKey,
+      value: normalizeUserStore(store),
+      updated_at: new Date().toISOString()
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase sauvegarde impossible: ${text || response.status}`);
+  }
+}
+
 async function loadUserStore() {
+  if (isSupabaseConfigured()) {
+    return fetchSupabaseState();
+  }
+
   try {
-    return JSON.parse(await readFile(usersFile, "utf8"));
+    return normalizeUserStore(JSON.parse(await readFile(usersFile, "utf8")));
   } catch {
-    return { users: [], sessions: {} };
+    return emptyUserStore();
   }
 }
 
 async function saveUserStore(store) {
+  if (isSupabaseConfigured()) {
+    await saveSupabaseState(store);
+    return;
+  }
+
   await mkdir(dataDir, { recursive: true });
-  await writeFile(usersFile, JSON.stringify(store, null, 2), "utf8");
+  await writeFile(usersFile, JSON.stringify(normalizeUserStore(store), null, 2), "utf8");
 }
 
 function hashPassword(password) {
