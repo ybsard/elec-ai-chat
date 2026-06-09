@@ -38,6 +38,8 @@ const schemaUse = document.querySelector("#schemaUse");
 const socketCount = document.querySelector("#socketCount");
 const lightCount = document.querySelector("#lightCount");
 const switchCount = document.querySelector("#switchCount");
+const breakerCount = document.querySelector("#breakerCount");
+const breakerRatings = document.querySelector("#breakerRatings");
 const createSchema = document.querySelector("#createSchema");
 const photoInput = document.querySelector("#photoInput");
 const photoLabel = document.querySelector("#photoLabel");
@@ -628,7 +630,9 @@ function getSchemaCounts() {
   return {
     sockets: clampCount(socketCount.value, 1, 0, 12),
     lights: clampCount(lightCount.value, 1, 0, 8),
-    switches: clampCount(switchCount.value, 1, 0, 6)
+    switches: clampCount(switchCount.value, 1, 0, 6),
+    breakers: clampCount(breakerCount.value, 4, 1, 12),
+    breakerRatings: breakerRatings.value.trim()
   };
 }
 
@@ -643,6 +647,20 @@ function syncSchemaDefaults() {
   if (schemaType.value === "va-et-vient" && Number(switchCount.value) < 2) {
     switchCount.value = "2";
   }
+  if (schemaType.value === "tableau" && Number(breakerCount.value) < 1) {
+    breakerCount.value = "4";
+  }
+  document.querySelector(".schema-board-fields")?.classList.toggle("hidden-field", schemaType.value !== "tableau");
+}
+
+function getBreakerItems(counts = {}) {
+  const fallback = ["10A eclairage", "16A prises", "20A cuisine", "20A chauffage"];
+  const raw = String(counts.breakerRatings || "")
+    .split(/[,;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const total = clampCount(counts.breakers, Math.max(raw.length, 4), 1, 12);
+  return Array.from({ length: total }, (_, index) => raw[index] || fallback[index] || `Circuit ${index + 1}`);
 }
 
 function buildSchema(type, room, usage, counts = {}) {
@@ -651,7 +669,11 @@ function buildSchema(type, room, usage, counts = {}) {
   const socketTotal = clampCount(counts.sockets, 1, 0, 12);
   const lightTotal = clampCount(counts.lights, 1, 0, 8);
   const switchTotal = clampCount(counts.switches, type === "va-et-vient" ? 2 : 1, 0, 6);
-  const quantityLine = `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
+  const breakerItems = getBreakerItems(counts);
+  const breakerTotal = breakerItems.length;
+  const quantityLine = type === "tableau"
+    ? `Disjoncteurs: ${breakerTotal} | Circuits: ${escapeHtml(breakerItems.join(", "))}`
+    : `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
   const header = `
     <text class="diagram-title" x="24" y="28">Schema electrique - ${safeRoom}</text>
     <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage} | ${quantityLine}</text>
@@ -707,22 +729,42 @@ function buildSchema(type, room, usage, counts = {}) {
     `;
   }).join("");
 
-  const vaSwitchSymbols = Array.from({ length: Math.max(switchTotal, 2) }, (_, index) => {
-    const x = 180 + index * 88;
+  const vaSwitches = Math.max(switchTotal, 2);
+  const vaSpacing = vaSwitches > 4 ? 72 : 88;
+  const vaStart = 162;
+  const vaSwitchSymbols = Array.from({ length: vaSwitches }, (_, index) => {
+    const x = vaStart + index * vaSpacing;
+    const isFirst = index === 0;
+    const isLast = index === vaSwitches - 1;
+    const label = isFirst || isLast ? `VA ${index + 1}` : `PERM ${index}`;
+    if (!isFirst && !isLast) {
+      return `
+        <g class="symbol switch">
+          <rect x="${x - 8}" y="110" width="54" height="54" rx="8" />
+          <circle cx="${x + 4}" cy="122" r="5" />
+          <circle cx="${x + 34}" cy="122" r="5" />
+          <circle cx="${x + 4}" cy="152" r="5" />
+          <circle cx="${x + 34}" cy="152" r="5" />
+          <line x1="${x + 8}" y1="122" x2="${x + 30}" y2="152" />
+          <line x1="${x + 8}" y1="152" x2="${x + 30}" y2="122" />
+          <text x="${x + 19}" y="184">${label}</text>
+        </g>
+      `;
+    }
     return `
       <g class="symbol switch">
         <circle cx="${x}" cy="120" r="6" />
         <circle cx="${x}" cy="152" r="6" />
         <circle cx="${x + 36}" cy="136" r="6" />
         <line x1="${x + 6}" y1="${index % 2 === 0 ? 120 : 152}" x2="${x + 30}" y2="136" />
-        <text x="${x + 18}" y="184">VA ${index + 1}</text>
+        <text x="${x + 18}" y="184">${label}</text>
       </g>
     `;
   }).join("");
 
   const vaLightSymbols = Array.from({ length: Math.max(lightTotal, 1) }, (_, index) => {
     const y = 104 + index * 42;
-    const lastSwitchX = 180 + (Math.max(switchTotal, 2) - 1) * 88 + 36;
+    const lastSwitchX = vaStart + (vaSwitches - 1) * vaSpacing + 36;
     return `
       <g class="symbol lamp">
         <circle cx="548" cy="${y}" r="20" />
@@ -774,8 +816,8 @@ function buildSchema(type, room, usage, counts = {}) {
   }
 
   if (type === "va-et-vient") {
-    const firstX = 180;
-    const lastX = 180 + (Math.max(switchTotal, 2) - 1) * 88;
+    const firstX = vaStart;
+    const lastX = vaStart + (vaSwitches - 1) * vaSpacing;
     return `
       <svg viewBox="0 0 620 290" role="img" aria-label="Schema va-et-vient dynamique">
         ${header}
@@ -792,6 +834,55 @@ function buildSchema(type, room, usage, counts = {}) {
         ${vaLightSymbols}
         <text class="wire-label" x="310" y="112">Navette 1</text>
         <text class="wire-label" x="310" y="170">Navette 2</text>
+        ${vaSwitches > 2 ? `<text class="wire-label" x="214" y="208">${vaSwitches - 2} permutateur(s) intermediaire(s) entre les deux va-et-vient</text>` : ""}
+        ${note}
+      </svg>
+    `;
+  }
+
+  if (type === "tableau") {
+    const items = breakerItems;
+    const columnWidth = 360 / Math.max(items.length, 1);
+    const breakersSvg = items.map((item, index) => {
+      const x = 214 + index * columnWidth;
+      const width = Math.max(30, Math.min(52, columnWidth - 6));
+      const safeItem = escapeHtml(item);
+      const [rating = safeItem, ...rest] = safeItem.split(/\s+/);
+      const label = rest.join(" ") || `C${index + 1}`;
+      return `
+        <g class="symbol breaker">
+          <rect x="${x}" y="122" width="${width}" height="72" rx="5" />
+          <text x="${x + width / 2}" y="146">${rating}</text>
+          <text x="${x + width / 2}" y="164">${label.slice(0, 10)}</text>
+          <line class="wire phase" x1="${x + width / 2}" y1="112" x2="${x + width / 2}" y2="122" />
+          <line class="wire neutral" x1="${x + width / 2}" y1="194" x2="${x + width / 2}" y2="214" />
+        </g>
+      `;
+    }).join("");
+    return `
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schema tableau electrique dynamique">
+        ${header}
+        <g class="symbol board large-board">
+          <rect x="32" y="78" width="556" height="158" rx="10" />
+          <text x="310" y="100">Tableau electrique - repartition indicative</text>
+          <rect x="58" y="122" width="54" height="72" rx="5" />
+          <text x="85" y="146">AGCP</text>
+          <text x="85" y="164">arrivee</text>
+          <rect x="138" y="116" width="58" height="84" rx="5" />
+          <text x="167" y="142">ID</text>
+          <text x="167" y="160">30mA</text>
+          <text x="167" y="178">type A/AC</text>
+          ${breakersSvg}
+          <rect x="214" y="210" width="360" height="12" rx="4" />
+          <text x="394" y="238">bornier neutre N et barrette de terre PE</text>
+        </g>
+        <path class="wire phase" d="M 112 140 H 138" />
+        <path class="wire neutral" d="M 112 166 H 138" />
+        <path class="wire phase" d="M 196 132 H 574" />
+        <path class="wire neutral" d="M 196 186 H 574" />
+        <path class="wire earth" d="M 58 218 H 574" />
+        <text class="wire-label" x="248" y="117">Peigne phase depuis l'interrupteur differentiel</text>
+        <text class="wire-label" x="250" y="206">Retours neutres par circuit</text>
         ${note}
       </svg>
     `;
@@ -1040,6 +1131,14 @@ function buildSchemaPrompt() {
     `Nombre de prises: ${counts.sockets}.`,
     `Nombre de lumieres: ${counts.lights}.`,
     `Nombre d'interrupteurs: ${counts.switches}.`,
+    `Nombre de disjoncteurs tableau: ${counts.breakers}.`,
+    `Calibres ou circuits demandes: ${counts.breakerRatings || "non precise"}.`,
+    schemaType.value === "va-et-vient" && counts.switches > 2
+      ? "Important: pour plus de 2 points de commande, explique le principe avec deux va-et-vient aux extremites et un ou plusieurs permutateurs intermediaires."
+      : "",
+    schemaType.value === "tableau"
+      ? "Pour le tableau, explique la logique arrivee/AGCP, interrupteur differentiel 30mA, peignes, disjoncteurs divisionnaires, borniers neutre et terre, sans presenter cela comme un plan de conformite."
+      : "",
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
     "Donne une explication simple, les points de securite, les limites du schema, puis rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
@@ -1657,4 +1756,5 @@ analyzeLighting.addEventListener("click", analyzeLightingPlan);
 sizeClimate.addEventListener("click", sizeClimateSystem);
 
 refreshAccount();
+syncSchemaDefaults();
 autosize();
