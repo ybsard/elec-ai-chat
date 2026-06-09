@@ -1278,13 +1278,16 @@ function addAutomaticSchema(content) {
 async function askAssistant(content, options = {}) {
   const contentForModel = `${content}\n\n${buildLevelInstruction()}\n${buildResponseFormatInstruction()}`;
   messages.push({ role: "user", content: contentForModel });
-  addMessage("user", content);
+  if (!options.skipUserMessage) {
+    addMessage("user", content);
+  }
 
   if (!options.skipAutoSchema && isSchemaRequest(content)) {
     addAutomaticSchema(content);
   }
 
   const pending = addMessage("assistant", "", { loading: true });
+
   sendButton.disabled = true;
   promptInput.disabled = true;
   const sourceSettings = getSourceSettings();
@@ -1661,13 +1664,15 @@ createSchema.addEventListener("click", async () => {
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
+  const schemaPrompt = buildSchemaPrompt();
+  addMessage("user", `Cree un schema: ${typeLabel}${room ? `, piece: ${room}` : ""}${usage ? `, usage: ${usage}` : ""}.`);
   addDiagramMessage(
     typeLabel,
     buildSchema(schemaType.value, room, usage, counts),
     "Schema indicatif genere par Voltia. Ne pas intervenir sous tension.",
     buildLineSchema(schemaType.value, counts)
   );
-  await askAssistant(buildSchemaPrompt(), { skipAutoSchema: true });
+  await askAssistant(schemaPrompt, { skipAutoSchema: true, skipUserMessage: true });
 });
 
 schemaType.addEventListener("change", () => {
