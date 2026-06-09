@@ -11,7 +11,7 @@ const usersFile = join(dataDir, "users.json");
 const port = Number(process.env.PORT || 3000);
 const freeDailyLimit = Number(process.env.FREE_DAILY_LIMIT || 10);
 const anonDailyLimit = Number(process.env.ANON_DAILY_LIMIT || 5);
-const supabaseUrl = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
+const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
 const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const supabaseStateTable = String(process.env.SUPABASE_STATE_TABLE || "app_state");
 const userStoreKey = "voltia_user_store";
@@ -25,6 +25,13 @@ const mimeTypes = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml"
 };
+
+function normalizeSupabaseUrl(rawUrl) {
+  return String(rawUrl || "")
+    .trim()
+    .replace(/\/rest\/v1\/?$/i, "")
+    .replace(/\/+$/, "");
+}
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
