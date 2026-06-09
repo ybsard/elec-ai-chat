@@ -523,6 +523,45 @@ function publicReport(report) {
   };
 }
 
+function decodeHtmlEntities(text) {
+  return String(text || "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'");
+}
+
+function textFromHtml(html) {
+  return decodeHtmlEntities(
+    String(html || "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6]|pre)>/gi, "\n")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s+/g, "\n")
+      .trim()
+  );
+}
+
+function conversationFromReportHtml(html) {
+  const source = String(html || "");
+  const matches = [...source.matchAll(/<article[^>]*class="[^"]*message\s+(user|assistant)[^"]*"[^>]*>([\s\S]*?)<\/article>/gi)];
+
+  return matches
+    .map((match) => {
+      const role = match[1] === "user" ? "user" : "assistant";
+      const bubble = /<div[^>]*class="[^"]*bubble[^"]*"[^>]*>([\s\S]*?)<\/div>/i.exec(match[2]);
+      const content = textFromHtml(bubble?.[1] || match[2]).slice(0, 6000);
+      return { role, content };
+    })
+    .filter((message) => message.content)
+    .slice(0, 40);
+}
+
 async function handleListReports(req, res) {
   const auth = await getSessionUser(req);
   if (!auth.user) {
@@ -548,10 +587,14 @@ async function handleGetReport(req, res, reportId) {
     return;
   }
 
+  const conversation = Array.isArray(report.conversation) && report.conversation.length
+    ? report.conversation
+    : conversationFromReportHtml(report.html);
+
   sendJson(res, 200, {
     report: {
       ...publicReport(report),
-      conversation: Array.isArray(report.conversation) ? report.conversation : []
+      conversation
     }
   });
 }
