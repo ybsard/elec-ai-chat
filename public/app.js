@@ -2,6 +2,7 @@ const form = document.querySelector("#chatForm");
 const promptInput = document.querySelector("#prompt");
 const messagesEl = document.querySelector("#messages");
 const clearButton = document.querySelector("#clearChat");
+const exportReportButton = document.querySelector("#exportReport");
 const hint = document.querySelector("#hint");
 const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
@@ -375,6 +376,205 @@ function addClimateSizingMessage(details) {
   item.append(avatar, stack);
   messagesEl.append(item);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function buildReportDocument() {
+  const reportMessages = messagesEl.cloneNode(true);
+  reportMessages.querySelectorAll(".typing, .message-actions").forEach((item) => item.remove());
+  reportMessages.querySelectorAll("[id]").forEach((item) => item.removeAttribute("id"));
+
+  return `<!doctype html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8">
+        <title>Rapport Voltia</title>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            padding: 32px;
+            color: #101820;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f6f8fa;
+          }
+          .report {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 28px;
+            border: 1px solid #d9e1e7;
+            border-radius: 10px;
+            background: #ffffff;
+          }
+          .report-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            border-bottom: 2px solid #f2a51a;
+            padding-bottom: 18px;
+            margin-bottom: 22px;
+          }
+          .brand {
+            font-size: 28px;
+            font-weight: 900;
+          }
+          .meta {
+            color: #637280;
+            text-align: right;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+          .notice {
+            margin: 0 0 22px;
+            padding: 12px 14px;
+            border: 1px solid #f2a51a;
+            border-radius: 8px;
+            background: #fff8e8;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.5;
+          }
+          .messages {
+            display: grid;
+            gap: 16px;
+            padding: 0;
+            background: transparent;
+          }
+          .message {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr);
+            gap: 10px;
+            margin: 0;
+            page-break-inside: avoid;
+          }
+          .message.user {
+            grid-template-columns: 44px minmax(0, 1fr);
+          }
+          .avatar {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: #101820;
+            color: white;
+            font-size: 11px;
+            font-weight: 900;
+          }
+          .message.user .avatar {
+            background: #1d6f8f;
+          }
+          .message-stack {
+            max-width: none;
+          }
+          .message-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #637280;
+            font-size: 12px;
+            font-weight: 800;
+          }
+          .bubble {
+            padding: 14px 16px;
+            border: 1px solid #d9e1e7;
+            border-radius: 8px;
+            background: #ffffff;
+            line-height: 1.55;
+            white-space: pre-wrap;
+          }
+          .message.user .bubble {
+            border-color: #15566f;
+            background: #1d6f8f;
+            color: #ffffff;
+          }
+          .formatted-response {
+            white-space: normal;
+          }
+          .formatted-response p,
+          .formatted-response ul,
+          .formatted-response ol {
+            margin: 0 0 10px;
+          }
+          .line-schema {
+            overflow: visible;
+            white-space: pre-wrap;
+            padding: 12px;
+            border: 1px solid #d9e1e7;
+            border-radius: 8px;
+            background: #f6f8fa;
+            font-size: 11px;
+          }
+          .diagram-frame {
+            overflow: hidden;
+            margin: 10px 0;
+            border: 1px solid #d9e1e7;
+            border-radius: 8px;
+            background: #fbfdff;
+          }
+          .diagram-frame svg {
+            display: block;
+            width: 100%;
+            height: auto;
+          }
+          .report-footer {
+            margin-top: 24px;
+            padding-top: 14px;
+            border-top: 1px solid #d9e1e7;
+            color: #637280;
+            font-size: 12px;
+            line-height: 1.5;
+          }
+          @media print {
+            body { padding: 0; background: white; }
+            .report { border: 0; border-radius: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <main class="report">
+          <header class="report-header">
+            <div>
+              <div class="brand">Voltia</div>
+              <div>Rapport de diagnostic et d'accompagnement electrique</div>
+            </div>
+            <div class="meta">
+              Genere le ${new Date().toLocaleString("fr-FR")}<br>
+              Niveau: ${escapeHtml(selectedLevel)}
+            </div>
+          </header>
+          <p class="notice">
+            Rapport indicatif. Ne pas intervenir sous tension. Les schemas, conseils et dimensionnements
+            doivent etre verifies avec les normes applicables, les notices fabricants et un professionnel qualifie.
+          </p>
+          ${reportMessages.outerHTML}
+          <footer class="report-footer">
+            Voltia by yb - Assistant IA indicatif. Editeur: Yanis Barthe.
+          </footer>
+        </main>
+      </body>
+    </html>`;
+}
+
+function exportConversationReport() {
+  const hasConversation = messagesEl.querySelectorAll(".message").length > 0;
+  if (!hasConversation) {
+    setHint("Lance d'abord une conversation avant d'exporter un rapport.", true);
+    return;
+  }
+
+  const reportWindow = window.open("", "_blank");
+  if (!reportWindow) {
+    setHint("Autorise l'ouverture de pop-up pour exporter le rapport PDF.", true);
+    return;
+  }
+
+  reportWindow.document.open();
+  reportWindow.document.write(buildReportDocument());
+  reportWindow.document.close();
+  window.setTimeout(() => {
+    reportWindow.focus();
+    reportWindow.print();
+  }, 350);
+  hint.textContent = "Rapport ouvert. Choisis Enregistrer en PDF dans la fenetre d'impression.";
 }
 
 function autosize() {
@@ -1603,6 +1803,8 @@ clearButton.addEventListener("click", () => {
   hint.textContent = "Nouvelle recherche demarree.";
   promptInput.focus();
 });
+
+exportReportButton.addEventListener("click", exportConversationReport);
 
 toolCards.forEach((card) => {
   card.addEventListener("click", (event) => {

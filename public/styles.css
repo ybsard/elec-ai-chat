@@ -1062,6 +1062,14 @@ textarea:focus {
   border-bottom: 1px solid rgba(217, 225, 231, 0.75);
 }
 
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .chat-level-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
@@ -1103,6 +1111,18 @@ textarea:focus {
   color: var(--ink);
   cursor: pointer;
   font-weight: 850;
+}
+
+.report-button {
+  min-width: 118px;
+  background: #f5fbfd;
+  border-color: rgba(29, 111, 143, 0.24);
+  color: var(--accent);
+}
+
+.report-button:hover {
+  border-color: var(--accent);
+  background: #eaf6fa;
 }
 
 .suggestions {
@@ -1796,6 +1816,20 @@ textarea:disabled {
   .chat-header,
   .messages {
     padding: 16px;
+  }
+
+  .chat-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chat-header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .chat-header-actions .icon-button {
+    flex: 1;
   }
 
   .composer {
