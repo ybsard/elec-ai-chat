@@ -536,6 +536,9 @@ function decodeHtmlEntities(text) {
 function textFromHtml(html) {
   return decodeHtmlEntities(
     String(html || "")
+      .replace(/<div[^>]*class="[^"]*avatar[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "")
+      .replace(/<span[^>]*class="[^"]*message-label[^"]*"[^>]*>[\s\S]*?<\/span>/gi, "")
+      .replace(/<button[\s\S]*?<\/button>/gi, "")
       .replace(/<br\s*\/?>/gi, "\n")
       .replace(/<\/(p|div|li|h[1-6]|pre)>/gi, "\n")
       .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -558,7 +561,7 @@ function conversationFromReportHtml(html) {
       const content = textFromHtml(bubble?.[1] || match[2]).slice(0, 6000);
       return { role, content };
     })
-    .filter((message) => message.content)
+    .filter((message) => message.content && !["AI", "VO", "Voltia", "Vous", "AI Voltia", "VO Vous"].includes(message.content))
     .slice(0, 40);
 }
 

@@ -94,7 +94,7 @@ function addMessage(role, content, options = {}) {
 
   const avatar = document.createElement("div");
   avatar.className = "avatar";
-  avatar.textContent = role === "user" ? "VO" : "AI";
+  avatar.textContent = role === "user" ? "VO" : "V";
 
   const stack = document.createElement("div");
   stack.className = "message-stack";
@@ -245,7 +245,7 @@ function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
 
   const avatar = document.createElement("div");
   avatar.className = "avatar";
-  avatar.textContent = "AI";
+  avatar.textContent = "V";
 
   const stack = document.createElement("div");
   stack.className = "message-stack";
