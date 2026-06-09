@@ -1186,30 +1186,63 @@ textarea:focus {
 .report-list {
   display: grid;
   gap: 6px;
-  max-height: 132px;
+  max-height: 168px;
   overflow-y: auto;
 }
 
 .report-history-item {
   display: grid;
-  gap: 3px;
-  padding: 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
   border: 1px solid rgba(217, 225, 231, 0.9);
   border-radius: 8px;
   background: #ffffff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.report-history-item:hover {
+  border-color: rgba(29, 111, 143, 0.36);
+  background: #f5fbfd;
+  transform: translateY(-1px);
+}
+
+.report-item-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
 .report-history-item strong {
   color: var(--ink);
   font-size: 12px;
   font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.report-history-item span {
+.report-history-item small {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
   font-weight: 720;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-item-action {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: #fff8e8;
+  color: var(--warning-dark);
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
 }
 
 .suggestions {

@@ -572,6 +572,16 @@ function getReportTitle() {
   return base || `Rapport Voltia ${new Date().toLocaleDateString("fr-FR")}`;
 }
 
+function getVisibleConversation() {
+  return Array.from(messagesEl.querySelectorAll(".message"))
+    .map((item) => ({
+      role: item.classList.contains("user") ? "user" : "assistant",
+      content: item.querySelector(".bubble")?.textContent?.trim().replace(/\s+/g, " ") || ""
+    }))
+    .filter((message) => message.content && !message.content.includes("Conversation effacee"))
+    .slice(-40);
+}
+
 function exportConversationReport() {
   const hasConversation = messagesEl.querySelectorAll(".message").length > 0;
   if (!hasConversation) {
@@ -609,15 +619,54 @@ function renderReportHistory(reports = []) {
   }
 
   reports.forEach((report) => {
-    const item = document.createElement("article");
+    const item = document.createElement("a");
     item.className = "report-history-item";
+    item.href = `/?report=${encodeURIComponent(report.id)}`;
+    item.dataset.reportId = report.id;
     const date = report.createdAt ? new Date(report.createdAt).toLocaleDateString("fr-FR") : "Date inconnue";
     item.innerHTML = `
-      <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
-      <span>${escapeHtml(date)} | ${escapeHtml(report.preview || "Rapport sauvegarde")}</span>
+      <span class="report-item-main">
+        <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
+        <small>${escapeHtml(date)} | ${escapeHtml(report.preview || "Rapport sauvegarde")}</small>
+      </span>
+      <span class="report-item-action">Reprendre</span>
     `;
     reportList.append(item);
   });
+}
+
+async function loadSavedConversation(reportId) {
+  if (!reportId) return;
+
+  try {
+    const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}`);
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Rapport introuvable.");
+
+    const conversation = data.report?.conversation || [];
+    if (!conversation.length) {
+      setHint("Ce rapport ne contient pas encore de conversation a reprendre.", true);
+      return;
+    }
+
+    messages.length = 0;
+    messagesEl.innerHTML = "";
+    conversation.forEach((message) => {
+      addMessage(message.role === "user" ? "user" : "assistant", message.content);
+      messages.push({
+        role: message.role === "user" ? "user" : "assistant",
+        content: message.content
+      });
+    });
+
+    promptInput.value = "";
+    autosize();
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    setHint(`Conversation reprise: ${data.report?.title || "rapport Voltia"}. Tu peux continuer dans le chat.`);
+    window.history.replaceState({}, "", "/");
+  } catch (error) {
+    setHint(error.message, true);
+  }
 }
 
 async function loadReportHistory() {
@@ -659,7 +708,8 @@ async function saveConversationReport() {
       body: JSON.stringify({
         title: getReportTitle(),
         preview: getReportPreviewText(),
-        html: buildReportDocument()
+        html: buildReportDocument(),
+        conversation: getVisibleConversation()
       })
     });
     const data = await readJsonResponse(response);
@@ -1911,6 +1961,13 @@ clearButton.addEventListener("click", () => {
 exportReportButton.addEventListener("click", exportConversationReport);
 saveReportButton.addEventListener("click", saveConversationReport);
 
+reportList?.addEventListener("click", async (event) => {
+  const link = event.target.closest("[data-report-id]");
+  if (!link) return;
+  event.preventDefault();
+  await loadSavedConversation(link.dataset.reportId);
+});
+
 toolCards.forEach((card) => {
   card.addEventListener("click", (event) => {
     if (event.target.closest("input, select, textarea, button, label, .upload-zone")) return;
@@ -2069,6 +2126,10 @@ searchManual.addEventListener("click", searchManualNotice);
 analyzeLighting.addEventListener("click", analyzeLightingPlan);
 sizeClimate.addEventListener("click", sizeClimateSystem);
 
-refreshAccount();
+await refreshAccount();
+const initialReportId = new URLSearchParams(window.location.search).get("report");
+if (initialReportId) {
+  await loadSavedConversation(initialReportId);
+}
 syncSchemaDefaults();
 autosize();

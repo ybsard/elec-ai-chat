@@ -534,6 +534,28 @@ async function handleListReports(req, res) {
   sendJson(res, 200, { reports: reports.slice(0, 12).map(publicReport) });
 }
 
+async function handleGetReport(req, res, reportId) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour reprendre une conversation." });
+    return;
+  }
+
+  const reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
+  const report = reports.find((item) => item.id === reportId);
+  if (!report) {
+    sendJson(res, 404, { error: "Rapport introuvable." });
+    return;
+  }
+
+  sendJson(res, 200, {
+    report: {
+      ...publicReport(report),
+      conversation: Array.isArray(report.conversation) ? report.conversation : []
+    }
+  });
+}
+
 async function handleSaveReport(req, res) {
   const auth = await getSessionUser(req);
   if (!auth.user) {
@@ -542,10 +564,19 @@ async function handleSaveReport(req, res) {
   }
 
   try {
-    const { title = "", preview = "", html = "" } = await readRequestJson(req);
+    const { title = "", preview = "", html = "", conversation = [] } = await readRequestJson(req);
     const cleanTitle = String(title || "Rapport Voltia").trim().slice(0, 120) || "Rapport Voltia";
     const cleanPreview = String(preview || "").trim().replace(/\s+/g, " ").slice(0, 220);
     const cleanHtml = String(html || "").slice(0, 180000);
+    const cleanConversation = Array.isArray(conversation)
+      ? conversation
+        .slice(0, 40)
+        .map((message) => ({
+          role: message?.role === "user" ? "user" : "assistant",
+          content: String(message?.content || "").trim().slice(0, 6000)
+        }))
+        .filter((message) => message.content)
+      : [];
 
     if (!cleanHtml.includes("Rapport Voltia")) {
       sendJson(res, 400, { error: "Rapport invalide ou vide." });
@@ -558,6 +589,7 @@ async function handleSaveReport(req, res) {
       title: cleanTitle,
       preview: cleanPreview,
       html: cleanHtml,
+      conversation: cleanConversation,
       createdAt: new Date().toISOString()
     };
 
@@ -1209,6 +1241,12 @@ createServer(async (req, res) => {
 
   if (req.method === "GET" && req.url === "/api/reports") {
     await handleListReports(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/reports/")) {
+    const reportId = decodeURIComponent(req.url.split("?")[0].replace("/api/reports/", ""));
+    await handleGetReport(req, res, reportId);
     return;
   }
 
