@@ -34,12 +34,12 @@ function normalizeSupabaseUrl(rawUrl) {
 }
 
 function sendJson(res, status, body) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...securityHeaders() });
   res.end(JSON.stringify(body));
 }
 
 function sendJsonWithHeaders(res, status, body, headers = {}) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...headers });
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...securityHeaders(), ...headers });
   res.end(JSON.stringify(body));
 }
 
@@ -73,13 +73,32 @@ function parseCookies(req) {
   );
 }
 
-function sessionCookie(token) {
-  const maxAge = sessionDays * 24 * 60 * 60;
-  return `elec_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly`;
+function isSecureRequest(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const host = String(req.headers.host || "");
+  return forwardedProto === "https" || (!host.includes("localhost") && !host.startsWith("127.0.0.1"));
 }
 
-function clearSessionCookie() {
-  return "elec_session=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly";
+function cookieSecurity(req) {
+  return isSecureRequest(req) ? "; Secure" : "";
+}
+
+function sessionCookie(req, token) {
+  const maxAge = sessionDays * 24 * 60 * 60;
+  return `elec_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${cookieSecurity(req)}`;
+}
+
+function clearSessionCookie(req) {
+  return `elec_session=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly${cookieSecurity(req)}`;
+}
+
+function securityHeaders() {
+  return {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+  };
 }
 
 function emptyUserStore() {
@@ -408,7 +427,7 @@ async function handleSignup(req, res) {
     };
     await saveUserStore(store);
 
-    sendJsonWithHeaders(res, 201, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(token) });
+    sendJsonWithHeaders(res, 201, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(req, token) });
   } catch (error) {
     sendJson(res, 500, { error: error.message || "Erreur serveur." });
   }
@@ -434,7 +453,7 @@ async function handleLogin(req, res) {
     };
     await saveUserStore(store);
 
-    sendJsonWithHeaders(res, 200, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(token) });
+    sendJsonWithHeaders(res, 200, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(req, token) });
   } catch (error) {
     sendJson(res, 500, { error: error.message || "Erreur serveur." });
   }
@@ -446,7 +465,7 @@ async function handleLogout(req, res) {
     delete auth.store.sessions[auth.token];
     await saveUserStore(auth.store);
   }
-  sendJsonWithHeaders(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
+  sendJsonWithHeaders(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie(req) });
 }
 
 async function handleAccessCode(req, res) {
@@ -477,7 +496,7 @@ async function handleAccessCode(req, res) {
         accessName: "Createur Voltia",
         message: "Acces complet active."
       },
-      { "Set-Cookie": sessionCookie(token) }
+      { "Set-Cookie": sessionCookie(req, token) }
     );
   } catch (error) {
     sendJson(res, 500, { error: error.message || "Erreur serveur." });
@@ -1059,6 +1078,27 @@ async function handleClimateSizing(req, res) {
   }
 }
 
+async function handleHealth(req, res) {
+  let storage = isSupabaseConfigured() ? "supabase" : "local-file";
+  let storageReady = true;
+
+  try {
+    await loadUserStore();
+  } catch (error) {
+    storageReady = false;
+    storage = `${storage}: ${error.message || "indisponible"}`;
+  }
+
+  sendJson(res, storageReady ? 200 : 503, {
+    ok: storageReady,
+    app: "Voltia",
+    storage,
+    openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID),
+    checkedAt: new Date().toISOString()
+  });
+}
+
 async function serveStatic(req, res) {
   const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
   const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
@@ -1066,15 +1106,23 @@ async function serveStatic(req, res) {
 
   try {
     const file = await readFile(filePath);
-    res.writeHead(200, { "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream" });
+    res.writeHead(200, {
+      "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream",
+      ...securityHeaders()
+    });
     res.end(file);
   } catch {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
     res.end("Page introuvable");
   }
 }
 
 createServer(async (req, res) => {
+  if (req.method === "GET" && req.url === "/api/health") {
+    await handleHealth(req, res);
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/api/auth/signup") {
     await handleSignup(req, res);
     return;
@@ -1140,8 +1188,8 @@ createServer(async (req, res) => {
     return;
   }
 
-  res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8" });
-  res.end("Méthode non autorisée");
+  res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+  res.end("Methode non autorisee");
 }).listen(port, () => {
   console.log(`Voltia chat site: http://localhost:${port}`);
 });
