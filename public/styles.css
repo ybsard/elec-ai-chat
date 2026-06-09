@@ -1594,12 +1594,56 @@ textarea:disabled {
   gap: 14px;
 }
 
+.legal-summary {
+  margin-bottom: 14px;
+}
+
 .legal-panel {
   padding: 18px;
   border: 1px solid rgba(217, 225, 231, 0.95);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 14px 34px rgba(16, 24, 32, 0.08);
+}
+
+.legal-identity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  background: linear-gradient(180deg, #ffffff, #f5fbfd);
+}
+
+.legal-identity div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(29, 111, 143, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.legal-identity strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.legal-identity span {
+  color: var(--muted);
+  line-height: 1.35;
+  font-weight: 760;
+}
+
+.legal-kicker {
+  color: var(--accent) !important;
+  font-size: 11px;
+  font-weight: 950 !important;
+  text-transform: uppercase;
+}
+
+.legal-panel-primary {
+  border-color: rgba(242, 165, 26, 0.42);
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
 }
 
 .legal-panel h2 {
@@ -1729,6 +1773,10 @@ textarea:disabled {
   }
 
   .legal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .legal-identity {
     grid-template-columns: 1fr;
   }
 
