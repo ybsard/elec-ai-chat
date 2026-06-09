@@ -12,6 +12,7 @@ const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const toolCards = document.querySelectorAll(".diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
+const accountCard = document.querySelector(".intro-account-card");
 const accountStatus = document.querySelector("#accountStatus");
 const authFields = document.querySelector("#authFields");
 const accessCodeFields = document.querySelector("#accessCodeFields");
@@ -396,6 +397,7 @@ async function readJsonResponse(response) {
 function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
   hasAccessPass = Boolean(meta.accessPass);
+  accountCard?.classList.toggle("is-connected", Boolean(currentUser || hasAccessPass));
 
   if (hasAccessPass) {
     accountStatus.textContent = `${meta.accessName || "Acces invite"} | Acces complet actif | Toutes les fonctionnalites sont debloquees.`;

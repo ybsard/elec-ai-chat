@@ -498,6 +498,55 @@ h2 {
   gap: 6px;
 }
 
+.intro-account-card.is-connected {
+  grid-template-columns: minmax(240px, 1fr) minmax(220px, 0.82fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+}
+
+.intro-account-card.is-connected > .account-hero,
+.intro-account-card.is-connected > .account-status {
+  grid-column: 1;
+}
+
+.intro-account-card.is-connected > .plan-preview,
+.intro-account-card.is-connected > .member-actions,
+.intro-account-card.is-connected > .access-code-panel {
+  grid-column: 2;
+}
+
+.intro-account-card.is-connected > .account-hero,
+.intro-account-card.is-connected > .plan-preview {
+  grid-row: 1;
+  min-height: auto;
+}
+
+.intro-account-card.is-connected > .account-status,
+.intro-account-card.is-connected > .member-actions {
+  grid-row: 2;
+}
+
+.intro-account-card.is-connected .account-hero {
+  min-height: 54px;
+  padding: 8px;
+}
+
+.intro-account-card.is-connected .account-status {
+  min-height: 38px;
+  margin-bottom: 0;
+  display: grid;
+  align-items: center;
+}
+
+.intro-account-card.is-connected .plan-preview {
+  margin-bottom: 0;
+}
+
+.intro-account-card.is-connected .member-actions {
+  margin-top: 0;
+  align-self: stretch;
+}
+
 .account-hero {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1534,6 +1583,19 @@ textarea:disabled {
   .account-card {
     position: static;
     grid-template-columns: 1fr;
+  }
+
+  .intro-account-card.is-connected {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-account-card.is-connected > .account-hero,
+  .intro-account-card.is-connected > .account-status,
+  .intro-account-card.is-connected > .plan-preview,
+  .intro-account-card.is-connected > .member-actions,
+  .intro-account-card.is-connected > .access-code-panel {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .account-card > .plan-benefits {
