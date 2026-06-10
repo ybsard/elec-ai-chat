@@ -267,8 +267,16 @@ function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
   bubble.className = "bubble diagram-bubble";
   bubble.innerHTML = `
     <strong>${escapeHtml(title)}</strong>
-    ${lineSchema ? `<pre class="line-schema">${escapeHtml(lineSchema)}</pre>` : ""}
     <div class="diagram-frame">${svgMarkup}</div>
+    ${lineSchema ? `
+      <section class="line-schema-card" aria-label="Plan en traits simplifié">
+        <div class="line-schema-heading">
+          <span>Plan en traits</span>
+          <small>Vue lisible des liaisons principales</small>
+        </div>
+        <pre class="line-schema">${escapeHtml(lineSchema)}</pre>
+      </section>
+    ` : ""}
     <p>${escapeHtml(note)}</p>
   `;
 
@@ -506,21 +514,48 @@ function buildReportDocument() {
           .formatted-response ol {
             margin: 0 0 10px;
           }
+          .line-schema-card {
+            margin: 12px 0;
+            padding: 12px;
+            border: 1px solid rgba(20, 85, 109, 0.16);
+            border-radius: 10px;
+            background: #f8fbfb;
+          }
+          .line-schema-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+            color: #10212b;
+            font-weight: 900;
+          }
+          .line-schema-heading small {
+            color: #637280;
+            font-size: 11px;
+          }
           .line-schema {
             overflow: visible;
             white-space: pre-wrap;
-            padding: 12px;
-            border: 1px solid #d9e1e7;
+            margin: 0;
+            padding: 14px;
+            border: 1px solid rgba(159, 180, 193, 0.45);
             border-radius: 8px;
-            background: #f6f8fa;
+            background:
+              linear-gradient(90deg, rgba(20, 85, 109, 0.045) 1px, transparent 1px),
+              linear-gradient(180deg, rgba(20, 85, 109, 0.045) 1px, transparent 1px),
+              #ffffff;
+            background-size: 18px 18px;
+            color: #16303b;
+            font-family: "Cascadia Mono", Consolas, monospace;
             font-size: 11px;
+            font-weight: 800;
           }
           .diagram-frame {
             overflow: hidden;
             margin: 10px 0;
-            border: 1px solid #d9e1e7;
-            border-radius: 8px;
-            background: #fbfdff;
+            border: 1px solid rgba(20, 85, 109, 0.16);
+            border-radius: 12px;
+            background: #f8fbfb;
           }
           .diagram-frame svg {
             display: block;
@@ -1040,6 +1075,15 @@ function buildSchema(type, room, usage, counts = {}) {
     ? `Disjoncteurs: ${breakerTotal} | Circuits: ${escapeHtml(breakerItems.join(", "))}`
     : `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
   const header = `
+    <defs>
+      <pattern id="voltia-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 H 0 V 20" class="diagram-grid-line" />
+      </pattern>
+      <filter id="component-shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#10212b" flood-opacity="0.10" />
+      </filter>
+    </defs>
+    <rect class="diagram-canvas" x="12" y="12" width="596" height="260" rx="12" />
     <text class="diagram-title" x="24" y="28">Schéma électrique - ${safeRoom}</text>
     <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage} | ${quantityLine}</text>
     <g class="legend">
