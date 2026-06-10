@@ -1581,6 +1581,31 @@ textarea:focus {
   opacity: 0.95;
 }
 
+.diagram-frame .standard-symbol circle,
+.diagram-frame .standard-symbol line,
+.diagram-frame .standard-symbol path {
+  stroke: #10212b;
+  stroke-width: 2.4;
+}
+
+.diagram-frame .standard-symbol text {
+  fill: #10212b;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.diagram-frame .standard-symbol-legend rect {
+  fill: rgba(255, 255, 255, 0.88);
+  stroke: rgba(20, 85, 109, 0.18);
+  stroke-width: 1;
+}
+
+.diagram-frame .standard-symbol-legend text {
+  fill: #39515d;
+  font-size: 9.8px;
+  font-weight: 900;
+}
+
 .message.user .bubble {
   border-color: #15566f;
   background: var(--blue);

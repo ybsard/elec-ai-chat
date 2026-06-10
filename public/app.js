@@ -38,6 +38,7 @@ const symptomInput = document.querySelector("#symptomInput");
 const riskSelect = document.querySelector("#riskSelect");
 const startDiagnostic = document.querySelector("#startDiagnostic");
 const schemaType = document.querySelector("#schemaType");
+const schemaSymbolMode = document.querySelector("#schemaSymbolMode");
 const schemaRoom = document.querySelector("#schemaRoom");
 const schemaUse = document.querySelector("#schemaUse");
 const socketCount = document.querySelector("#socketCount");
@@ -1032,7 +1033,8 @@ function getSchemaCounts() {
     lights: clampCount(lightCount.value, 1, 0, 8),
     switches: clampCount(switchCount.value, 1, 0, 6),
     breakers: clampCount(breakerCount.value, 4, 1, 12),
-    breakerRatings: breakerRatings.value.trim()
+    breakerRatings: breakerRatings.value.trim(),
+    symbolMode: schemaSymbolMode?.value || "standard"
   };
 }
 
@@ -1064,6 +1066,7 @@ function getBreakerItems(counts = {}) {
 }
 
 function buildSchema(type, room, usage, counts = {}) {
+  const normalizedSymbols = counts.symbolMode === "normalized";
   const safeRoom = escapeHtml(room || "pièce à définir");
   const safeUsage = escapeHtml(usage || "usage a definir");
   const socketTotal = clampCount(counts.sockets, 1, 0, 12);
@@ -1074,6 +1077,12 @@ function buildSchema(type, room, usage, counts = {}) {
   const quantityLine = type === "tableau"
     ? `Disjoncteurs: ${breakerTotal} | Circuits: ${escapeHtml(breakerItems.join(", "))}`
     : `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
+  const normalizedLegend = normalizedSymbols ? `
+    <g class="standard-symbol-legend">
+      <rect x="24" y="222" width="252" height="34" rx="8" />
+      <text x="38" y="243" text-anchor="start">Symboles: QF disjoncteur | ID différentiel | X point lumineux | PC prise 2P+T | S interrupteur</text>
+    </g>
+  ` : "";
   const header = `
     <defs>
       <pattern id="voltia-grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -1091,6 +1100,7 @@ function buildSchema(type, room, usage, counts = {}) {
       <line class="wire neutral" x1="384" y1="42" x2="418" y2="42" /><text x="425" y="46">N neutre</text>
       <line class="wire earth" x1="384" y1="60" x2="418" y2="60" /><text x="425" y="64">PE terre</text>
     </g>
+    ${normalizedLegend}
   `;
 
   const note = `<text class="diagram-note" x="24" y="268">Schéma de principe indicatif. Respecter la norme applicable et faire valider par un électricien qualifié.</text>`;
@@ -1098,7 +1108,15 @@ function buildSchema(type, room, usage, counts = {}) {
   const socketSymbols = Array.from({ length: Math.max(socketTotal, 1) }, (_, index) => {
     const y = 86 + index * 42;
     const branchX = 448 + index * 5;
-    return `
+    const symbolMarkup = normalizedSymbols ? `
+      <g class="symbol socket standard-symbol">
+        <circle cx="522" cy="${y}" r="18" />
+        <line x1="515" y1="${y - 5}" x2="515" y2="${y + 5}" />
+        <line x1="529" y1="${y - 5}" x2="529" y2="${y + 5}" />
+        <path d="M 522 ${y + 7} v 10 m -8 0 h 16" />
+        <text x="522" y="${y + 33}">PC ${index + 1}</text>
+      </g>
+    ` : `
       <g class="symbol socket">
         <rect x="486" y="${y - 16}" width="72" height="34" rx="7" />
         <circle cx="512" cy="${y}" r="4" />
@@ -1106,6 +1124,9 @@ function buildSchema(type, room, usage, counts = {}) {
         <path d="M 522 ${y + 8} v 9 m -8 0 h 16" />
         <text x="522" y="${y + 31}">Prise ${index + 1}</text>
       </g>
+    `;
+    return `
+      ${symbolMarkup}
       <path class="wire phase" d="M ${branchX} 92 V ${y - 10} H 486" />
       <path class="wire neutral" d="M ${branchX + 12} 112 V ${y} H 486" />
       <path class="wire earth" d="M ${branchX + 24} 132 V ${y + 10} H 486" />
@@ -1114,7 +1135,14 @@ function buildSchema(type, room, usage, counts = {}) {
 
   const switchSymbols = Array.from({ length: Math.max(switchTotal, 1) }, (_, index) => {
     const x = 214 + index * 78;
-    return `
+    return normalizedSymbols ? `
+      <g class="symbol switch standard-symbol">
+        <circle cx="${x}" cy="132" r="4" />
+        <circle cx="${x + 38}" cy="132" r="4" />
+        <line x1="${x + 5}" y1="132" x2="${x + 32}" y2="116" />
+        <text x="${x + 19}" y="166">S${index + 1}</text>
+      </g>
+    ` : `
       <g class="symbol switch">
         <circle cx="${x}" cy="132" r="7" />
         <circle cx="${x + 36}" cy="132" r="7" />
@@ -1127,13 +1155,23 @@ function buildSchema(type, room, usage, counts = {}) {
   const lightSymbols = Array.from({ length: Math.max(lightTotal, 1) }, (_, index) => {
     const y = 92 + index * 48;
     const branchX = 468 + index * 8;
-    return `
+    const symbolMarkup = normalizedSymbols ? `
+      <g class="symbol lamp standard-symbol">
+        <circle cx="536" cy="${y}" r="20" />
+        <line x1="522" y1="${y - 14}" x2="550" y2="${y + 14}" />
+        <line x1="550" y1="${y - 14}" x2="522" y2="${y + 14}" />
+        <text x="536" y="${y + 36}">X${index + 1}</text>
+      </g>
+    ` : `
       <g class="symbol lamp">
         <circle cx="536" cy="${y}" r="22" />
         <line x1="522" y1="${y - 14}" x2="550" y2="${y + 14}" />
         <line x1="550" y1="${y - 14}" x2="522" y2="${y + 14}" />
         <text x="536" y="${y + 38}">Lampe ${index + 1}</text>
       </g>
+    `;
+    return `
+      ${symbolMarkup}
       <path class="wire phase" d="M ${214 + Math.max(switchTotal - 1, 0) * 78 + 36} 132 H ${branchX} V ${y} H 514" />
       <path class="wire neutral" d="M ${branchX + 12} 204 V ${y + 8} H 514" />
       <path class="wire earth" d="M ${branchX + 24} 224 V ${y + 16} H 514" />
@@ -1198,7 +1236,7 @@ function buildSchema(type, room, usage, counts = {}) {
           <rect x="28" y="88" width="118" height="126" rx="8" />
           <text x="87" y="112">Tableau</text>
           <rect x="48" y="130" width="78" height="38" rx="5" />
-          <text x="87" y="153">DJ 16/20A</text>
+          <text x="87" y="153">${normalizedSymbols ? "QF 16/20A" : "DJ 16/20A"}</text>
         </g>
         <path class="wire phase wire-bus" d="M 126 92 H 462" />
         <path class="wire neutral wire-bus" d="M 126 112 H 474" />
@@ -1218,7 +1256,7 @@ function buildSchema(type, room, usage, counts = {}) {
           <rect x="28" y="88" width="118" height="126" rx="8" />
           <text x="87" y="112">Tableau</text>
           <rect x="48" y="130" width="78" height="38" rx="5" />
-          <text x="87" y="153">DJ 10/16A</text>
+          <text x="87" y="153">${normalizedSymbols ? "QF 10/16A" : "DJ 10/16A"}</text>
         </g>
         ${switchSymbols}
         <path class="wire phase wire-bus" d="M 126 132 H 214" />
@@ -1242,7 +1280,7 @@ function buildSchema(type, room, usage, counts = {}) {
           <rect x="28" y="88" width="104" height="126" rx="8" />
           <text x="80" y="112">Tableau</text>
           <rect x="48" y="130" width="64" height="38" rx="5" />
-          <text x="80" y="153">DJ</text>
+          <text x="80" y="153">${normalizedSymbols ? "QF" : "DJ"}</text>
         </g>
         ${vaSwitchSymbols}
         <path class="wire phase" d="M 112 140 H ${firstX + 36}" />
@@ -1286,9 +1324,9 @@ function buildSchema(type, room, usage, counts = {}) {
           <text x="310" y="100">Tableau électrique - répartition indicative</text>
           <rect x="58" y="122" width="54" height="72" rx="5" />
           <text x="85" y="146">AGCP</text>
-          <text x="85" y="164">arrivee</text>
+          <text x="85" y="164">arrivée</text>
           <rect x="138" y="116" width="58" height="84" rx="5" />
-          <text x="167" y="142">ID</text>
+          <text x="167" y="142">${normalizedSymbols ? "ID Δ" : "ID"}</text>
           <text x="167" y="160">30mA</text>
           <text x="167" y="178">type A/AC</text>
           ${breakersSvg}
@@ -1539,12 +1577,16 @@ La terre PE est distribuee vers tous les circuits concernes.
 
 function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
+  const symbolStyle = schemaSymbolMode?.value === "normalized"
+    ? "Symboles électriques normalisés: utilise les repères QF pour disjoncteur, ID pour différentiel, PC pour prise, X pour point lumineux, S pour interrupteur."
+    : "Style de lecture claire: privilégie les libellés explicites.";
   const room = schemaRoom.value.trim() || "pièce non précisée";
   const usage = schemaUse.value.trim() || "usage non précisé";
   const counts = getSchemaCounts();
   return [
     "Explique ce schéma électrique indicatif.",
     `Type: ${typeLabel}.`,
+    `Style demandé: ${symbolStyle}`,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
     `Nombre de prises: ${counts.sockets}.`,
@@ -2116,11 +2158,12 @@ startDiagnostic.addEventListener("click", async () => {
 createSchema.addEventListener("click", async () => {
   syncSchemaDefaults();
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
+  const styleLabel = schemaSymbolMode?.selectedOptions?.[0]?.textContent || "Lecture claire";
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
   const schemaPrompt = buildSchemaPrompt();
-  addMessage("user", `Crée un schéma : ${typeLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);
+  addMessage("user", `Crée un schéma : ${typeLabel}, style : ${styleLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);
   addDiagramMessage(
     typeLabel,
     buildSchema(schemaType.value, room, usage, counts),
