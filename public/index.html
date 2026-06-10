@@ -26,12 +26,17 @@
 
         <div class="intro-layout">
           <div class="hero-copy">
-            <p class="eyebrow">Ton assistant intelligent en electricite.</p>
-            <h1>Voltia t'aide a diagnostiquer, dimensionner et comprendre.</h1>
+            <p class="eyebrow">Atelier IA pour l'electricite domestique.</p>
+            <h1>Diagnostiquer, schematiser et preparer un rapport sans se perdre.</h1>
             <p class="intro">
-              Decris une panne, choisis le type de probleme et Voltia t'aide a comprendre
-              les causes possibles, les verifications simples et le bon niveau de prudence.
+              Voltia transforme une panne, une photo, une reference ou un plan en pistes claires,
+              avec le bon niveau de prudence et des livrables utiles pour avancer proprement.
             </p>
+            <div class="hero-proof-row" aria-label="Capacites Voltia">
+              <span>Diagnostic guide</span>
+              <span>Schemas indicatifs</span>
+              <span>Rapports sauvegardes</span>
+            </div>
           </div>
 
           <section class="account-card intro-account-card" aria-label="Compte et abonnement Voltia">
@@ -120,7 +125,13 @@
 
       <section class="workspace" aria-label="Assistant Voltia">
         <aside class="diagnostic-panel">
-          <div class="diagnostic-card">
+          <div class="tool-panel-header">
+            <span class="eyebrow">Outils</span>
+            <h2>Choisis ton point de depart</h2>
+            <p>Un seul module ouvert a la fois pour garder l'interface lisible.</p>
+          </div>
+
+          <div class="diagnostic-card is-open">
             <div class="card-heading">
               <span class="step-badge">1</span>
               <div>
@@ -421,8 +432,8 @@
         <section class="chat-shell" aria-label="Chat IA">
           <header class="chat-header">
             <div>
-              <p class="chat-kicker">Conversation</p>
-              <h2>Un probleme, une solution</h2>
+              <p class="chat-kicker">Espace de travail</p>
+              <h2>Assistant de diagnostic</h2>
             </div>
             <div class="chat-header-actions">
               <button id="exportReport" class="icon-button report-button" type="button" title="Exporter le rapport en PDF" aria-label="Exporter le rapport en PDF">
