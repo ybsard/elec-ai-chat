@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: voltia
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_STATE_TABLE
+        value: app_state
+      - key: FREE_DAILY_LIMIT
+        value: "10"
+      - key: ANON_DAILY_LIMIT
+        value: "5"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: OPENAI_SEARCH_MODEL
+        value: gpt-4.1-mini
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: ACCESS_CODE
+        sync: false
