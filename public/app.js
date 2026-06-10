@@ -245,7 +245,7 @@ function renderAssistantContent(content) {
   flushList();
   flushCode();
 
-  return html.join("") || "<p>Je n'ai pas pu generer de reponse.</p>";
+  return html.join("") || "<p>Je n'ai pas pu générer de réponse.</p>";
 }
 
 function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
@@ -296,7 +296,7 @@ function addPhotoMessage(dataUrl, context) {
   const bubble = document.createElement("div");
   bubble.className = "bubble photo-bubble";
   bubble.innerHTML = `
-    <strong>Photo a retranscrire en schema</strong>
+    <strong>Photo à retranscrire en schéma</strong>
     <img src="${dataUrl}" alt="Photo envoyee pour analyse">
     <span>${escapeHtml(context || "Sans contexte ajoute")}</span>
   `;
@@ -326,7 +326,7 @@ function addManualSearchMessage(reference, dataUrl) {
   bubble.className = "bubble photo-bubble";
   bubble.innerHTML = `
     <strong>Recherche de notice</strong>
-    ${dataUrl ? `<img src="${dataUrl}" alt="Photo de reference envoyee">` : ""}
+    ${dataUrl ? `<img src="${dataUrl}" alt="Photo de référence envoyée">` : ""}
     <span>${escapeHtml(reference || "Recherche depuis la photo uniquement")}</span>
   `;
 
@@ -354,7 +354,7 @@ function addLightingPlanMessage(details, dataUrl) {
   const bubble = document.createElement("div");
   bubble.className = "bubble photo-bubble";
   bubble.innerHTML = `
-    <strong>Dimensionnement eclairage</strong>
+    <strong>Dimensionnement éclairage</strong>
     ${dataUrl ? `<img src="${dataUrl}" alt="Plan envoye pour dimensionnement">` : ""}
     <span>${escapeHtml(details || "Plan et contexte envoyes")}</span>
   `;
@@ -546,20 +546,20 @@ function buildReportDocument() {
           <header class="report-header">
             <div>
               <div class="brand">Voltia</div>
-              <div>Rapport de diagnostic et d'accompagnement electrique</div>
+              <div>Rapport de diagnostic et d'accompagnement électrique</div>
             </div>
             <div class="meta">
-              Genere le ${new Date().toLocaleString("fr-FR")}<br>
+              Généré le ${new Date().toLocaleString("fr-FR")}<br>
               Niveau: ${escapeHtml(selectedLevel)}
             </div>
           </header>
           <p class="notice">
-            Rapport indicatif. Ne pas intervenir sous tension. Les schemas, conseils et dimensionnements
-            doivent etre verifies avec les normes applicables, les notices fabricants et un professionnel qualifie.
+            Rapport indicatif. Ne pas intervenir sous tension. Les schémas, conseils et dimensionnements
+            doivent être vérifiés avec les normes applicables, les notices fabricants et un professionnel qualifié.
           </p>
           ${reportMessages.outerHTML}
           <footer class="report-footer">
-            Voltia by yb - Assistant IA indicatif. Editeur: Yanis Barthe.
+            Voltia by yb - Assistant IA indicatif. Éditeur : Yanis Barthe.
           </footer>
         </main>
       </body>
@@ -587,7 +587,7 @@ function getVisibleConversation() {
       role: item.classList.contains("user") ? "user" : "assistant",
       content: item.querySelector(".bubble")?.textContent?.trim().replace(/\s+/g, " ") || ""
     }))
-    .filter((message) => message.content && !message.content.includes("Conversation effacee"))
+    .filter((message) => message.content && !message.content.includes("Conversation effacée"))
     .slice(-40);
 }
 
@@ -757,7 +757,7 @@ function updateAccountUi(user, meta = {}) {
   accountCard?.classList.toggle("is-connected", Boolean(currentUser || hasAccessPass));
 
   if (hasAccessPass) {
-    accountStatus.textContent = `${meta.accessName || "Acces invite"} | Acces complet actif | Toutes les fonctionnalites sont debloquees.`;
+    accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet actif | Toutes les fonctionnalités sont débloquées.`;
     authFields.hidden = false;
     accessCodeFields.hidden = true;
     authFields.hidden = true;
@@ -770,7 +770,7 @@ function updateAccountUi(user, meta = {}) {
   }
 
   if (!currentUser) {
-    accountStatus.textContent = `Libre-service: ${meta.anonymousDailyLimit || 5} essais gratuits. Ensuite, cree un compte, passe Pro ou entre ton code d'acces.`;
+    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais gratuits. Ensuite, crée un compte, passe Pro ou entre ton code d'accès.`;
     accessCodeFields.hidden = false;
     authFields.hidden = false;
     signupFields.hidden = true;
@@ -895,13 +895,13 @@ async function submitAccessCode() {
   const code = accessCodeInput.value.trim();
 
   if (!code) {
-    setAccountNotice("Entre ton code d'acces.");
+    setAccountNotice("Entre ton code d'accès.");
     accessCodeInput.focus();
     return;
   }
 
   accessCodeButton.disabled = true;
-  setAccountNotice("Verification du code d'acces...");
+  setAccountNotice("Vérification du code d'accès...");
 
   try {
     const response = await fetch("/api/access-code", {
@@ -933,8 +933,8 @@ async function startCheckout() {
   }
 
   upgradeButton.disabled = true;
-  setAccountNotice("Preparation du paiement Stripe...");
-  setHint("Preparation du paiement Stripe...");
+  setAccountNotice("Préparation du paiement Stripe...");
+  setHint("Préparation du paiement Stripe...");
 
   try {
     const response = await fetch("/api/billing/checkout", { method: "POST" });
@@ -956,8 +956,8 @@ function buildDiagnosticPrompt() {
   const symptom = symptomInput.value.trim() || "L'utilisateur n'a pas encore donne de detail.";
   const risk = riskSelect.value;
   return [
-    "Demande de diagnostic electrique guide.",
-    `Type de probleme: ${selectedIssue}.`,
+    "Demande de diagnostic électrique guidé.",
+    `Type de problème: ${selectedIssue}.`,
     `Observation: ${symptom}.`,
     `Niveau de risque indique: ${risk}.`,
     buildLevelInstruction(),
@@ -968,20 +968,20 @@ function buildDiagnosticPrompt() {
 
 function buildLevelInstruction() {
   const instructions = {
-    debutant: "Niveau de reponse: debutant. Reponds avec des mots simples, des etapes courtes, une organisation tres lisible et peu de jargon.",
-    confirme: "Niveau de reponse: confirme. Reponds avec des explications plus completes, les raisons techniques principales, et une structure claire.",
-    expert: "Niveau de reponse: expert. Reponds de facon approfondie, avec hypotheses, logique de diagnostic, limites, points normatifs generaux et details techniques utiles, sans donner d'instructions dangereuses sous tension."
+    debutant: "Niveau de réponse: débutant. Réponds avec des mots simples, des étapes courtes, une organisation très lisible et peu de jargon.",
+    confirme: "Niveau de réponse: confirmé. Réponds avec des explications plus complètes, les raisons techniques principales, et une structure claire.",
+    expert: "Niveau de réponse: expert. Réponds de façon approfondie, avec hypothèses, logique de diagnostic, limites, points normatifs généraux et détails techniques utiles, sans donner d'instructions dangereuses sous tension."
   };
   return instructions[selectedLevel] || instructions.debutant;
 }
 
 function buildResponseFormatInstruction() {
   return [
-    "Organisation obligatoire de la reponse:",
+    "Organisation obligatoire de la réponse:",
     "Utilise des titres courts suivis de listes.",
-    "Structure recommandee: Resume rapide, Securite, Causes possibles, A verifier sans danger, Prochaines etapes, Conclusion.",
-    "Ne fais pas de gros paragraphes: 1 idee par ligne ou par puce.",
-    "Mets les avertissements importants dans la section Securite."
+    "Structure recommandée: Résumé rapide, Sécurité, Causes possibles, À vérifier sans danger, Prochaines étapes, Conclusion.",
+    "Ne fais pas de gros paragraphes: 1 idée par ligne ou par puce.",
+    "Mets les avertissements importants dans la section Sécurité."
   ].join("\n");
 }
 
@@ -1019,7 +1019,7 @@ function syncSchemaDefaults() {
 }
 
 function getBreakerItems(counts = {}) {
-  const fallback = ["10A eclairage", "16A prises", "20A cuisine", "20A chauffage"];
+  const fallback = ["10A éclairage", "16A prises", "20A cuisine", "20A chauffage"];
   const raw = String(counts.breakerRatings || "")
     .split(/[,;\n]/)
     .map((item) => item.trim())
@@ -1029,7 +1029,7 @@ function getBreakerItems(counts = {}) {
 }
 
 function buildSchema(type, room, usage, counts = {}) {
-  const safeRoom = escapeHtml(room || "piece a definir");
+  const safeRoom = escapeHtml(room || "pièce à définir");
   const safeUsage = escapeHtml(usage || "usage a definir");
   const socketTotal = clampCount(counts.sockets, 1, 0, 12);
   const lightTotal = clampCount(counts.lights, 1, 0, 8);
@@ -1040,7 +1040,7 @@ function buildSchema(type, room, usage, counts = {}) {
     ? `Disjoncteurs: ${breakerTotal} | Circuits: ${escapeHtml(breakerItems.join(", "))}`
     : `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
   const header = `
-    <text class="diagram-title" x="24" y="28">Schema electrique - ${safeRoom}</text>
+    <text class="diagram-title" x="24" y="28">Schéma électrique - ${safeRoom}</text>
     <text class="diagram-subtitle" x="24" y="48">Usage: ${safeUsage} | ${quantityLine}</text>
     <g class="legend">
       <line class="wire phase" x1="384" y1="24" x2="418" y2="24" /><text x="425" y="28">L phase</text>
@@ -1049,7 +1049,7 @@ function buildSchema(type, room, usage, counts = {}) {
     </g>
   `;
 
-  const note = `<text class="diagram-note" x="24" y="268">Schema de principe indicatif. Respecter la norme applicable et faire valider par un electricien qualifie.</text>`;
+  const note = `<text class="diagram-note" x="24" y="268">Schéma de principe indicatif. Respecter la norme applicable et faire valider par un électricien qualifié.</text>`;
 
   const socketSymbols = Array.from({ length: Math.max(socketTotal, 1) }, (_, index) => {
     const y = 86 + index * 42;
@@ -1145,7 +1145,7 @@ function buildSchema(type, room, usage, counts = {}) {
 
   if (type === "prise") {
     return `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema circuit prise dynamique">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma circuit prise dynamique">
         ${header}
         <g class="symbol board">
           <rect x="28" y="88" width="118" height="126" rx="8" />
@@ -1162,7 +1162,7 @@ function buildSchema(type, room, usage, counts = {}) {
 
   if (type === "eclairage") {
     return `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema eclairage dynamique">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma éclairage dynamique">
         ${header}
         <g class="symbol board">
           <rect x="28" y="88" width="118" height="126" rx="8" />
@@ -1184,7 +1184,7 @@ function buildSchema(type, room, usage, counts = {}) {
     const firstX = vaStart;
     const lastX = vaStart + (vaSwitches - 1) * vaSpacing;
     return `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema va-et-vient dynamique">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma va-et-vient dynamique">
         ${header}
         <g class="symbol board">
           <rect x="28" y="88" width="104" height="126" rx="8" />
@@ -1225,11 +1225,11 @@ function buildSchema(type, room, usage, counts = {}) {
       `;
     }).join("");
     return `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema tableau electrique dynamique">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma tableau électrique dynamique">
         ${header}
         <g class="symbol board large-board">
           <rect x="32" y="78" width="556" height="158" rx="10" />
-          <text x="310" y="100">Tableau electrique - repartition indicative</text>
+          <text x="310" y="100">Tableau électrique - répartition indicative</text>
           <rect x="58" y="122" width="54" height="72" rx="5" />
           <text x="85" y="146">AGCP</text>
           <text x="85" y="164">arrivee</text>
@@ -1255,7 +1255,7 @@ function buildSchema(type, room, usage, counts = {}) {
 
   const templates = {
     prise: `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema circuit prise">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma circuit prise">
         ${header}
         <g class="symbol board">
           <rect x="28" y="88" width="118" height="126" rx="8" />
@@ -1280,7 +1280,7 @@ function buildSchema(type, room, usage, counts = {}) {
       </svg>
     `,
     eclairage: `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema eclairage simple allumage">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma éclairage simple allumage">
         ${header}
         <g class="symbol board">
           <rect x="28" y="88" width="118" height="126" rx="8" />
@@ -1310,7 +1310,7 @@ function buildSchema(type, room, usage, counts = {}) {
       </svg>
     `,
     "va-et-vient": `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema va-et-vient simplifie">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma va-et-vient simplifié">
         ${header}
         <g class="symbol board">
           <rect x="28" y="88" width="104" height="126" rx="8" />
@@ -1346,11 +1346,11 @@ function buildSchema(type, room, usage, counts = {}) {
       </svg>
     `,
     tableau: `
-      <svg viewBox="0 0 620 290" role="img" aria-label="Schema tableau electrique simplifie">
+      <svg viewBox="0 0 620 290" role="img" aria-label="Schéma tableau électrique simplifié">
         ${header}
         <g class="symbol board large-board">
           <rect x="44" y="82" width="500" height="146" rx="10" />
-          <text x="294" y="106">Tableau electrique simplifie</text>
+          <text x="294" y="106">Tableau électrique simplifié</text>
           <rect x="72" y="132" width="82" height="52" rx="5" />
           <text x="113" y="154">Arrivee</text>
           <text x="113" y="170">230V</text>
@@ -1469,7 +1469,7 @@ ARRIVEE 230V
              │
              ├──> [DJ prises 16/20A]  -> circuit prises
              │
-             ├──> [DJ lumiere 10/16A] -> circuit eclairage
+             ├──> [DJ lumière 10/16A] -> circuit éclairage
              │
              └──> [DJ dedie]          -> four, chauffe-eau, etc.
 
@@ -1485,13 +1485,13 @@ La terre PE est distribuee vers tous les circuits concernes.
 
 function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
-  const room = schemaRoom.value.trim() || "piece non precisee";
-  const usage = schemaUse.value.trim() || "usage non precise";
+  const room = schemaRoom.value.trim() || "pièce non précisée";
+  const usage = schemaUse.value.trim() || "usage non précisé";
   const counts = getSchemaCounts();
   return [
-    "Explique ce schema electrique indicatif.",
+    "Explique ce schéma électrique indicatif.",
     `Type: ${typeLabel}.`,
-    `Piece: ${room}.`,
+    `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
     `Nombre de prises: ${counts.sockets}.`,
     `Nombre de lumieres: ${counts.lights}.`,
@@ -1506,7 +1506,7 @@ function buildSchemaPrompt() {
       : "",
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
-    "Donne une explication simple, les points de securite, les limites du schema, puis rappelle qu'un schema reel doit respecter la norme applicable et etre valide par un electricien."
+    "Donne une explication simple, les points de sécurité, les limites du schéma, puis rappelle qu'un schéma réel doit respecter la norme applicable et être validé par un électricien."
   ].join("\n");
 }
 
@@ -1523,7 +1523,7 @@ function hasAnyWord(text, words) {
 
 function isSchemaRequest(content) {
   const text = normalizeText(content);
-  const asksForDrawing = /\bschema\b|\bplan electrique\b|\bcircuit\b|\bdessin(e|er)?\b|\btrace\b/.test(text);
+  const asksForDrawing = /\bschema\b|\bschéma\b|\bplan electrique\b|\bplan électrique\b|\bcircuit\b|\bdessin(e|er)?\b|\btrace\b/.test(text);
   const asksForWiring = /\bbranch(e|er|ement)\b|\braccord(e|er|ement)\b|\bcabl(e|er|age)\b|\binstaller\b|\bcre(e|er)\b|\bfais\b|\bfaire\b|\bmontre\b|\bexplique\b/.test(text);
   const hasElectricalTarget = hasAnyWord(text, [
     "prise",
@@ -1550,7 +1550,7 @@ function inferSchemaType(content) {
   if (text.includes("tableau") || text.includes("differentiel") || text.includes("disjoncteur")) {
     return "tableau";
   }
-  if (text.includes("lampe") || text.includes("lumiere") || text.includes("eclairage") || text.includes("interrupteur")) {
+  if (text.includes("lampe") || text.includes("lumiere") || text.includes("lumière") || text.includes("eclairage") || text.includes("éclairage") || text.includes("interrupteur")) {
     return "eclairage";
   }
   return "prise";
@@ -1622,9 +1622,9 @@ function inferSchemaCounts(content, type) {
 function schemaTitle(type) {
   const titles = {
     prise: "Circuit prise simple",
-    eclairage: "Eclairage simple allumage",
+    eclairage: "Éclairage simple allumage",
     "va-et-vient": "Va-et-vient simplifie",
-    tableau: "Tableau electrique simplifie"
+    tableau: "Tableau électrique simplifié"
   };
   return titles[type] || titles.prise;
 }
@@ -1635,7 +1635,7 @@ function addAutomaticSchema(content) {
   addDiagramMessage(
     schemaTitle(type),
     buildSchema(type, "demande du chat", content.slice(0, 90), counts),
-    "Schema genere automatiquement depuis ta demande. Il reste indicatif et doit etre valide avant travaux.",
+    "Schéma généré automatiquement depuis ta demande. Il reste indicatif et doit être validé avant travaux.",
     buildLineSchema(type, counts)
   );
 }
@@ -1657,9 +1657,9 @@ async function askAssistant(content, options = {}) {
   promptInput.disabled = true;
   const sourceSettings = getSourceSettings();
   hint.textContent = sourceSettings.enabled
-    ? "Voltia lit la source indiquee puis prepare la reponse..."
+    ? "Voltia lit la source indiquée puis prépare la réponse..."
     : sourceSettings.normsSearch
-      ? "Voltia recherche les normes en vigueur avant de repondre..."
+      ? "Voltia recherche les normes en vigueur avant de répondre..."
     : "Voltia analyse les pistes possibles...";
 
   try {
@@ -1679,18 +1679,18 @@ async function askAssistant(content, options = {}) {
       throw new Error(data.error || "Erreur inconnue.");
     }
 
-    const reply = (data.reply || "").trim() || "Je n'ai pas pu generer de reponse.";
+    const reply = (data.reply || "").trim() || "Je n'ai pas pu générer de réponse.";
     setAssistantMessage(pending, reply);
     messages.push({ role: "assistant", content: reply });
     await refreshAccount();
     hint.textContent = sourceSettings.enabled
-      ? "Reponse generee uniquement avec la source indiquee."
+      ? "Réponse générée uniquement avec la source indiquée."
       : sourceSettings.normsSearch
-        ? "Reponse generee avec recherche de normes. Verifie toujours la NF C 15-100 officielle avant travaux."
-      : "Reponse generee. Precise le contexte si tu veux une piste plus exacte.";
+        ? "Réponse générée avec recherche de normes. Vérifie toujours la NF C 15-100 officielle avant travaux."
+      : "Réponse générée. Précise le contexte si tu veux une piste plus exacte.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas repondre pour l'instant: ${error.message}`);
-    hint.textContent = "Verifie OPENAI_API_KEY, le quota OpenAI et les logs Render si le site est en ligne.";
+    setAssistantMessage(pending, `Je ne peux pas répondre pour l'instant: ${error.message}`);
+    hint.textContent = "Vérifie OPENAI_API_KEY, le quota OpenAI et les logs Render si le site est en ligne.";
   } finally {
     sendButton.disabled = false;
     promptInput.disabled = false;
@@ -1710,7 +1710,7 @@ async function analyzePhotoToSchema() {
 
   const pending = addMessage("assistant", "", { loading: true });
   analyzePhoto.disabled = true;
-  hint.textContent = "Voltia analyse la photo et prepare un schema...";
+  hint.textContent = "Voltia analyse la photo et prépare un schéma...";
 
   try {
     const response = await fetch("/api/photo-schema", {
@@ -1731,13 +1731,13 @@ async function analyzePhotoToSchema() {
     setAssistantMessage(pending, reply);
     messages.push({
       role: "assistant",
-      content: `Analyse photo vers schema:\n${reply}`
+      content: `Analyse photo vers schéma:\n${reply}`
     });
     await refreshAccount();
-    hint.textContent = "Photo analysee. Verifie toujours avec un electricien avant intervention.";
+    hint.textContent = "Photo analysée. Vérifie toujours avec un électricien avant intervention.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas analyser cette photo pour l'instant: ${error.message}`);
-    hint.textContent = "Verifie la cle API, le quota OpenAI ou essaye une image plus nette.";
+    hint.textContent = "Vérifie la clé API, le quota OpenAI ou essaye une image plus nette.";
   } finally {
     analyzePhoto.disabled = false;
   }
@@ -1747,7 +1747,7 @@ async function searchManualNotice() {
   const reference = manualReference.value.trim();
 
   if (!reference && !selectedManualPhotoDataUrl) {
-    hint.textContent = "Ajoute une reference ou une photo avant de rechercher une notice.";
+    hint.textContent = "Ajoute une référence ou une photo avant de rechercher une notice.";
     manualReference.focus();
     return;
   }
@@ -1780,10 +1780,10 @@ async function searchManualNotice() {
       content: `Recherche de notice:\n${reply}`
     });
     await refreshAccount();
-    hint.textContent = "Recherche terminee. Verifie toujours que la reference correspond exactement a ton appareil.";
+    hint.textContent = "Recherche terminée. Vérifie toujours que la référence correspond exactement à ton appareil.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas rechercher la notice pour l'instant: ${error.message}`);
-    hint.textContent = "Verifie la cle API, le quota OpenAI ou retente avec une reference plus complete.";
+    hint.textContent = "Vérifie la clé API, le quota OpenAI ou retente avec une référence plus complète.";
   } finally {
     searchManual.disabled = false;
   }
@@ -1791,7 +1791,7 @@ async function searchManualNotice() {
 
 async function analyzeLightingPlan() {
   if (!selectedLightingPlanDataUrl) {
-    hint.textContent = "Ajoute un plan avant de lancer le dimensionnement eclairage.";
+    hint.textContent = "Ajoute un plan avant de lancer le dimensionnement éclairage.";
     lightingPlanInput.focus();
     return;
   }
@@ -1811,7 +1811,7 @@ async function analyzeLightingPlan() {
 
   const pending = addMessage("assistant", "", { loading: true });
   analyzeLighting.disabled = true;
-  hint.textContent = "Voltia analyse le plan et calcule une implantation d'eclairage...";
+  hint.textContent = "Voltia analyse le plan et calcule une implantation d'éclairage...";
 
   try {
     const response = await fetch("/api/lighting-plan", {
@@ -1832,17 +1832,17 @@ async function analyzeLightingPlan() {
       throw new Error(data.error || "Erreur inconnue.");
     }
 
-    const reply = (data.reply || "").trim() || "Je n'ai pas pu dimensionner cet eclairage.";
+    const reply = (data.reply || "").trim() || "Je n'ai pas pu dimensionner cet éclairage.";
     setAssistantMessage(pending, reply);
     messages.push({
       role: "assistant",
-      content: `Dimensionnement eclairage:\n${reply}`
+      content: `Dimensionnement éclairage:\n${reply}`
     });
     await refreshAccount();
-    hint.textContent = "Dimensionnement genere. Verifie les cotes et fais valider avant travaux.";
+    hint.textContent = "Dimensionnement généré. Vérifie les cotes et fais valider avant travaux.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas dimensionner l'eclairage pour l'instant: ${error.message}`);
-    hint.textContent = "Verifie la cle API, le quota OpenAI ou ajoute un plan plus lisible.";
+    setAssistantMessage(pending, `Je ne peux pas dimensionner l'éclairage pour l'instant: ${error.message}`);
+    hint.textContent = "Vérifie la clé API, le quota OpenAI ou ajoute un plan plus lisible.";
   } finally {
     analyzeLighting.disabled = false;
   }
@@ -1906,7 +1906,7 @@ async function sizeClimateSystem() {
       content: `Dimensionnement climatisation:\n${reply}`
     });
     await refreshAccount();
-    hint.textContent = "Estimation clim generee. Verifie avec un frigoriste avant achat ou pose.";
+    hint.textContent = "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner la clim pour l'instant: ${error.message}`);
     hint.textContent = "Verifie les donnees ou les logs Render si le site est en ligne.";
@@ -1962,7 +1962,7 @@ form.addEventListener("submit", async (event) => {
 clearButton.addEventListener("click", () => {
   messages.length = 0;
   messagesEl.innerHTML = "";
-  addMessage("assistant", "Conversation effacee. Lance un diagnostic ou decris ton prochain probleme electrique.");
+  addMessage("assistant", "Conversation effacée. Lance un diagnostic ou décris ton prochain problème électrique.");
   hint.textContent = "Nouvelle recherche demarree.";
   promptInput.focus();
 });
@@ -1978,15 +1978,41 @@ reportList?.addEventListener("click", async (event) => {
 });
 
 toolCards.forEach((card) => {
-  card.addEventListener("click", (event) => {
-    if (event.target.closest("input, select, textarea, button, label, .upload-zone")) return;
+  const heading = card.querySelector(".card-heading");
+  if (!heading) return;
+
+  const setOpenCard = () => {
     const alreadyOpen = card.classList.contains("is-open");
     toolCards.forEach((item) => item.classList.remove("is-open"));
     if (!alreadyOpen) {
       card.classList.add("is-open");
     }
+    syncToolCardStates();
+  };
+
+  heading.setAttribute("role", "button");
+  heading.setAttribute("tabindex", "0");
+  heading.addEventListener("click", setOpenCard);
+  heading.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    setOpenCard();
+  });
+
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("input, select, textarea, button, label, .upload-zone, .card-heading")) return;
+    if (card.classList.contains("is-open")) return;
+    setOpenCard();
   });
 });
+
+function syncToolCardStates() {
+  toolCards.forEach((card) => {
+    card.querySelector(".card-heading")?.setAttribute("aria-expanded", String(card.classList.contains("is-open")));
+  });
+}
+
+syncToolCardStates();
 
 suggestionButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -2010,7 +2036,7 @@ levelButtons.forEach((button) => {
     levelButtons.forEach((item) => item.classList.remove("active"));
     button.classList.add("active");
     selectedLevel = button.dataset.level;
-    hint.textContent = `Niveau choisi: ${button.textContent}. Les prochaines reponses seront adaptees.`;
+    hint.textContent = `Niveau choisi : ${button.textContent}. Les prochaines réponses seront adaptées.`;
   });
 });
 
@@ -2040,11 +2066,11 @@ createSchema.addEventListener("click", async () => {
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
   const schemaPrompt = buildSchemaPrompt();
-  addMessage("user", `Cree un schema: ${typeLabel}${room ? `, piece: ${room}` : ""}${usage ? `, usage: ${usage}` : ""}.`);
+  addMessage("user", `Crée un schéma : ${typeLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);
   addDiagramMessage(
     typeLabel,
     buildSchema(schemaType.value, room, usage, counts),
-    "Schema indicatif genere par Voltia. Ne pas intervenir sous tension.",
+    "Schéma indicatif généré par Voltia. Ne pas intervenir sous tension.",
     buildLineSchema(schemaType.value, counts)
   );
   await askAssistant(schemaPrompt, { skipAutoSchema: true, skipUserMessage: true });
@@ -2099,8 +2125,8 @@ manualPhotoInput.addEventListener("change", () => {
     selectedManualPhotoDataUrl = String(reader.result || "");
     manualPhotoLabel.textContent = file.name;
     manualPhotoPreview.hidden = false;
-    manualPhotoPreview.innerHTML = `<img src="${selectedManualPhotoDataUrl}" alt="Apercu de la reference">`;
-    hint.textContent = "Photo de reference chargee. Tu peux lancer la recherche de notice.";
+    manualPhotoPreview.innerHTML = `<img src="${selectedManualPhotoDataUrl}" alt="Aperçu de la référence">`;
+    hint.textContent = "Photo de référence chargée. Tu peux lancer la recherche de notice.";
   });
   reader.readAsDataURL(file);
 });

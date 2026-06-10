@@ -19,23 +19,23 @@
           </div>
           <div class="topbar-actions">
             <a href="/pro.html">Offre Pro</a>
-            <a href="/legal.html">Securite et mentions</a>
+            <a href="/legal.html">Sécurité et mentions</a>
             <span class="pill">Assistant intelligent</span>
           </div>
         </nav>
 
         <div class="intro-layout">
           <div class="hero-copy">
-            <p class="eyebrow">Atelier IA pour l'electricite domestique.</p>
-            <h1>Diagnostiquer, schematiser et preparer un rapport sans se perdre.</h1>
+            <p class="eyebrow">Atelier IA pour l'électricité domestique.</p>
+            <h1>Diagnostiquer, schématiser et préparer un rapport sans se perdre.</h1>
             <p class="intro">
-              Voltia transforme une panne, une photo, une reference ou un plan en pistes claires,
+              Voltia transforme une panne, une photo, une référence ou un plan en pistes claires,
               avec le bon niveau de prudence et des livrables utiles pour avancer proprement.
             </p>
-            <div class="hero-proof-row" aria-label="Capacites Voltia">
-              <span>Diagnostic guide</span>
-              <span>Schemas indicatifs</span>
-              <span>Rapports sauvegardes</span>
+            <div class="hero-proof-row" aria-label="Capacités Voltia">
+              <span>Diagnostic guidé</span>
+              <span>Schémas indicatifs</span>
+              <span>Rapports sauvegardés</span>
             </div>
           </div>
 
@@ -43,12 +43,20 @@
             <div class="account-hero">
               <span class="account-badge">Pro</span>
               <div>
-                <h2>Connecte-toi a Voltia</h2>
-                <p>Accede a tes outils et au mode Pro.</p>
+                <h2>Essayer Voltia</h2>
+                <p>5 essais gratuits, puis compte Pro ou code d'accès.</p>
               </div>
             </div>
 
-            <div id="accountStatus" class="account-status">Libre-service: 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'acces.</div>
+            <div id="accountStatus" class="account-status">Libre-service : 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'accès.</div>
+
+            <div class="account-quick-actions" aria-label="Actions rapides Voltia">
+              <a class="primary-action account-start-link" href="#workspace">Démarrer un diagnostic</a>
+              <a class="secondary-action account-start-link" href="/pro.html">Voir Pro</a>
+            </div>
+
+            <details class="account-auth-details">
+              <summary>Connexion, compte ou code d'accès</summary>
 
             <div id="authFields" class="auth-panel">
               <span class="auth-section-title">Connexion</span>
@@ -58,17 +66,17 @@
               </label>
               <label class="field">
                 <span>Mot de passe</span>
-                <input id="authPassword" type="password" placeholder="8 caracteres minimum" autocomplete="current-password">
+                <input id="authPassword" type="password" placeholder="8 caractères minimum" autocomplete="current-password">
               </label>
               <div class="account-actions">
                 <button id="loginButton" class="primary-action" type="button">Connexion</button>
               </div>
               <div class="signup-block">
                 <span class="auth-section-title">Nouveau compte</span>
-                <button id="signupToggleButton" class="secondary-action" type="button">Creer un compte</button>
+                <button id="signupToggleButton" class="secondary-action" type="button">Créer un compte</button>
                 <div id="signupFields" class="signup-fields" hidden>
                   <label class="field">
-                    <span>Nom ou prenom</span>
+                    <span>Nom ou prénom</span>
                     <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
                   </label>
                   <label class="field">
@@ -77,45 +85,46 @@
                   </label>
                   <label class="field">
                     <span>Mot de passe</span>
-                    <input id="signupPassword" type="password" placeholder="8 caracteres minimum" autocomplete="new-password">
+                    <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password">
                   </label>
-                  <button id="signupButton" class="secondary-action" type="button">Valider la creation du compte</button>
+                  <button id="signupButton" class="secondary-action" type="button">Valider la création du compte</button>
                 </div>
               </div>
             </div>
+
+            <div id="accessCodeFields" class="access-code-panel">
+              <label class="field">
+                <span>Code créateur</span>
+                <input id="accessCodeInput" type="password" placeholder="Code créateur ou invité">
+              </label>
+              <button id="accessCodeButton" class="secondary-action" type="button">Débloquer</button>
+            </div>
+            </details>
 
             <div class="plan-preview">
               <div>
                 <span class="plan-label">Offre Pro</span>
                 <strong>9,99 EUR / mois</strong>
               </div>
-              <small>Diagnostics, schemas, notices, plans, eclairage et clim. <a href="/pro.html">Voir l'offre</a></small>
+              <small>Diagnostics, schémas, notices, plans, éclairage et clim. <a href="/pro.html">Voir l'offre</a></small>
             </div>
 
             <ul class="plan-benefits" aria-label="Avantages Voltia Pro">
               <li>Plus de recherches IA</li>
               <li>Photos, plans et notices</li>
               <li>Dimensionnements plus complets</li>
-              <li>Reponses personnalisees</li>
+              <li>Réponses personnalisées</li>
             </ul>
 
             <div id="memberActions" class="member-actions" hidden>
               <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
-              <button id="logoutButton" class="secondary-action" type="button">Deconnexion</button>
-            </div>
-
-            <div id="accessCodeFields" class="access-code-panel">
-              <label class="field">
-                <span>Code createur</span>
-                <input id="accessCodeInput" type="password" placeholder="Code createur ou invite">
-              </label>
-              <button id="accessCodeButton" class="secondary-action" type="button">Debloquer</button>
+              <button id="logoutButton" class="secondary-action" type="button">Déconnexion</button>
             </div>
 
             <div id="reportHistory" class="report-history" hidden>
               <div class="report-history-heading">
                 <strong>Mes rapports</strong>
-                <span>Les derniers rapports sauvegardes.</span>
+                <span>Les derniers rapports sauvegardés.</span>
               </div>
               <div id="reportList" class="report-list"></div>
             </div>
@@ -123,39 +132,39 @@
         </div>
       </header>
 
-      <section class="workspace" aria-label="Assistant Voltia">
+      <section id="workspace" class="workspace" aria-label="Assistant Voltia">
         <aside class="diagnostic-panel">
           <div class="tool-panel-header">
             <span class="eyebrow">Outils</span>
-            <h2>Choisis ton point de depart</h2>
-            <p>Un seul module ouvert a la fois pour garder l'interface lisible.</p>
+            <h2>Choisis ton point de départ</h2>
+            <p>Un seul module ouvert à la fois pour garder l'interface lisible.</p>
           </div>
 
           <div class="diagnostic-card is-open">
-            <div class="card-heading">
+            <div class="card-heading" role="button" tabindex="0" aria-expanded="true">
               <span class="step-badge">1</span>
               <div>
                 <h2>Diagnostic rapide</h2>
-                <p>Choisis ce qui ressemble le plus a ton probleme.</p>
+                <p>Choisis ce qui ressemble le plus à ton problème.</p>
               </div>
             </div>
 
-            <div class="issue-grid" aria-label="Types de problemes">
+            <div class="issue-grid" aria-label="Types de problèmes">
               <button type="button" class="issue-card active" data-issue="Disjoncteur qui saute">
                 <strong>Disjoncteur</strong>
-                <span>Ca saute, ca coupe, ca revient</span>
+                <span>Coupures ou déclenchements répétés</span>
               </button>
               <button type="button" class="issue-card" data-issue="Prise ou interrupteur en panne">
                 <strong>Prise</strong>
                 <span>Plus de courant ou faux contact</span>
               </button>
-              <button type="button" class="issue-card" data-issue="Lumiere qui ne fonctionne plus">
-                <strong>Lumiere</strong>
+              <button type="button" class="issue-card" data-issue="Lumière qui ne fonctionne plus">
+                <strong>Lumière</strong>
                 <span>Ampoule, va-et-vient, plafonnier</span>
               </button>
-              <button type="button" class="issue-card" data-issue="Tableau electrique a comprendre">
+              <button type="button" class="issue-card" data-issue="Tableau électrique à comprendre">
                 <strong>Tableau</strong>
-                <span>Differentiel, fusible, circuit</span>
+                <span>Différentiel, fusible, circuit</span>
               </button>
             </div>
 
@@ -167,8 +176,8 @@
             <label class="field">
               <span>Niveau de risque</span>
               <select id="riskSelect">
-                <option>Normal: pas de fumee, pas d'odeur, pas de fil visible</option>
-                <option>Urgent: odeur de brule, fumee, eau, fil denude ou chaleur</option>
+                <option>Normal : pas de fumée, pas d'odeur, pas de fil visible</option>
+                <option>Urgent : odeur de brûlé, fumée, eau, fil dénudé ou chaleur</option>
                 <option>Je ne sais pas</option>
               </select>
             </label>
@@ -177,32 +186,32 @@
           </div>
 
           <div class="schema-card">
-            <div class="card-heading">
+            <div class="card-heading" role="button" tabindex="0" aria-expanded="false">
               <span class="step-badge">2</span>
               <div>
-                <h2>Creation de schema</h2>
-                <p>Genere un schema electrique indicatif et une explication.</p>
+                <h2>Création de schéma</h2>
+                <p>Génère un schéma électrique indicatif et une explication.</p>
               </div>
             </div>
 
             <label class="field">
-              <span>Type de schema</span>
+              <span>Type de schéma</span>
               <select id="schemaType">
                 <option value="prise">Circuit prise simple</option>
-                <option value="eclairage">Eclairage simple allumage</option>
-                <option value="va-et-vient">Va-et-vient simplifie</option>
-                <option value="tableau">Tableau electrique simplifie</option>
+                <option value="eclairage">Éclairage simple allumage</option>
+                <option value="va-et-vient">Va-et-vient simplifié</option>
+                <option value="tableau">Tableau électrique simplifié</option>
               </select>
             </label>
 
             <div class="schema-row">
               <label class="field">
-                <span>Piece</span>
+                <span>Pièce</span>
                 <input id="schemaRoom" type="text" placeholder="Ex: salon, cuisine">
               </label>
               <label class="field">
                 <span>Puissance ou usage</span>
-                <input id="schemaUse" type="text" placeholder="Ex: 16A, lumiere, four">
+                <input id="schemaUse" type="text" placeholder="Ex: 16A, lumière, four">
               </label>
             </div>
 
@@ -212,7 +221,7 @@
                 <input id="socketCount" type="number" min="0" max="12" value="1">
               </label>
               <label class="field">
-                <span>Nombre de lumieres</span>
+                <span>Nombre de lumières</span>
                 <input id="lightCount" type="number" min="0" max="8" value="1">
               </label>
               <label class="field">
@@ -228,25 +237,25 @@
               </label>
               <label class="field">
                 <span>Calibres / circuits</span>
-                <input id="breakerRatings" type="text" placeholder="Ex: 10A eclairage, 16A prises, 20A four">
+                <input id="breakerRatings" type="text" placeholder="Ex: 10A éclairage, 16A prises, 20A four">
               </label>
             </div>
 
-            <button id="createSchema" class="secondary-action" type="button">Creer un schema</button>
+            <button id="createSchema" class="secondary-action" type="button">Créer un schéma</button>
           </div>
 
           <div class="photo-card">
-            <div class="card-heading">
+            <div class="card-heading" role="button" tabindex="0" aria-expanded="false">
               <span class="step-badge">3</span>
               <div>
-                <h2>Photo vers schema</h2>
-                <p>Importe une photo et Voltia la retranscrit en schema simple.</p>
+                <h2>Photo vers schéma</h2>
+                <p>Importe une photo et Voltia la retranscrit en schéma simple.</p>
               </div>
             </div>
 
             <label class="upload-zone" for="photoInput">
               <span id="photoLabel">Choisir une photo</span>
-              <small>Tableau, prise, boite, montage ou croquis.</small>
+              <small>Tableau, prise, boîte, montage ou croquis.</small>
               <input id="photoInput" type="file" accept="image/png,image/jpeg,image/webp">
             </label>
 
@@ -254,29 +263,29 @@
 
             <label class="field">
               <span>Contexte optionnel</span>
-              <input id="photoContext" type="text" placeholder="Ex: tableau electrique garage, prise cuisine">
+              <input id="photoContext" type="text" placeholder="Ex: tableau électrique garage, prise cuisine">
             </label>
 
             <button id="analyzePhoto" class="secondary-action" type="button">Analyser la photo</button>
           </div>
 
           <div class="manual-card">
-            <div class="card-heading">
+            <div class="card-heading" role="button" tabindex="0" aria-expanded="false">
               <span class="step-badge">4</span>
               <div>
                 <h2>Recherche de notice</h2>
-                <p>Trouve une notice depuis une reference ou une photo d'etiquette.</p>
+                <p>Trouve une notice depuis une référence ou une photo d'étiquette.</p>
               </div>
             </div>
 
             <label class="field">
-              <span>Reference appareil</span>
+              <span>Référence appareil</span>
               <input id="manualReference" type="text" placeholder="Ex: Legrand 412170, Hager CDA743F">
             </label>
 
             <label class="upload-zone" for="manualPhotoInput">
-              <span id="manualPhotoLabel">Choisir une photo de reference</span>
-              <small>Etiquette, plaque signaletique, emballage ou face avant.</small>
+              <span id="manualPhotoLabel">Choisir une photo de référence</span>
+              <small>Étiquette, plaque signalétique, emballage ou face avant.</small>
               <input id="manualPhotoInput" type="file" accept="image/png,image/jpeg,image/webp">
             </label>
 
@@ -286,17 +295,17 @@
           </div>
 
           <div class="lighting-card">
-            <div class="card-heading">
+            <div class="card-heading" role="button" tabindex="0" aria-expanded="false">
               <span class="step-badge">5</span>
               <div>
-                <h2>Dimensionnement eclairage</h2>
+                <h2>Dimensionnement éclairage</h2>
                 <p>Analyse un plan et propose les emplacements, types et puissances.</p>
               </div>
             </div>
 
             <label class="upload-zone" for="lightingPlanInput">
               <span id="lightingPlanLabel">Choisir un plan</span>
-              <small>Plan cote, croquis, piece meublee ou capture de plan.</small>
+              <small>Plan coté, croquis, pièce meublée ou capture de plan.</small>
               <input id="lightingPlanInput" type="file" accept="image/png,image/jpeg,image/webp">
             </label>
 
@@ -304,7 +313,7 @@
 
             <div class="schema-row">
               <label class="field">
-                <span>Piece / usage</span>
+                <span>Pièce / usage</span>
                 <input id="lightingRoom" type="text" placeholder="Ex: salon, cuisine, chambre">
               </label>
               <label class="field">
@@ -319,10 +328,10 @@
                 <input id="lightingHeight" type="text" placeholder="Ex: 2,50 m">
               </label>
               <label class="field">
-                <span>Type souhaite</span>
+                <span>Type souhaité</span>
                 <select id="lightingType">
                   <option>Je ne sais pas</option>
-                  <option>Spots encastres</option>
+                  <option>Spots encastrés</option>
                   <option>Plafonnier</option>
                   <option>Suspension</option>
                   <option>Appliques murales</option>
@@ -331,15 +340,15 @@
               </label>
             </div>
 
-            <button id="analyzeLighting" class="secondary-action" type="button">Dimensionner l'eclairage</button>
+            <button id="analyzeLighting" class="secondary-action" type="button">Dimensionner l'éclairage</button>
           </div>
 
           <div class="climate-card">
-            <div class="card-heading">
+            <div class="card-heading" role="button" tabindex="0" aria-expanded="false">
               <span class="step-badge">6</span>
               <div>
                 <h2>Dimensionnement clim</h2>
-                <p>Estime la puissance du climatiseur selon la piece et les conditions.</p>
+                <p>Estime la puissance du climatiseur selon la pièce et les conditions.</p>
               </div>
             </div>
 
@@ -356,9 +365,9 @@
 
             <div class="schema-row">
               <label class="field">
-                <span>Type de piece</span>
+                <span>Type de pièce</span>
                 <select id="climateRoom">
-                  <option>Salon / sejour</option>
+                  <option>Salon / séjour</option>
                   <option>Chambre</option>
                   <option>Bureau</option>
                   <option>Cuisine</option>
@@ -381,8 +390,8 @@
                 <span>Exposition soleil</span>
                 <select id="climateSun">
                   <option>Normale</option>
-                  <option>Peu exposee</option>
-                  <option>Tres ensoleillee</option>
+                  <option>Peu exposée</option>
+                  <option>Très ensoleillée</option>
                 </select>
               </label>
               <label class="field">
@@ -401,11 +410,11 @@
                 </select>
               </label>
               <label class="field">
-                <span>Region / climat</span>
+                <span>Région / climat</span>
                 <select id="climateRegion">
-                  <option>Tempere</option>
+                  <option>Tempéré</option>
                   <option>Chaud</option>
-                  <option>Tres chaud</option>
+                  <option>Très chaud</option>
                 </select>
               </label>
             </div>
@@ -448,23 +457,23 @@
             </div>
           </header>
 
-          <div class="chat-level-control" aria-label="Niveau de reponse">
+          <div class="chat-level-control" aria-label="Niveau de réponse">
             <div>
-              <strong>Quel niveau de reponse veux-tu ?</strong>
-              <span>Adapte la precision des explications de Voltia.</span>
+              <strong>Quel niveau de réponse veux-tu ?</strong>
+              <span>Adapte la précision des explications de Voltia.</span>
             </div>
             <div class="level-options">
-              <button type="button" class="level-option active" data-level="debutant">Debutant</button>
-              <button type="button" class="level-option" data-level="confirme">Confirme</button>
+              <button type="button" class="level-option active" data-level="debutant">Débutant</button>
+              <button type="button" class="level-option" data-level="confirme">Confirmé</button>
               <button type="button" class="level-option" data-level="expert">Expert</button>
             </div>
           </div>
 
           <div class="suggestions" aria-label="Suggestions">
             <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
-            <button type="button" data-prompt="Une prise ne fonctionne plus, que verifier sans prendre de risque ?">Prise en panne</button>
-          <button type="button" data-prompt="Explique-moi la difference entre interrupteur differentiel et disjoncteur.">Comprendre le tableau</button>
-          <button type="button" data-prompt="Cree un schema electrique simple pour un point lumineux commande par un interrupteur.">Schema eclairage</button>
+            <button type="button" data-prompt="Une prise ne fonctionne plus, que vérifier sans prendre de risque ?">Prise en panne</button>
+          <button type="button" data-prompt="Explique-moi la différence entre interrupteur différentiel et disjoncteur.">Comprendre le tableau</button>
+          <button type="button" data-prompt="Crée un schéma électrique simple pour un point lumineux commandé par un interrupteur.">Schéma éclairage</button>
           </div>
 
           <div id="messages" class="messages" aria-live="polite">
@@ -473,16 +482,16 @@
               <div class="message-stack">
                 <span class="message-label">Voltia</span>
                 <div class="bubble">
-                  Bonjour, je suis Voltia. Lance un diagnostic ou decris directement ton probleme electrique.
+                  Bonjour, je suis Voltia. Lance un diagnostic ou décris directement ton problème électrique.
                 </div>
               </div>
             </article>
           </div>
 
-          <div class="source-control" aria-label="Source limitee">
+          <div class="source-control" aria-label="Source limitée">
             <label class="source-toggle">
               <input id="sourceOnlyToggle" type="checkbox">
-              <span>Limiter la reponse a une source precise</span>
+              <span>Limiter la réponse à une source précise</span>
             </label>
             <label class="source-toggle norms-toggle">
               <input id="normsSearchToggle" type="checkbox">
@@ -493,18 +502,18 @@
 
           <form id="chatForm" class="composer">
             <div class="input-wrap">
-              <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Decris ton probleme electrique..." autocomplete="off"></textarea>
+              <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Décris ton problème électrique..." autocomplete="off"></textarea>
               <span id="counter" class="counter">0 / 1200</span>
             </div>
             <button id="sendButton" type="submit">Envoyer</button>
           </form>
-          <p id="hint" class="hint">Astuce: indique ce qui saute, quand, et ce qui a change recemment.</p>
+          <p id="hint" class="hint">Astuce : indique ce qui saute, quand, et ce qui a changé récemment.</p>
         </section>
       </section>
 
       <footer class="app-footer" aria-label="Informations Voltia">
-        <span>Voltia fournit une aide indicative. Toute intervention electrique doit etre realisee hors tension et validee par une personne qualifiee.</span>
-        <a href="/legal.html">Securite, confidentialite et conditions</a>
+        <span>Voltia fournit une aide indicative. Toute intervention électrique doit être réalisée hors tension et validée par une personne qualifiée.</span>
+        <a href="/legal.html">Sécurité, confidentialité et conditions</a>
       </footer>
     </main>
     <div class="signature" aria-label="Signature Voltia">Voltia by yb</div>

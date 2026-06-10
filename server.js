@@ -217,7 +217,7 @@ async function getSessionUser(req, store = null) {
   }
 
   if (session.accessPass) {
-    return { store: activeStore, token, user: null, accessPass: true, accessName: session.name || "Acces invite" };
+    return { store: activeStore, token, user: null, accessPass: true, accessName: session.name || "Accès invité" };
   }
 
   const user = activeStore.users.find((item) => item.id === session.userId) || null;
@@ -475,7 +475,7 @@ async function handleAccessCode(req, res) {
     const expectedCode = String(process.env.ACCESS_CODE || "VOLTIA-YB-2026");
 
     if (String(code || "").trim() !== expectedCode) {
-      sendJson(res, 401, { error: "Code d'acces incorrect." });
+      sendJson(res, 401, { error: "Code d'accès incorrect." });
       return;
     }
 
@@ -494,7 +494,7 @@ async function handleAccessCode(req, res) {
       200,
       {
         accessPass: true,
-        accessName: "Createur Voltia",
+        accessName: "Créateur Voltia",
         message: "Acces complet active."
       },
       { "Set-Cookie": sessionCookie(req, token) }
@@ -820,20 +820,20 @@ async function handleChat(req, res) {
         ] : undefined,
         tool_choice: shouldSearchNorms ? "required" : undefined,
         instructions: [
-          "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
-          "Aide l'utilisateur a comprendre les causes possibles, les verifications simples et les prochaines etapes.",
-          "Organise toujours tes reponses avec des titres courts et des listes lisibles.",
-          "Structure recommandee: Resume rapide, Securite, Causes possibles, A verifier sans danger, Prochaines etapes, Conclusion.",
-          "Evite les gros paragraphes. Fais une idee par ligne ou par puce.",
-          "Adapte le niveau de detail au niveau demande par l'utilisateur: debutant, confirme ou expert.",
+          "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
+          "Aide l'utilisateur à comprendre les causes possibles, les vérifications simples et les prochaines étapes.",
+          "Organise toujours tes réponses avec des titres courts et des listes lisibles.",
+          "Structure recommandée: Résumé rapide, Sécurité, Causes possibles, À vérifier sans danger, Prochaines étapes, Conclusion.",
+          "Évite les gros paragraphes. Fais une idée par ligne ou par puce.",
+          "Adapte le niveau de détail au niveau demandé par l'utilisateur: débutant, confirmé ou expert.",
           sourceContext
-            ? `L'utilisateur a active le mode source unique. Tu dois repondre uniquement avec la source fournie (${sourceContext.url}). Si la source ne contient pas l'information demandee, dis clairement que la source indiquee ne permet pas de repondre. Cite l'URL source en fin de reponse. N'utilise pas tes connaissances generales pour completer.`
+            ? `L'utilisateur a activé le mode source unique. Tu dois répondre uniquement avec la source fournie (${sourceContext.url}). Si la source ne contient pas l'information demandée, dis clairement que la source indiquée ne permet pas de répondre. Cite l'URL source en fin de réponse. N'utilise pas tes connaissances générales pour compléter.`
             : "",
           shouldSearchNorms
-            ? "L'utilisateur a active le mode normes en vigueur. Lance une recherche web et traite la demande comme une recherche reglementaire francaise autour de la NF C 15-100, des textes publics applicables et des guides techniques fiables. Priorise les sources AFNOR, Légifrance, Service-public, Promotelec, Qualifelec, fabricants reconnus et guides techniques cites. Donne les exigences utiles au projet de l'utilisateur: hauteurs, volumes, protections, sections, calibres, emplacements, accessibilite, pieces d'eau, prises, eclairage, tableau et circuits quand c'est pertinent. Cite clairement les sources trouvees. Ne recopie pas de longs extraits de la NF C 15-100, car la norme officielle est protegee. Si l'information exacte n'est pas disponible dans les sources publiques, dis de verifier la NF C 15-100 officielle AFNOR ou de faire valider par un electricien qualifie. Ne presente jamais la reponse comme une attestation de conformite."
+            ? "L'utilisateur a activé le mode normes en vigueur. Lance une recherche web et traite la demande comme une recherche réglementaire française autour de la NF C 15-100, des textes publics applicables et des guides techniques fiables. Priorise les sources AFNOR, Légifrance, Service-public, Promotelec, Qualifelec, fabricants reconnus et guides techniques cités. Donne les exigences utiles au projet de l'utilisateur: hauteurs, volumes, protections, sections, calibres, emplacements, accessibilité, pièces d'eau, prises, éclairage, tableau et circuits quand c'est pertinent. Cite clairement les sources trouvées. Ne recopie pas de longs extraits de la NF C 15-100, car la norme officielle est protégée. Si l'information exacte n'est pas disponible dans les sources publiques, dis de vérifier la NF C 15-100 officielle AFNOR ou de faire valider par un électricien qualifié. Ne présente jamais la réponse comme une attestation de conformité."
             : "",
-          "Pour toute manipulation dangereuse, tableau electrique, fil denude, odeur de brule, fumee, echauffement, humidite, doute serieux ou intervention sous tension, conseille de couper le courant et de contacter un electricien qualifie.",
-          "Ne donne pas d'instructions qui encouragent a travailler sous tension."
+          "Pour toute manipulation dangereuse, tableau électrique, fil dénudé, odeur de brûlé, fumée, échauffement, humidité, doute sérieux ou intervention sous tension, conseille de couper le courant et de contacter un électricien qualifié.",
+          "Ne donne pas d'instructions qui encouragent à travailler sous tension."
         ].join(" "),
         input
       })
@@ -878,12 +878,12 @@ async function handlePhotoSchema(req, res) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         instructions: [
-          "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
-          "Analyse la photo fournie pour retranscrire ce qui est visible en schema electrique simple.",
+          "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
+          "Analyse la photo fournie pour retranscrire ce qui est visible en schéma électrique simple.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
-          "Reponds en francais avec exactement ces sections: Resume rapide, Ce que je vois, Schema en traits, Legende, Points a verifier, Securite, Conclusion.",
-          "Le schema en traits doit utiliser des caracteres simples avec L phase, N neutre, PE terre, protections, interrupteurs, lampes, prises ou borniers si visibles.",
-          "Rappelle que le schema est indicatif et qu'il faut couper le courant et faire valider par un electricien qualifie avant toute intervention."
+          "Réponds en français avec exactement ces sections: Résumé rapide, Ce que je vois, Schéma en traits, Légende, Points à vérifier, Sécurité, Conclusion.",
+          "Le schéma en traits doit utiliser des caractères simples avec L phase, N neutre, PE terre, protections, interrupteurs, lampes, prises ou borniers si visibles.",
+          "Rappelle que le schéma est indicatif et qu'il faut couper le courant et faire valider par un électricien qualifié avant toute intervention."
         ].join(" "),
         input: [
           {
@@ -932,7 +932,7 @@ async function handleManualSearch(req, res) {
     const hasImage = image && String(image).startsWith("data:image/");
 
     if (!cleanReference && !hasImage) {
-      sendJson(res, 400, { error: "Ajoute une reference ou une photo pour rechercher une notice." });
+      sendJson(res, 400, { error: "Ajoute une référence ou une photo pour rechercher une notice." });
       return;
     }
 
@@ -940,12 +940,12 @@ async function handleManualSearch(req, res) {
       {
         type: "input_text",
         text: [
-          "Recherche une notice technique ou notice utilisateur fiable pour cet appareil electrique.",
-          `Reference saisie: ${cleanReference || "aucune reference texte"}.`,
-          "Si une photo est fournie, lis la marque, le modele, la reference, les tensions/courants visibles, puis utilise ces elements pour chercher.",
-          "Reponds en francais avec ces sections: Resume rapide, Reference identifiee, Liens de notice probables, Infos utiles, Points de vigilance, Conclusion.",
+          "Recherche une notice technique ou notice utilisateur fiable pour cet appareil électrique.",
+          `Référence saisie: ${cleanReference || "aucune référence texte"}.`,
+          "Si une photo est fournie, lis la marque, le modèle, la référence, les tensions/courants visibles, puis utilise ces éléments pour chercher.",
+          "Réponds en français avec ces sections: Résumé rapide, Référence identifiée, Liens de notice probables, Infos utiles, Points de vigilance, Conclusion.",
           "Dans Liens de notice probables, donne uniquement des liens ou sources que tu juges plausibles, avec le nom du site et pourquoi c'est probablement la bonne notice.",
-          "Si tu n'es pas certain, dis clairement que la notice doit etre verifiee par comparaison exacte de la reference."
+          "Si tu n'es pas certain, dis clairement que la notice doit être vérifiée par comparaison exacte de la référence."
         ].join(" ")
       }
     ];
@@ -967,12 +967,12 @@ async function handleManualSearch(req, res) {
         model: process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini",
         tools: [{ type: "web_search_preview" }],
         instructions: [
-          "Tu es Voltia, un assistant francais specialise dans l'electricite domestique.",
-          "Tu aides a retrouver des notices constructeur a partir d'une reference texte ou d'une photo.",
+          "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
+          "Tu aides à retrouver des notices constructeur à partir d'une référence texte ou d'une photo.",
           "Priorise les sources constructeur, distributeurs techniques reconnus, catalogues officiels et PDF de notice.",
-          "Ne donne pas de certitude si la reference ne correspond pas exactement.",
+          "Ne donne pas de certitude si la référence ne correspond pas exactement.",
           "N'invente jamais un lien. Si aucune notice fiable n'est trouvee, propose les mots-cles exacts a rechercher.",
-          "Rappelle que les notices electriques doivent etre lues avant toute intervention et qu'il faut couper le courant pour toute manipulation."
+          "Rappelle que les notices électriques doivent être lues avant toute intervention et qu'il faut couper le courant pour toute manipulation."
         ].join(" "),
         input: [
           {
@@ -1030,14 +1030,14 @@ async function handleLightingPlan(req, res) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         instructions: [
-          "Tu es Voltia, un assistant francais specialise dans l'eclairage domestique et le dimensionnement indicatif.",
-          "Analyse le plan fourni et propose une implantation logique des eclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la piece.",
-          "Si l'echelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
+          "Tu es Voltia, un assistant français spécialisé dans l'éclairage domestique et le dimensionnement indicatif.",
+          "Analyse le plan fourni et propose une implantation logique des éclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la pièce.",
+          "Si l'échelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
           "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
           "Calcule une puissance indicative a partir des lumens, en rappelant qu'une LED courante donne environ 80 a 120 lm/W selon modele.",
-          "Propose le type de luminaire adapte: spot encastre, suspension, plafonnier, rail, applique, ruban LED ou eclairage de tache.",
-          "Ne presente pas le resultat comme une etude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un electricien qualifie.",
-          "Reponds avec exactement ces sections: Resume rapide, Lecture du plan, Hypotheses, Calcul indicatif, Implantation proposee, Plan en traits, Type et puissance des luminaires, Securite, Conclusion.",
+          "Propose le type de luminaire adapté: spot encastré, suspension, plafonnier, rail, applique, ruban LED ou éclairage de tâche.",
+          "Ne présente pas le résultat comme une étude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un électricien qualifié.",
+          "Réponds avec exactement ces sections: Résumé rapide, Lecture du plan, Hypothèses, Calcul indicatif, Implantation proposée, Plan en traits, Type et puissance des luminaires, Sécurité, Conclusion.",
           "Dans Plan en traits, fais un petit plan ASCII simple avec les points lumineux notes L1, L2, L3 et les zones importantes."
         ].join(" "),
         input: [
@@ -1047,11 +1047,11 @@ async function handleLightingPlan(req, res) {
               {
                 type: "input_text",
                 text: [
-                  `Piece ou usage: ${String(room || "non precise").slice(0, 120)}.`,
-                  `Dimensions connues: ${String(dimensions || "non precisees").slice(0, 120)}.`,
-                  `Hauteur sous plafond: ${String(height || "non precisee").slice(0, 80)}.`,
-                  `Type de luminaire souhaite: ${String(type || "non precise").slice(0, 80)}.`,
-                  `Niveau de detail demande: ${String(level || "debutant").slice(0, 40)}.`,
+                  `Pièce ou usage: ${String(room || "non précisé").slice(0, 120)}.`,
+                  `Dimensions connues: ${String(dimensions || "non précisées").slice(0, 120)}.`,
+                  `Hauteur sous plafond: ${String(height || "non précisée").slice(0, 80)}.`,
+                  `Type de luminaire souhaité: ${String(type || "non précisé").slice(0, 80)}.`,
+                  `Niveau de détail demandé: ${String(level || "débutant").slice(0, 40)}.`,
                   "Donne une proposition claire, lisible et exploitable pour placer les points lumineux."
                 ].join(" ")
               },
@@ -1071,7 +1071,7 @@ async function handleLightingPlan(req, res) {
       return;
     }
 
-    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cet eclairage." });
+    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cet éclairage." });
   } catch (error) {
     sendJson(res, 500, { error: error.message || "Erreur serveur." });
   }
@@ -1170,12 +1170,12 @@ async function handleClimateSizing(req, res) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         instructions: [
-          "Tu es Voltia, un assistant francais specialise dans le dimensionnement indicatif de climatisation domestique.",
-          "Explique une estimation de puissance de climatiseur a partir des donnees fournies.",
-          "Ne presente jamais le resultat comme une etude thermique professionnelle.",
-          "Rappelle qu'un bilan thermique reel depend des vitrages, murs, orientation, apports internes, ventilation, region, humidite et contraintes de pose.",
-          "Reponds avec exactement ces sections: Resume rapide, Donnees prises en compte, Calcul indicatif, Puissance conseillee, Type de climatiseur, Points de vigilance, Conclusion.",
-          "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait etre sous-dimensionne ou surdimensionne."
+          "Tu es Voltia, un assistant français spécialisé dans le dimensionnement indicatif de climatisation domestique.",
+          "Explique une estimation de puissance de climatiseur à partir des données fournies.",
+          "Ne présente jamais le résultat comme une étude thermique professionnelle.",
+          "Rappelle qu'un bilan thermique réel dépend des vitrages, murs, orientation, apports internes, ventilation, région, humidité et contraintes de pose.",
+          "Réponds avec exactement ces sections: Résumé rapide, Données prises en compte, Calcul indicatif, Puissance conseillée, Type de climatiseur, Points de vigilance, Conclusion.",
+          "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait être sous-dimensionné ou surdimensionné."
         ].join(" "),
         input: [
           {
