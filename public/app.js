@@ -1097,6 +1097,7 @@ function buildSchema(type, room, usage, counts = {}) {
 
   const socketSymbols = Array.from({ length: Math.max(socketTotal, 1) }, (_, index) => {
     const y = 86 + index * 42;
+    const branchX = 448 + index * 5;
     return `
       <g class="symbol socket">
         <rect x="486" y="${y - 16}" width="72" height="34" rx="7" />
@@ -1105,9 +1106,9 @@ function buildSchema(type, room, usage, counts = {}) {
         <path d="M 522 ${y + 8} v 9 m -8 0 h 16" />
         <text x="522" y="${y + 31}">Prise ${index + 1}</text>
       </g>
-      <path class="wire phase" d="M 126 132 H 300 V ${y - 10} H 486" />
-      <path class="wire neutral" d="M 126 150 H 318 V ${y} H 486" />
-      <path class="wire earth" d="M 126 168 H 300 V ${y + 10} H 486" />
+      <path class="wire phase" d="M ${branchX} 92 V ${y - 10} H 486" />
+      <path class="wire neutral" d="M ${branchX + 12} 112 V ${y} H 486" />
+      <path class="wire earth" d="M ${branchX + 24} 132 V ${y + 10} H 486" />
     `;
   }).join("");
 
@@ -1125,6 +1126,7 @@ function buildSchema(type, room, usage, counts = {}) {
 
   const lightSymbols = Array.from({ length: Math.max(lightTotal, 1) }, (_, index) => {
     const y = 92 + index * 48;
+    const branchX = 468 + index * 8;
     return `
       <g class="symbol lamp">
         <circle cx="536" cy="${y}" r="22" />
@@ -1132,9 +1134,9 @@ function buildSchema(type, room, usage, counts = {}) {
         <line x1="550" y1="${y - 14}" x2="522" y2="${y + 14}" />
         <text x="536" y="${y + 38}">Lampe ${index + 1}</text>
       </g>
-      <path class="wire phase" d="M ${214 + Math.max(switchTotal - 1, 0) * 78 + 36} 132 H 430 V ${y} H 514" />
-      <path class="wire neutral" d="M 126 158 H 178 V ${y + 8} H 514" />
-      <path class="wire earth" d="M 126 174 H 162 V ${y + 16} H 514" />
+      <path class="wire phase" d="M ${214 + Math.max(switchTotal - 1, 0) * 78 + 36} 132 H ${branchX} V ${y} H 514" />
+      <path class="wire neutral" d="M ${branchX + 12} 204 V ${y + 8} H 514" />
+      <path class="wire earth" d="M ${branchX + 24} 224 V ${y + 16} H 514" />
     `;
   }).join("");
 
@@ -1174,6 +1176,7 @@ function buildSchema(type, room, usage, counts = {}) {
   const vaLightSymbols = Array.from({ length: Math.max(lightTotal, 1) }, (_, index) => {
     const y = 104 + index * 42;
     const lastSwitchX = vaStart + (vaSwitches - 1) * vaSpacing + 36;
+    const branchX = 486 + index * 8;
     return `
       <g class="symbol lamp">
         <circle cx="548" cy="${y}" r="20" />
@@ -1181,9 +1184,9 @@ function buildSchema(type, room, usage, counts = {}) {
         <line x1="561" y1="${y - 13}" x2="535" y2="${y + 13}" />
         <text x="548" y="${y + 34}">Lampe ${index + 1}</text>
       </g>
-      <path class="wire phase" d="M ${lastSwitchX} 136 H 476 V ${y} H 528" />
-      <path class="wire neutral" d="M 112 160 H 150 V ${y + 8} H 528" />
-      <path class="wire earth" d="M 112 176 H 138 V ${y + 16} H 528" />
+      <path class="wire phase" d="M ${lastSwitchX} 136 H ${branchX} V ${y} H 528" />
+      <path class="wire neutral" d="M ${branchX + 12} 214 V ${y + 8} H 528" />
+      <path class="wire earth" d="M ${branchX + 24} 234 V ${y + 16} H 528" />
     `;
   }).join("");
 
@@ -1197,8 +1200,11 @@ function buildSchema(type, room, usage, counts = {}) {
           <rect x="48" y="130" width="78" height="38" rx="5" />
           <text x="87" y="153">DJ 16/20A</text>
         </g>
+        <path class="wire phase wire-bus" d="M 126 92 H 462" />
+        <path class="wire neutral wire-bus" d="M 126 112 H 474" />
+        <path class="wire earth wire-bus" d="M 126 132 H 486" />
         ${socketSymbols}
-        <text class="wire-label" x="205" y="118">Alimentation prise(s) en parallele</text>
+        <text class="wire-label" x="258" y="82">L / N / PE séparés vers prise(s) en parallèle</text>
         ${note}
       </svg>
     `;
@@ -1215,10 +1221,12 @@ function buildSchema(type, room, usage, counts = {}) {
           <text x="87" y="153">DJ 10/16A</text>
         </g>
         ${switchSymbols}
-        <path class="wire phase" d="M 126 138 H 214" />
+        <path class="wire phase wire-bus" d="M 126 132 H 214" />
+        <path class="wire neutral wire-bus" d="M 126 204 H 500" />
+        <path class="wire earth wire-bus" d="M 126 224 H 510" />
         ${lightSymbols}
         <text class="wire-label" x="232" y="106">Commande(s)</text>
-        <text class="wire-label" x="390" y="230">N et PE distribues vers point(s) lumineux</text>
+        <text class="wire-label" x="356" y="197">N et PE distribués sur deux couloirs séparés</text>
         ${note}
       </svg>
     `;
@@ -1240,6 +1248,8 @@ function buildSchema(type, room, usage, counts = {}) {
         <path class="wire phase" d="M 112 140 H ${firstX + 36}" />
         <path class="wire traveler" d="M ${firstX} 120 H ${lastX}" />
         <path class="wire traveler" d="M ${firstX} 152 H ${lastX}" />
+        <path class="wire neutral wire-bus" d="M 112 214 H 516" />
+        <path class="wire earth wire-bus" d="M 112 234 H 528" />
         ${vaLightSymbols}
         <text class="wire-label" x="310" y="112">Navette 1</text>
         <text class="wire-label" x="310" y="170">Navette 2</text>
@@ -1314,12 +1324,12 @@ function buildSchema(type, room, usage, counts = {}) {
           <path d="M 531 166 v 14 m -11 0 h 22" />
           <text x="530" y="212">Prise 2P+T</text>
         </g>
-        <path class="wire phase" d="M 126 138 H 292 V 120 H 486" />
-        <path class="wire neutral" d="M 126 150 H 308 V 146 H 486" />
-        <path class="wire earth" d="M 126 162 H 292 V 174 H 486" />
-        <text class="wire-label" x="306" y="114">L</text>
-        <text class="wire-label" x="318" y="141">N</text>
-        <text class="wire-label" x="304" y="193">PE</text>
+        <path class="wire phase" d="M 126 112 H 440 V 120 H 486" />
+        <path class="wire neutral" d="M 126 146 H 456 V 146 H 486" />
+        <path class="wire earth" d="M 126 180 H 472 V 174 H 486" />
+        <text class="wire-label" x="294" y="104">L phase</text>
+        <text class="wire-label" x="310" y="138">N neutre</text>
+        <text class="wire-label" x="324" y="198">PE terre</text>
         ${note}
       </svg>
     `,
@@ -1344,12 +1354,12 @@ function buildSchema(type, room, usage, counts = {}) {
           <line x1="541" y1="118" x2="503" y2="156" />
           <text x="522" y="185">Point lumineux</text>
         </g>
-        <path class="wire phase" d="M 126 138 H 318" />
-        <path class="wire phase" d="M 358 137 H 492" />
-        <path class="wire neutral" d="M 126 158 H 230 V 212 H 522 V 167" />
-        <path class="wire earth" d="M 126 174 H 214 V 232 H 522 V 170" />
-        <text class="wire-label" x="220" y="132">L coupe par interrupteur</text>
-        <text class="wire-label" x="362" y="207">N direct lampe</text>
+        <path class="wire phase" d="M 126 128 H 318" />
+        <path class="wire phase" d="M 358 128 H 480 V 137 H 492" />
+        <path class="wire neutral" d="M 126 196 H 500 V 167 H 522" />
+        <path class="wire earth" d="M 126 224 H 514 V 170 H 522" />
+        <text class="wire-label" x="220" y="120">L coupée par interrupteur</text>
+        <text class="wire-label" x="362" y="190">N direct lampe</text>
         ${note}
       </svg>
     `,
@@ -1378,12 +1388,12 @@ function buildSchema(type, room, usage, counts = {}) {
           <line x1="554" y1="123" x2="518" y2="159" />
           <text x="536" y="190">Lampe</text>
         </g>
-        <path class="wire phase" d="M 112 140 H 270" />
+        <path class="wire phase" d="M 112 138 H 270" />
         <path class="wire traveler" d="M 230 126 H 378" />
         <path class="wire traveler" d="M 230 156 H 378" />
-        <path class="wire phase" d="M 418 141 H 508" />
-        <path class="wire neutral" d="M 112 160 H 168 V 222 H 536 V 169" />
-        <path class="wire earth" d="M 112 176 H 152 V 242 H 536 V 171" />
+        <path class="wire phase" d="M 418 141 H 502 V 141 H 508" />
+        <path class="wire neutral" d="M 112 212 H 520 V 169 H 536" />
+        <path class="wire earth" d="M 112 236 H 532 V 171 H 536" />
         <text class="wire-label" x="300" y="118">Navette 1</text>
         <text class="wire-label" x="300" y="171">Navette 2</text>
         ${note}
@@ -1408,13 +1418,13 @@ function buildSchema(type, room, usage, counts = {}) {
           <text x="473" y="150">DJ</text>
           <text x="473" y="168">lumiere</text>
         </g>
-        <path class="wire phase" d="M 154 148 H 190" />
-        <path class="wire neutral" d="M 154 168 H 190" />
-        <path class="wire phase" d="M 302 146 H 342" />
-        <path class="wire neutral" d="M 302 170 H 342" />
-        <path class="wire phase" d="M 302 138 H 438" />
-        <path class="wire neutral" d="M 302 178 H 438" />
-        <path class="wire earth" d="M 88 204 H 520" />
+        <path class="wire phase" d="M 154 136 H 190" />
+        <path class="wire neutral" d="M 154 174 H 190" />
+        <path class="wire phase" d="M 302 130 H 342" />
+        <path class="wire neutral" d="M 302 174 H 342" />
+        <path class="wire phase" d="M 302 146 H 438" />
+        <path class="wire neutral" d="M 302 190 H 438" />
+        <path class="wire earth" d="M 88 214 H 520" />
         <text class="wire-label" x="392" y="220">barrette de terre PE</text>
         ${note}
       </svg>

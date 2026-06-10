@@ -1492,28 +1492,37 @@ textarea:focus {
 
 .diagram-frame .wire {
   fill: none;
-  stroke-width: 4.8;
+  stroke-width: 5.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   paint-order: stroke;
-  stroke-opacity: 0.96;
+  stroke-opacity: 1;
+  filter:
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.95))
+    drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.95));
 }
 
 .diagram-frame .phase {
-  stroke: #d13d3d;
+  stroke: #e02f2f;
 }
 
 .diagram-frame .neutral {
-  stroke: #176f9d;
+  stroke: #0876bd;
 }
 
 .diagram-frame .earth {
-  stroke: #1f9d68;
+  stroke: #15965f;
 }
 
 .diagram-frame .traveler {
-  stroke: #8b5fbf;
-  stroke-dasharray: 10 7;
+  stroke: #8d4fd1;
+  stroke-width: 4.4;
+  stroke-dasharray: 12 8;
+}
+
+.diagram-frame .wire-bus {
+  stroke-width: 6;
 }
 
 .diagram-frame .large-board rect:first-child {
