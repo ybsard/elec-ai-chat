@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -1238,8 +1238,15 @@ async function handleHealth(req, res) {
 
 async function serveStatic(req, res) {
   const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
-  const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
-  const filePath = join(publicDir, safePath);
+  const decodedPath = decodeURIComponent(rawPath);
+  const safePath = normalize(decodedPath).replace(/^[/\\]+/, "");
+  const filePath = resolve(publicDir, safePath);
+
+  if (!filePath.startsWith(resolve(publicDir))) {
+    res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+    res.end("Acces refuse");
+    return;
+  }
 
   try {
     const file = await readFile(filePath);

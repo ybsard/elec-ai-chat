@@ -8,6 +8,7 @@
   --warning: #f2a51a;
   --warning-dark: #9b6200;
   --blue: #1d6f8f;
+  --accent: #14556d;
   --mint: #24a873;
   --danger: #c44747;
   --shadow: 0 28px 90px rgba(16, 24, 32, 0.16);
@@ -2043,7 +2044,7 @@ textarea:disabled {
 
   .chat-header-actions {
     width: 100%;
-    justify-content: stretch;
+    justify-content: flex-start;
   }
 
   .chat-header-actions .icon-button {
@@ -2083,7 +2084,6 @@ textarea:disabled {
   }
 
   .signature {
-    right: 10px;
-    bottom: 8px;
+    display: none;
   }
 }

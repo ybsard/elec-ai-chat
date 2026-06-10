@@ -135,8 +135,17 @@ function createCopyAction(content) {
   copyButton.type = "button";
   copyButton.textContent = "Copier";
   copyButton.addEventListener("click", async () => {
-    await navigator.clipboard.writeText(content);
-    copyButton.textContent = "Copie";
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("clipboard-unavailable");
+      }
+
+      await navigator.clipboard.writeText(content);
+      copyButton.textContent = "Copie";
+    } catch {
+      copyButton.textContent = "Impossible";
+    }
+
     setTimeout(() => {
       copyButton.textContent = "Copier";
     }, 1200);
