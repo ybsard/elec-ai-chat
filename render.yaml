@@ -1,13 +1,14 @@
 services:
   - type: web
-    name: voltia
+    name: elec-ai-chat
     runtime: node
     plan: free
     region: frankfurt
+    branch: main
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
-    autoDeploy: true
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_ENV
         value: production
