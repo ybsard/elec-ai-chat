@@ -12,12 +12,18 @@ const sendButton = document.querySelector("#sendButton");
 const sourceOnlyToggle = document.querySelector("#sourceOnlyToggle");
 const sourceUrlInput = document.querySelector("#sourceUrlInput");
 const normsSearchToggle = document.querySelector("#normsSearchToggle");
+const conversionBanner = document.querySelector("#conversionBanner");
+const conversionBannerTitle = document.querySelector("#conversionBannerTitle");
+const conversionBannerText = document.querySelector("#conversionBannerText");
+const conversionPrimaryButton = document.querySelector("#conversionPrimaryButton");
+const conversionSecondaryButton = document.querySelector("#conversionSecondaryButton");
 const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const toolCards = document.querySelectorAll(".diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
 const accountCard = document.querySelector(".intro-account-card");
 const accountStatus = document.querySelector("#accountStatus");
+const accountAuthDetails = document.querySelector(".account-auth-details");
 const authFields = document.querySelector("#authFields");
 const accessCodeFields = document.querySelector("#accessCodeFields");
 const accessCodeInput = document.querySelector("#accessCodeInput");
@@ -35,7 +41,20 @@ const memberActions = document.querySelector("#memberActions");
 const upgradeButton = document.querySelector("#upgradeButton");
 const logoutButton = document.querySelector("#logoutButton");
 const reportHistory = document.querySelector("#reportHistory");
+const reportHistoryTitle = document.querySelector("#reportHistoryTitle");
+const reportHistorySubtitle = document.querySelector("#reportHistorySubtitle");
 const reportList = document.querySelector("#reportList");
+const projectWorkspace = document.querySelector("#projectWorkspace");
+const projectWorkspaceTitle = document.querySelector("#projectWorkspaceTitle");
+const projectWorkspaceSubtitle = document.querySelector("#projectWorkspaceSubtitle");
+const activeProjectBadge = document.querySelector("#activeProjectBadge");
+const projectUpsell = document.querySelector("#projectUpsell");
+const projectUpsellButton = document.querySelector("#projectUpsellButton");
+const projectManager = document.querySelector("#projectManager");
+const projectNameInput = document.querySelector("#projectNameInput");
+const projectDescriptionInput = document.querySelector("#projectDescriptionInput");
+const createProjectButton = document.querySelector("#createProjectButton");
+const projectList = document.querySelector("#projectList");
 const symptomInput = document.querySelector("#symptomInput");
 const riskSelect = document.querySelector("#riskSelect");
 const startDiagnostic = document.querySelector("#startDiagnostic");
@@ -76,6 +95,7 @@ const climatePeople = document.querySelector("#climatePeople");
 const climateHeatSources = document.querySelector("#climateHeatSources");
 const climateRegion = document.querySelector("#climateRegion");
 const sizeClimate = document.querySelector("#sizeClimate");
+const saveTargetText = document.querySelector("#saveTargetText");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
@@ -86,6 +106,12 @@ let selectedLightingPlanDataUrl = "";
 let selectedLevel = "debutant";
 let currentUser = null;
 let hasAccessPass = false;
+const pageParams = new URLSearchParams(window.location.search);
+let conversionPrimaryAction = () => {};
+let conversionSecondaryAction = () => {};
+let projectsCache = [];
+let allReportsCache = [];
+let activeProjectId = "";
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -809,7 +835,7 @@ function showProfessionalReportExample() {
   setHint("Exemple de rapport chargé. Tu peux exporter le PDF ou sauvegarder ce modèle dans ton compte.");
 }
 
-function renderReportHistory(reports = []) {
+function renderReportHistory(reports = [], options = {}) {
   if (!reportHistory || !reportList) return;
 
   reportHistory.hidden = !currentUser;
@@ -817,8 +843,19 @@ function renderReportHistory(reports = []) {
 
   if (!currentUser) return;
 
+  const title = options.title || "Mes rapports";
+  const subtitle = options.subtitle || "Les derniers rapports sauvegardes.";
+  const emptyMessage = options.emptyMessage || "Aucun rapport sauvegarde pour l'instant.";
+
+  if (reportHistoryTitle) {
+    reportHistoryTitle.textContent = title;
+  }
+  if (reportHistorySubtitle) {
+    reportHistorySubtitle.textContent = subtitle;
+  }
+
   if (!reports.length) {
-    reportList.innerHTML = '<p class="empty-history">Aucun rapport sauvegarde pour l\'instant.</p>';
+    reportList.innerHTML = `<p class="empty-history">${escapeHtml(emptyMessage)}</p>`;
     return;
   }
 
@@ -829,15 +866,161 @@ function renderReportHistory(reports = []) {
     item.dataset.reportId = report.id;
     const date = report.createdAt ? new Date(report.createdAt).toLocaleDateString("fr-FR") : "Date inconnue";
     const type = String(report.title || "").split(" - ")[0] || "Rapport Voltia";
+    const projectLabel = report.projectName ? ` · Dossier ${escapeHtml(report.projectName)}` : "";
     item.innerHTML = `
       <span class="report-item-main">
         <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
-        <small><b>${escapeHtml(type)}</b> · ${escapeHtml(date)} · ${escapeHtml(report.preview || "Rapport sauvegardé")}</small>
+        <small><b>${escapeHtml(type)}</b>${projectLabel} · ${escapeHtml(date)} · ${escapeHtml(report.preview || "Rapport sauvegarde")}</small>
       </span>
-      <span class="report-item-action">Reprendre / exporter</span>
+      <span class="report-item-action">Ouvrir</span>
     `;
     reportList.append(item);
   });
+}
+
+function getProjectById(projectId) {
+  if (!projectId) return null;
+  return projectsCache.find((project) => project.id === projectId) || null;
+}
+
+function renderCurrentReportHistory() {
+  if (!currentUser) {
+    renderReportHistory([]);
+    return;
+  }
+
+  const activeProject = currentUser.plan === "pro" ? getProjectById(activeProjectId) : null;
+  const reports = activeProject
+    ? allReportsCache.filter((report) => report.projectId === activeProject.id)
+    : allReportsCache;
+
+  renderReportHistory(reports, {
+    title: activeProject ? `Dossier : ${activeProject.name}` : "Mes rapports",
+    subtitle: activeProject
+      ? `${reports.length} rapport${reports.length > 1 ? "s" : ""} dans ce dossier. Les prochains enregistrements peuvent y etre ranges.`
+      : currentUser.plan === "pro"
+        ? "Tous tes rapports recents, avec ou sans dossier."
+        : "Les derniers rapports sauvegardes dans ton compte.",
+    emptyMessage: activeProject
+      ? "Aucun rapport dans ce dossier pour l'instant."
+      : "Aucun rapport sauvegarde pour l'instant."
+  });
+}
+
+function updateSaveTargetUi() {
+  if (!saveTargetText) return;
+
+  if (!currentUser) {
+    saveTargetText.textContent = "Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.";
+    if (activeProjectBadge) {
+      activeProjectBadge.textContent = "Tous les rapports";
+    }
+    return;
+  }
+
+  if (currentUser.plan !== "pro") {
+    activeProjectId = "";
+    saveTargetText.textContent = "Compte gratuit : tes rapports sont sauvegardes dans un historique unique. Passe Pro pour les classer par chantier, client ou piece.";
+    if (activeProjectBadge) {
+      activeProjectBadge.textContent = "Compte gratuit";
+    }
+    return;
+  }
+
+  const activeProject = getProjectById(activeProjectId);
+  if (activeProjectBadge) {
+    activeProjectBadge.textContent = activeProject ? activeProject.name : "Tous les rapports";
+  }
+
+  if (activeProject) {
+    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera range dans le dossier "${activeProject.name}".`;
+    return;
+  }
+
+  if (projectsCache.length) {
+    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde tous les rapports dans l'historique general.";
+    return;
+  }
+
+  saveTargetText.textContent = "Voltia Pro : cree un premier dossier pour classer tes rapports par chantier, logement ou intervention.";
+}
+
+function renderProjects(projects = []) {
+  if (!projectWorkspace || !projectList) return;
+
+  const isLoggedIn = Boolean(currentUser);
+  const isPro = currentUser?.plan === "pro";
+
+  projectWorkspace.hidden = !isLoggedIn;
+
+  if (!isLoggedIn) {
+    projectsCache = [];
+    activeProjectId = "";
+    projectList.innerHTML = "";
+    projectUpsell.hidden = true;
+    projectManager.hidden = true;
+    updateSaveTargetUi();
+    return;
+  }
+
+  projectsCache = Array.isArray(projects) ? projects : [];
+  if (currentUser?.plan === "pro") {
+    currentUser.projectCount = projectsCache.length;
+  }
+  if (activeProjectId && !getProjectById(activeProjectId)) {
+    activeProjectId = "";
+  }
+
+  projectWorkspaceTitle.textContent = "Dossiers Pro";
+  projectWorkspaceSubtitle.textContent = isPro
+    ? "Cree un dossier puis classe tes rapports par chantier, client ou piece."
+    : "Le compte gratuit sauvegarde tes rapports. Voltia Pro ajoute un vrai classement par dossier.";
+
+  projectUpsell.hidden = isPro;
+  projectManager.hidden = !isPro;
+
+  if (!isPro) {
+    activeProjectId = "";
+    projectList.innerHTML = "";
+    updateSaveTargetUi();
+    return;
+  }
+
+  const allReportsCard = `
+    <button type="button" class="project-card ${!activeProjectId ? "is-active" : ""}" data-project-filter="all">
+      <strong>Tous les rapports</strong>
+      <span>Vue generale pour retrouver tous les enregistrements recents.</span>
+      <small>${allReportsCache.length} rapport${allReportsCache.length > 1 ? "s" : ""}</small>
+    </button>
+  `;
+
+  if (!projectsCache.length) {
+    projectList.innerHTML = `
+      ${allReportsCard}
+      <div class="project-card project-card-empty">
+        <strong>Aucun dossier cree</strong>
+        <span>Commence par creer un dossier chantier pour donner une vraie structure a ton historique.</span>
+      </div>
+    `;
+    updateSaveTargetUi();
+    return;
+  }
+
+  const cards = projectsCache.map((project) => {
+    const updatedAt = project.updatedAt
+      ? new Date(project.updatedAt).toLocaleDateString("fr-FR")
+      : "Date inconnue";
+    return `
+      <button type="button" class="project-card ${activeProjectId === project.id ? "is-active" : ""}" data-project-id="${escapeHtml(project.id)}">
+        <strong>${escapeHtml(project.name || "Dossier Voltia")}</strong>
+        <span>${escapeHtml(project.description || "Classe les rapports de ce chantier dans un espace dedie.")}</span>
+        <small>${project.reportCount || 0} rapport${project.reportCount > 1 ? "s" : ""} · Maj ${escapeHtml(updatedAt)}</small>
+      </button>
+    `;
+  });
+
+  projectList.innerHTML = [allReportsCard, ...cards].join("");
+  updateSaveTargetUi();
 }
 
 async function loadSavedConversation(reportId) {
@@ -867,6 +1050,13 @@ async function loadSavedConversation(reportId) {
     promptInput.value = "";
     autosize();
     messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (currentUser?.plan === "pro") {
+      activeProjectId = data.report?.projectId || "";
+      renderProjects(projectsCache);
+      renderCurrentReportHistory();
+    } else {
+      updateSaveTargetUi();
+    }
     setHint(`Conversation reprise: ${data.report?.title || "rapport Voltia"}. Tu peux continuer dans le chat.`);
     window.history.replaceState({}, "", "/");
   } catch (error) {
@@ -876,6 +1066,7 @@ async function loadSavedConversation(reportId) {
 
 async function loadReportHistory() {
   if (!currentUser) {
+    allReportsCache = [];
     renderReportHistory([]);
     return;
   }
@@ -884,16 +1075,147 @@ async function loadReportHistory() {
     const response = await fetch("/api/reports");
     const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.error || "Historique indisponible.");
-    renderReportHistory(data.reports || []);
+    allReportsCache = data.reports || [];
+    if (currentUser?.plan === "pro") {
+      renderProjects(projectsCache);
+    }
+    renderCurrentReportHistory();
   } catch {
+    allReportsCache = [];
+    if (currentUser?.plan === "pro") {
+      renderProjects(projectsCache);
+    }
     renderReportHistory([]);
+  }
+}
+
+async function loadProjects() {
+  if (!currentUser) {
+    renderProjects([]);
+    return;
+  }
+
+  if (currentUser.plan !== "pro") {
+    renderProjects([]);
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/projects");
+    const data = await readJsonResponse(response);
+    if (handleBarrierResponse(response, data, "Dossiers indisponibles.")) return;
+    renderProjects(data.projects || []);
+  } catch {
+    renderProjects([]);
+  }
+}
+
+async function loadProject(projectId) {
+  if (!currentUser || currentUser.plan !== "pro") return;
+
+  if (!projectId) {
+    activeProjectId = "";
+    renderProjects(projectsCache);
+    renderCurrentReportHistory();
+    setHint("Vue generale des rapports reactivee.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
+    const data = await readJsonResponse(response);
+    if (handleBarrierResponse(response, data, "Dossier indisponible.")) return;
+
+    activeProjectId = data.project?.id || projectId;
+
+    if (data.project?.id) {
+      const nextProjects = projectsCache.slice();
+      const index = nextProjects.findIndex((project) => project.id === data.project.id);
+      if (index >= 0) {
+        nextProjects[index] = { ...nextProjects[index], ...data.project };
+      }
+      projectsCache = nextProjects;
+    }
+
+    if (Array.isArray(data.reports)) {
+      allReportsCache = [
+        ...data.reports,
+        ...allReportsCache.filter((report) => report.projectId !== activeProjectId)
+      ];
+    }
+
+    renderProjects(projectsCache);
+    renderCurrentReportHistory();
+    setHint(`Dossier actif : ${data.project?.name || "Dossier Voltia"}. Le prochain rapport y sera sauvegarde.`);
+  } catch (error) {
+    setHint(error.message, true);
+  }
+}
+
+async function createProject() {
+  if (!currentUser) {
+    openSignupFlow();
+    setHint("Cree d'abord un compte pour utiliser l'espace de sauvegarde.", true);
+    return;
+  }
+
+  if (currentUser.plan !== "pro") {
+    showProjectsUpgradePrompt("Les dossiers par chantier sont reserves a Voltia Pro.");
+    return;
+  }
+
+  const name = projectNameInput?.value.trim() || "";
+  const description = projectDescriptionInput?.value.trim() || "";
+
+  if (!name) {
+    setHint("Ajoute un nom de dossier avant de le creer.", true);
+    projectNameInput?.focus();
+    return;
+  }
+
+  createProjectButton.disabled = true;
+  setHint("Creation du dossier en cours...");
+
+  try {
+    const response = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description })
+    });
+    const data = await readJsonResponse(response);
+    if (handleBarrierResponse(response, data, "Creation du dossier impossible.")) return;
+
+    if (projectNameInput) projectNameInput.value = "";
+    if (projectDescriptionInput) projectDescriptionInput.value = "";
+
+    activeProjectId = data.project?.id || "";
+    renderProjects(data.projects || []);
+    await loadReportHistory();
+    hideConversionBanner();
+    setHint(`Dossier cree : ${data.project?.name || "Dossier Voltia"}. Les prochains rapports peuvent y etre ranges.`);
+  } catch (error) {
+    setHint(error.message, true);
+  } finally {
+    createProjectButton.disabled = false;
   }
 }
 
 async function saveConversationReport() {
   if (!currentUser) {
     setHint("Connecte-toi pour sauvegarder tes rapports dans ton compte.", true);
-    setAccountNotice("Connecte-toi ou cree un compte pour sauvegarder un rapport.");
+    setAccountNotice("Connecte-toi ou crée un compte gratuit pour sauvegarder ce rapport.");
+    showConversionBanner({
+      title: "Sauvegarder ce rapport",
+      text: "Le compte gratuit permet déjà de conserver tes rapports et de reprendre tes conversations.",
+      primaryLabel: "Créer un compte gratuit",
+      onPrimary: () => {
+        openSignupFlow();
+      },
+      secondaryLabel: "Voir Pro",
+      onSecondary: () => {
+        window.location.href = "/pro.html";
+      }
+    });
     return;
   }
 
@@ -914,15 +1236,25 @@ async function saveConversationReport() {
         title: getReportTitle(),
         preview: getReportPreviewText(),
         html: buildReportDocument(),
-        conversation: getVisibleConversation()
+        conversation: getVisibleConversation(),
+        projectId: currentUser?.plan === "pro" ? activeProjectId : ""
       })
     });
     const data = await readJsonResponse(response);
-    if (!response.ok) throw new Error(data.error || "Sauvegarde impossible.");
+    if (handleBarrierResponse(response, data, "Sauvegarde impossible.")) return;
 
-    renderReportHistory(data.reports || []);
-    await refreshAccount();
-    setHint("Rapport sauvegarde dans ton compte.");
+    allReportsCache = data.reports || [];
+    if (Array.isArray(data.projects)) {
+      renderProjects(data.projects);
+    }
+    if (currentUser?.plan === "pro" && activeProjectId) {
+      await loadProject(activeProjectId);
+    } else {
+      renderCurrentReportHistory();
+    }
+    hideConversionBanner();
+    const activeProject = getProjectById(activeProjectId);
+    setHint(activeProject ? `Rapport sauvegarde dans le dossier ${activeProject.name}.` : "Rapport sauvegarde dans ton compte.");
   } catch (error) {
     setHint(error.message, true);
   } finally {
@@ -953,8 +1285,7 @@ function updateAccountUi(user, meta = {}) {
   accountCard?.classList.toggle("is-connected", Boolean(currentUser || hasAccessPass));
 
   if (hasAccessPass) {
-    accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet actif | Toutes les fonctionnalités sont débloquées.`;
-    authFields.hidden = false;
+    accountStatus.textContent = `${meta.accessName || "Acces invite"} | Acces complet actif | Toutes les fonctionnalites sont debloquees.`;
     accessCodeFields.hidden = true;
     authFields.hidden = true;
     signupFields.hidden = true;
@@ -962,11 +1293,12 @@ function updateAccountUi(user, meta = {}) {
     upgradeButton.hidden = true;
     logoutButton.hidden = false;
     renderReportHistory([]);
+    renderProjects([]);
     return;
   }
 
   if (!currentUser) {
-    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais gratuits. Ensuite, crée un compte, passe Pro ou entre ton code d'accès.`;
+    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes. Cree un compte gratuit pour passer a 10 usages par jour et sauvegarder tes rapports.`;
     accessCodeFields.hidden = false;
     authFields.hidden = false;
     signupFields.hidden = true;
@@ -974,16 +1306,20 @@ function updateAccountUi(user, meta = {}) {
     upgradeButton.hidden = true;
     logoutButton.hidden = true;
     renderReportHistory([]);
+    renderProjects([]);
     return;
   }
 
   const planLabel = currentUser.plan === "pro" ? "Pro" : "Gratuit";
   const displayName = currentUser.name || currentUser.email;
   const usage = currentUser.plan === "pro"
-    ? "utilisation etendue"
-    : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} utilisations aujourd'hui`;
+    ? "compteur quotidien leve"
+    : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} usages aujourd'hui`;
+  const projectsLabel = currentUser.plan === "pro"
+    ? ` | ${currentUser.projectCount || 0} dossier${currentUser.projectCount > 1 ? "s" : ""}`
+    : "";
 
-  accountStatus.textContent = `Bonjour ${displayName} | Offre ${planLabel} | ${usage}`;
+  accountStatus.textContent = `Bonjour ${displayName} | Compte ${planLabel} | ${usage}${projectsLabel} | Rapports sauvegardes`;
   accessCodeFields.hidden = true;
   authFields.hidden = true;
   signupFields.hidden = true;
@@ -991,6 +1327,7 @@ function updateAccountUi(user, meta = {}) {
   upgradeButton.hidden = currentUser.plan === "pro";
   logoutButton.hidden = false;
   reportHistory.hidden = false;
+  updateSaveTargetUi();
 }
 
 function setAccountNotice(message) {
@@ -1000,6 +1337,146 @@ function setAccountNotice(message) {
 function setHint(message, important = false) {
   hint.textContent = message;
   hint.classList.toggle("important-hint", important);
+}
+
+function hideConversionBanner() {
+  if (!conversionBanner) return;
+  conversionBanner.hidden = true;
+}
+
+function showConversionBanner({
+  title,
+  text,
+  primaryLabel,
+  onPrimary,
+  secondaryLabel = "",
+  onSecondary = null
+}) {
+  if (!conversionBanner || !conversionBannerTitle || !conversionBannerText || !conversionPrimaryButton || !conversionSecondaryButton) {
+    return;
+  }
+
+  conversionBannerTitle.textContent = title;
+  conversionBannerText.textContent = text;
+  conversionPrimaryButton.textContent = primaryLabel;
+  conversionPrimaryAction = typeof onPrimary === "function" ? onPrimary : (() => {});
+
+  if (secondaryLabel && typeof onSecondary === "function") {
+    conversionSecondaryButton.hidden = false;
+    conversionSecondaryButton.textContent = secondaryLabel;
+    conversionSecondaryAction = onSecondary;
+  } else {
+    conversionSecondaryButton.hidden = true;
+    conversionSecondaryAction = () => {};
+  }
+
+  conversionBanner.hidden = false;
+}
+
+function openAccountPanel() {
+  if (accountAuthDetails && !accountAuthDetails.open) {
+    accountAuthDetails.open = true;
+  }
+  accountCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openSignupFlow() {
+  openAccountPanel();
+  signupFields.hidden = false;
+  authName?.focus();
+}
+
+function showAnonymousUpgradePrompt(message) {
+  showConversionBanner({
+    title: "Tes essais anonymes sont terminés",
+    text: message || "Crée un compte gratuit pour continuer avec 10 usages par jour et sauvegarder tes rapports.",
+    primaryLabel: "Créer un compte gratuit",
+    onPrimary: () => {
+      openSignupFlow();
+      setHint("Crée ton compte gratuit pour reprendre immédiatement.", true);
+    },
+    secondaryLabel: "Voir Pro",
+    onSecondary: () => {
+      window.location.href = "/pro.html";
+    }
+  });
+}
+
+function showProUpgradePrompt(message) {
+  showConversionBanner({
+    title: "Le quota du compte gratuit est atteint",
+    text: message || "Passe en Pro pour lever le compteur quotidien et enchaîner plusieurs diagnostics sans interruption.",
+    primaryLabel: "Passer Pro",
+    onPrimary: () => {
+      startCheckout();
+    },
+    secondaryLabel: "Voir l'offre",
+    onSecondary: () => {
+      window.location.href = "/pro.html";
+    }
+  });
+}
+
+function showProjectsUpgradePrompt(message) {
+  showConversionBanner({
+    title: "Classement par chantier reserve a Pro",
+    text: message || "Voltia Pro ajoute des dossiers pour ranger tes rapports par client, chantier, logement ou intervention.",
+    primaryLabel: "Passer Pro",
+    onPrimary: () => {
+      startCheckout();
+    },
+    secondaryLabel: "Voir l'offre",
+    onSecondary: () => {
+      window.location.href = "/pro.html";
+    }
+  });
+}
+
+function handleBarrierResponse(response, data, fallbackError) {
+  if (response.ok) return false;
+
+  const errorMessage = data.error || fallbackError || "Erreur inconnue.";
+
+  if (response.status === 402 && data.signupRequired) {
+    setAccountNotice(errorMessage);
+    setHint("Le mode anonyme est épuisé. Crée un compte gratuit pour continuer.", true);
+    showAnonymousUpgradePrompt(errorMessage);
+    return true;
+  }
+
+  if (response.status === 402 && data.upgradeRequired && data.feature === "projects") {
+    setAccountNotice(errorMessage);
+    setHint("Les dossiers par chantier sont reserves a Voltia Pro.", true);
+    showProjectsUpgradePrompt(errorMessage);
+    return true;
+  }
+
+  if (response.status === 402 && data.upgradeRequired) {
+    setAccountNotice(errorMessage);
+    setHint("Le quota du compte gratuit est atteint. Passe Pro pour continuer sans compteur quotidien.", true);
+    showProUpgradePrompt(errorMessage);
+    return true;
+  }
+
+  throw new Error(errorMessage);
+}
+
+function handleLandingState() {
+  const shouldOpenAuth = pageParams.get("openAuth") === "1";
+  const checkoutState = pageParams.get("checkout");
+
+  if (shouldOpenAuth) {
+    openAccountPanel();
+    setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe Pro si tu utilises Voltia plusieurs fois par semaine.");
+  }
+
+  if (checkoutState === "success") {
+    setAccountNotice("Paiement confirmé. Voltia Pro est en cours d'activation sur ton compte.");
+    setHint("Paiement confirmé. Recharge la page dans quelques secondes si le statut Pro n'apparaît pas encore.");
+  } else if (checkoutState === "cancel") {
+    setAccountNotice("Paiement annulé. Ton compte gratuit reste actif.");
+    setHint("Paiement annulé. Tu peux continuer avec le compte gratuit ou réessayer plus tard.");
+  }
 }
 
 function getSourceSettings() {
@@ -1014,7 +1491,11 @@ async function refreshAccount() {
     const response = await fetch("/api/auth/me");
     const data = await readJsonResponse(response);
     updateAccountUi(data.user, data);
+    await loadProjects();
     await loadReportHistory();
+    if (data.user || data.accessPass) {
+      hideConversionBanner();
+    }
   } catch {
     updateAccountUi(null);
   }
@@ -1053,22 +1534,23 @@ async function submitAuth(mode) {
       body: JSON.stringify({ name, email, password })
     });
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     authPassword.value = "";
     signupPassword.value = "";
     updateAccountUi(data.user);
+    await loadProjects();
     await loadReportHistory();
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
       signupFields.hidden = true;
-      setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est pret. Clique sur Passer Pro pour activer l'abonnement.`);
-      setHint(`Compte cree pour ${displayName}. Tu peux maintenant cliquer sur Passer Pro.`);
+      setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde des rapports.`);
+      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou passer Pro pour lever le compteur quotidien.`);
+      hideConversionBanner();
     } else {
-      setAccountNotice(`Bonjour ${displayName}. Connexion reussie. Clique sur Passer Pro si tu veux t'abonner.`);
-      setHint("Connexion reussie.");
+      setAccountNotice(`Bonjour ${displayName}. Connexion réussie. Ton historique de rapports est disponible dans ton compte.`);
+      setHint("Connexion réussie.");
+      hideConversionBanner();
     }
   } catch (error) {
     setAccountNotice(error.message);
@@ -1084,6 +1566,7 @@ async function logoutAccount() {
   await fetch("/api/auth/logout", { method: "POST" });
   updateAccountUi(null, { anonymousDailyLimit: 5 });
   renderReportHistory([]);
+  hideConversionBanner();
   setHint("Tu es deconnecte.");
 }
 
@@ -1106,12 +1589,11 @@ async function submitAccessCode() {
       body: JSON.stringify({ code })
     });
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     accessCodeInput.value = "";
     updateAccountUi(null, data);
+    hideConversionBanner();
     setHint("Acces complet active sans compte.");
   } catch (error) {
     setAccountNotice(error.message);
@@ -1123,21 +1605,20 @@ async function submitAccessCode() {
 
 async function startCheckout() {
   if (!currentUser) {
-    setAccountNotice("Connecte-toi ou cree un compte avant de passer en Pro.");
-    setHint("Connecte-toi ou cree un compte avant de passer Pro.", true);
+    setAccountNotice("Connecte-toi ou crée un compte avant de passer en Pro.");
+    setHint("Connecte-toi ou crée un compte avant de passer Pro.", true);
+    openAccountPanel();
     return;
   }
 
   upgradeButton.disabled = true;
-  setAccountNotice("Préparation du paiement Stripe...");
+  setAccountNotice("Préparation du paiement Stripe pour lever le compteur quotidien...");
   setHint("Préparation du paiement Stripe...");
 
   try {
     const response = await fetch("/api/billing/checkout", { method: "POST" });
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
     setAccountNotice("Redirection vers Stripe...");
     window.location.href = data.url;
   } catch (error) {
@@ -1933,14 +2414,13 @@ async function askAssistant(content, options = {}) {
     });
 
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu générer de réponse.";
     setAssistantMessage(pending, reply);
     messages.push({ role: "assistant", content: reply });
     await refreshAccount();
+    hideConversionBanner();
     hint.textContent = sourceSettings.enabled
       ? "Réponse générée uniquement avec la source indiquée."
       : sourceSettings.normsSearch
@@ -1981,9 +2461,7 @@ async function analyzePhotoToSchema() {
     });
 
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu analyser cette photo.";
     setAssistantMessage(pending, reply);
@@ -1992,6 +2470,7 @@ async function analyzePhotoToSchema() {
       content: `Analyse photo vers schéma:\n${reply}`
     });
     await refreshAccount();
+    hideConversionBanner();
     hint.textContent = "Photo analysée. Vérifie toujours avec un électricien avant intervention.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas analyser cette photo pour l'instant: ${error.message}`);
@@ -2027,9 +2506,7 @@ async function searchManualNotice() {
     });
 
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu trouver de notice fiable.";
     setAssistantMessage(pending, reply);
@@ -2038,6 +2515,7 @@ async function searchManualNotice() {
       content: `Recherche de notice:\n${reply}`
     });
     await refreshAccount();
+    hideConversionBanner();
     hint.textContent = "Recherche terminée. Vérifie toujours que la référence correspond exactement à ton appareil.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas rechercher la notice pour l'instant: ${error.message}`);
@@ -2086,9 +2564,7 @@ async function analyzeLightingPlan() {
     });
 
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu dimensionner cet éclairage.";
     setAssistantMessage(pending, reply);
@@ -2097,6 +2573,7 @@ async function analyzeLightingPlan() {
       content: `Dimensionnement éclairage:\n${reply}`
     });
     await refreshAccount();
+    hideConversionBanner();
     hint.textContent = "Dimensionnement généré. Vérifie les cotes et fais valider avant travaux.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner l'éclairage pour l'instant: ${error.message}`);
@@ -2153,9 +2630,7 @@ async function sizeClimateSystem() {
     });
 
     const data = await readJsonResponse(response);
-    if (!response.ok) {
-      throw new Error(data.error || "Erreur inconnue.");
-    }
+    if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu dimensionner cette climatisation.";
     setAssistantMessage(pending, reply);
@@ -2164,6 +2639,7 @@ async function sizeClimateSystem() {
       content: `Dimensionnement climatisation:\n${reply}`
     });
     await refreshAccount();
+    hideConversionBanner();
     hint.textContent = "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner la clim pour l'instant: ${error.message}`);
@@ -2228,12 +2704,31 @@ clearButton.addEventListener("click", () => {
 exportReportButton.addEventListener("click", exportConversationReport);
 saveReportButton.addEventListener("click", saveConversationReport);
 showSampleReport?.addEventListener("click", showProfessionalReportExample);
+conversionPrimaryButton?.addEventListener("click", () => conversionPrimaryAction());
+conversionSecondaryButton?.addEventListener("click", () => conversionSecondaryAction());
+projectUpsellButton?.addEventListener("click", startCheckout);
+createProjectButton?.addEventListener("click", createProject);
 
 reportList?.addEventListener("click", async (event) => {
   const link = event.target.closest("[data-report-id]");
   if (!link) return;
   event.preventDefault();
   await loadSavedConversation(link.dataset.reportId);
+});
+
+projectList?.addEventListener("click", async (event) => {
+  const projectButton = event.target.closest("[data-project-id]");
+  const allButton = event.target.closest("[data-project-filter='all']");
+
+  if (allButton) {
+    event.preventDefault();
+    await loadProject("");
+    return;
+  }
+
+  if (!projectButton) return;
+  event.preventDefault();
+  await loadProject(projectButton.dataset.projectId);
 });
 
 toolCards.forEach((card) => {
@@ -2422,7 +2917,8 @@ analyzeLighting.addEventListener("click", analyzeLightingPlan);
 sizeClimate.addEventListener("click", sizeClimateSystem);
 
 await refreshAccount();
-const initialReportId = new URLSearchParams(window.location.search).get("report");
+handleLandingState();
+const initialReportId = pageParams.get("report");
 if (initialReportId) {
   await loadSavedConversation(initialReportId);
 }

@@ -56,6 +56,7 @@ function publicUser(user) {
     plan: user.plan || "free",
     subscriptionStatus: user.subscriptionStatus || "free",
     reportCount: Array.isArray(user.reports) ? user.reports.length : 0,
+    projectCount: Array.isArray(user.projects) ? user.projects.length : 0,
     usageToday: user.usage?.date === todayKey() ? user.usage.count : 0,
     freeDailyLimit
   };
@@ -519,8 +520,47 @@ function publicReport(report) {
     id: report.id,
     title: report.title || "Rapport Voltia",
     preview: report.preview || "",
-    createdAt: report.createdAt || ""
+    createdAt: report.createdAt || "",
+    projectId: report.projectId || "",
+    projectName: report.projectName || ""
   };
+}
+
+function projectMapForUser(user) {
+  return new Map(
+    (Array.isArray(user?.projects) ? user.projects : []).map((project) => [project.id, project])
+  );
+}
+
+function decorateReport(report, projectMap = new Map()) {
+  const project = report?.projectId ? projectMap.get(report.projectId) : null;
+  return {
+    ...report,
+    projectId: report?.projectId || "",
+    projectName: project?.name || ""
+  };
+}
+
+function publicProject(project, reports = []) {
+  const projectReports = reports.filter((report) => report.projectId === project.id);
+  return {
+    id: project.id,
+    name: project.name || "Dossier Voltia",
+    description: project.description || "",
+    createdAt: project.createdAt || "",
+    updatedAt: project.updatedAt || project.createdAt || "",
+    reportCount: projectReports.length,
+    latestReportAt: projectReports[0]?.createdAt || ""
+  };
+}
+
+function listUserProjects(user) {
+  const projects = Array.isArray(user?.projects) ? user.projects : [];
+  const reports = Array.isArray(user?.reports) ? user.reports : [];
+  return projects
+    .slice()
+    .sort((left, right) => String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || "")))
+    .map((project) => publicProject(project, reports));
 }
 
 function decodeHtmlEntities(text) {
@@ -572,8 +612,9 @@ async function handleListReports(req, res) {
     return;
   }
 
+  const projectMap = projectMapForUser(auth.user);
   const reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
-  sendJson(res, 200, { reports: reports.slice(0, 12).map(publicReport) });
+  sendJson(res, 200, { reports: reports.slice(0, 12).map((report) => publicReport(decorateReport(report, projectMap))) });
 }
 
 async function handleGetReport(req, res, reportId) {
@@ -583,6 +624,7 @@ async function handleGetReport(req, res, reportId) {
     return;
   }
 
+  const projectMap = projectMapForUser(auth.user);
   const reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
   const report = reports.find((item) => item.id === reportId);
   if (!report) {
@@ -596,7 +638,7 @@ async function handleGetReport(req, res, reportId) {
 
   sendJson(res, 200, {
     report: {
-      ...publicReport(report),
+      ...publicReport(decorateReport(report, projectMap)),
       conversation
     }
   });
@@ -610,10 +652,11 @@ async function handleSaveReport(req, res) {
   }
 
   try {
-    const { title = "", preview = "", html = "", conversation = [] } = await readRequestJson(req);
+    const { title = "", preview = "", html = "", conversation = [], projectId = "" } = await readRequestJson(req);
     const cleanTitle = String(title || "Rapport Voltia").trim().slice(0, 120) || "Rapport Voltia";
     const cleanPreview = String(preview || "").trim().replace(/\s+/g, " ").slice(0, 220);
     const cleanHtml = String(html || "").slice(0, 180000);
+    const cleanProjectId = String(projectId || "").trim().slice(0, 80);
     const cleanConversation = Array.isArray(conversation)
       ? conversation
         .slice(0, 40)
@@ -630,21 +673,144 @@ async function handleSaveReport(req, res) {
     }
 
     auth.user.reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
+    auth.user.projects = Array.isArray(auth.user.projects) ? auth.user.projects : [];
+    let linkedProject = null;
+
+    if (cleanProjectId) {
+      if (!isProUser(auth.user)) {
+        sendJson(res, 402, {
+          error: "Les dossiers Pro permettent de classer les rapports par chantier. Passe en Pro pour utiliser cette fonction.",
+          upgradeRequired: true,
+          feature: "projects"
+        });
+        return;
+      }
+
+      linkedProject = auth.user.projects.find((project) => project.id === cleanProjectId) || null;
+      if (!linkedProject) {
+        sendJson(res, 404, { error: "Dossier introuvable." });
+        return;
+      }
+    }
+
     const report = {
       id: randomBytes(10).toString("hex"),
       title: cleanTitle,
       preview: cleanPreview,
       html: cleanHtml,
       conversation: cleanConversation,
+      projectId: linkedProject?.id || "",
       createdAt: new Date().toISOString()
     };
 
     auth.user.reports.unshift(report);
     auth.user.reports = auth.user.reports.slice(0, 20);
+    if (linkedProject) {
+      linkedProject.updatedAt = new Date().toISOString();
+    }
     auth.user.updatedAt = new Date().toISOString();
     await saveUserStore(auth.store);
 
-    sendJson(res, 201, { report: publicReport(report), reports: auth.user.reports.slice(0, 12).map(publicReport) });
+    const projectMap = projectMapForUser(auth.user);
+    sendJson(res, 201, {
+      report: publicReport(decorateReport(report, projectMap)),
+      reports: auth.user.reports.slice(0, 12).map((item) => publicReport(decorateReport(item, projectMap))),
+      projects: listUserProjects(auth.user)
+    });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+  }
+}
+
+async function handleListProjects(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour voir tes dossiers." });
+    return;
+  }
+
+  auth.user.projects = Array.isArray(auth.user.projects) ? auth.user.projects : [];
+  sendJson(res, 200, {
+    projects: listUserProjects(auth.user),
+    canCreateProjects: isProUser(auth.user)
+  });
+}
+
+async function handleGetProject(req, res, projectId) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour ouvrir ce dossier." });
+    return;
+  }
+
+  auth.user.projects = Array.isArray(auth.user.projects) ? auth.user.projects : [];
+  const project = auth.user.projects.find((item) => item.id === projectId);
+  if (!project) {
+    sendJson(res, 404, { error: "Dossier introuvable." });
+    return;
+  }
+
+  const projectMap = projectMapForUser(auth.user);
+  const reports = (Array.isArray(auth.user.reports) ? auth.user.reports : [])
+    .filter((report) => report.projectId === project.id)
+    .map((report) => publicReport(decorateReport(report, projectMap)));
+
+  sendJson(res, 200, {
+    project: publicProject(project, auth.user.reports || []),
+    reports
+  });
+}
+
+async function handleCreateProject(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi avant de créer un dossier." });
+    return;
+  }
+
+  if (!isProUser(auth.user)) {
+    sendJson(res, 402, {
+      error: "Les dossiers par chantier sont réservés à Voltia Pro.",
+      upgradeRequired: true,
+      feature: "projects"
+    });
+    return;
+  }
+
+  try {
+    const { name = "", description = "" } = await readRequestJson(req);
+    const cleanName = String(name || "").trim().replace(/\s+/g, " ").slice(0, 80);
+    const cleanDescription = String(description || "").trim().replace(/\s+/g, " ").slice(0, 180);
+
+    if (!cleanName) {
+      sendJson(res, 400, { error: "Donne un nom au dossier." });
+      return;
+    }
+
+    auth.user.projects = Array.isArray(auth.user.projects) ? auth.user.projects : [];
+    const exists = auth.user.projects.some((project) => project.name.toLowerCase() === cleanName.toLowerCase());
+    if (exists) {
+      sendJson(res, 409, { error: "Un dossier existe déjà avec ce nom." });
+      return;
+    }
+
+    const project = {
+      id: randomBytes(10).toString("hex"),
+      name: cleanName,
+      description: cleanDescription,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    auth.user.projects.unshift(project);
+    auth.user.projects = auth.user.projects.slice(0, 24);
+    auth.user.updatedAt = new Date().toISOString();
+    await saveUserStore(auth.store);
+
+    sendJson(res, 201, {
+      project: publicProject(project, auth.user.reports || []),
+      projects: listUserProjects(auth.user)
+    });
   } catch (error) {
     sendJson(res, 500, { error: error.message || "Erreur serveur." });
   }
@@ -1296,6 +1462,22 @@ createServer(async (req, res) => {
 
   if (req.method === "GET" && req.url === "/api/reports") {
     await handleListReports(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/projects") {
+    await handleListProjects(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/projects") {
+    await handleCreateProject(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/projects/")) {
+    const projectId = decodeURIComponent(req.url.split("?")[0].replace("/api/projects/", ""));
+    await handleGetProject(req, res, projectId);
     return;
   }
 

@@ -26,16 +26,16 @@
 
         <div class="intro-layout">
           <div class="hero-copy">
-            <p class="eyebrow">Atelier IA pour l'électricité domestique.</p>
-            <h1>Diagnostiquer, schématiser et préparer un rapport sans se perdre.</h1>
+            <p class="eyebrow">Assistant IA pour comprendre une panne, préparer un schéma et garder un rapport.</p>
+            <h1>Comprendre une panne électrique et repartir avec un plan d'action clair.</h1>
             <p class="intro">
-              Voltia transforme une panne, une photo, une référence ou un plan en pistes claires,
-              avec le bon niveau de prudence et des livrables utiles pour avancer proprement.
+              Voltia t'aide à trier les causes probables, repérer les signaux de danger,
+              préparer un schéma indicatif et garder une trace utile avant achat ou rendez-vous avec un professionnel.
             </p>
             <div class="hero-proof-row" aria-label="Capacités Voltia">
-              <span>Diagnostic guidé</span>
-              <span>Schémas indicatifs</span>
-              <span>Rapports sauvegardés</span>
+              <span>5 essais anonymes</span>
+              <span>Compte gratuit : 10 usages / jour</span>
+              <span>Pro : sans compteur quotidien</span>
             </div>
           </div>
 
@@ -44,22 +44,22 @@
               <span class="account-badge">Pro</span>
               <div>
                 <h2>Essayer Voltia</h2>
-                <p>5 essais gratuits, puis compte Pro ou code d'accès.</p>
+                <p>5 essais anonymes, puis compte gratuit avec historique ou offre Pro pour un usage intensif.</p>
               </div>
             </div>
 
-            <div id="accountStatus" class="account-status">Libre-service : 5 essais gratuits. Ensuite, connecte-toi, passe Pro ou utilise ton code d'accès.</div>
+            <div id="accountStatus" class="account-status">Libre-service : 5 essais anonymes. Crée ensuite un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.</div>
 
             <div class="account-quick-actions" aria-label="Actions rapides Voltia">
               <a class="primary-action account-start-link" href="#workspace">Démarrer un diagnostic</a>
-              <a class="secondary-action account-start-link" href="/pro.html">Voir Pro</a>
+              <a class="secondary-action account-start-link" href="/?openAuth=1">Créer un compte gratuit</a>
             </div>
 
             <details class="account-auth-details">
               <summary>Connexion, compte ou code d'accès</summary>
               <div class="auth-panel-intro">
                 <span>Accès sécurisé</span>
-                <strong>Retrouve tes rapports et active le mode Pro.</strong>
+                <strong>Crée un compte gratuit pour retrouver tes rapports, puis passe Pro si tu utilises Voltia tous les jours.</strong>
               </div>
 
             <div id="authFields" class="auth-panel">
@@ -110,7 +110,7 @@
                 <span class="plan-label">Offre Pro</span>
                 <strong>9,99 EUR / mois</strong>
               </div>
-              <small>Diagnostics, schémas, notices, plans, éclairage et clim. <a href="/pro.html">Voir l'offre</a></small>
+              <small>Pour enchaîner diagnostics, schémas et recherches sans te heurter au quota quotidien. <a href="/pro.html">Voir l'offre</a></small>
             </div>
 
             <ul class="plan-benefits" aria-label="Avantages Voltia Pro">
@@ -127,14 +127,74 @@
 
             <div id="reportHistory" class="report-history" hidden>
               <div class="report-history-heading">
-                <strong>Mes rapports</strong>
-                <span>Les derniers rapports sauvegardés.</span>
+                <strong id="reportHistoryTitle">Mes rapports</strong>
+                <span id="reportHistorySubtitle">Les derniers rapports sauvegardés.</span>
               </div>
               <div id="reportList" class="report-list"></div>
+            </div>
+
+            <div id="projectWorkspace" class="project-workspace" hidden>
+              <div class="project-heading">
+                <div>
+                  <strong id="projectWorkspaceTitle">Dossiers Pro</strong>
+                  <span id="projectWorkspaceSubtitle">Range tes rapports par chantier, client ou pièce.</span>
+                </div>
+                <span id="activeProjectBadge" class="active-project-badge">Tous les rapports</span>
+              </div>
+
+              <div id="projectUpsell" class="project-upsell" hidden>
+                <strong>Dossiers par chantier</strong>
+                <p>Voltia Pro ajoute des dossiers pour classer les rapports par client, logement ou intervention.</p>
+                <button id="projectUpsellButton" class="secondary-action" type="button">Débloquer avec Pro</button>
+              </div>
+
+              <div id="projectManager" class="project-manager" hidden>
+                <div class="project-create-card">
+                  <div class="project-create-header">
+                    <strong>Créer un dossier</strong>
+                    <span>Ex: Appartement Dupont, Tableau garage, Cuisine RDC</span>
+                  </div>
+                  <label class="field">
+                    <span>Nom du dossier</span>
+                    <input id="projectNameInput" type="text" maxlength="80" placeholder="Ex: Maison Lambert - tableau principal">
+                  </label>
+                  <label class="field">
+                    <span>Description courte</span>
+                    <input id="projectDescriptionInput" type="text" maxlength="180" placeholder="Ex: reprise de plusieurs diagnostics avant rendez-vous électricien">
+                  </label>
+                  <button id="createProjectButton" class="primary-action" type="button">Créer le dossier</button>
+                </div>
+
+                <div class="project-list-shell">
+                  <div class="project-list-heading">
+                    <strong>Mes dossiers</strong>
+                    <span>Sélectionne un dossier pour y ranger le prochain rapport.</span>
+                  </div>
+                  <div id="projectList" class="project-list"></div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
       </header>
+
+      <section class="sales-proof-strip" aria-label="Clarté de l'offre Voltia">
+        <article>
+          <span>Libre-service</span>
+          <strong>Tester sans carte</strong>
+          <p>5 essais anonymes pour valider le format des réponses et le niveau de prudence de Voltia.</p>
+        </article>
+        <article>
+          <span>Compte gratuit</span>
+          <strong>Garder ses rapports</strong>
+          <p>10 usages par jour, reprise des conversations et sauvegarde des rapports depuis ton espace compte.</p>
+        </article>
+        <article>
+          <span>Pro</span>
+          <strong>Travailler sans coupure</strong>
+          <p>Le quota quotidien est levé pour enchaîner plusieurs diagnostics, schémas, notices et rapports.</p>
+        </article>
+      </section>
 
       <section id="workspace" class="workspace" aria-label="Assistant Voltia">
         <aside class="diagnostic-panel">
@@ -498,6 +558,11 @@
             <button id="showSampleReport" class="secondary-action report-sample-button" type="button">Voir un exemple</button>
           </div>
 
+          <div id="saveTargetBanner" class="save-target-banner">
+            <strong>Destination de sauvegarde</strong>
+            <span id="saveTargetText">Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.</span>
+          </div>
+
           <div class="suggestions" aria-label="Suggestions">
             <button type="button" data-prompt="Mon disjoncteur saute, quelles sont les causes possibles ?">Disjoncteur qui saute</button>
             <button type="button" data-prompt="Une prise ne fonctionne plus, que vérifier sans prendre de risque ?">Prise en panne</button>
@@ -527,6 +592,17 @@
               <span>Rechercher les normes en vigueur</span>
             </label>
             <input id="sourceUrlInput" type="url" placeholder="https://exemple.fr/page-notice-ou-article" autocomplete="off" disabled>
+          </div>
+
+          <div id="conversionBanner" class="conversion-banner" hidden>
+            <div class="conversion-banner-copy">
+              <strong id="conversionBannerTitle">Continuer sur Voltia</strong>
+              <p id="conversionBannerText">Crée un compte gratuit ou passe Pro pour poursuivre ton diagnostic.</p>
+            </div>
+            <div class="conversion-banner-actions">
+              <button id="conversionPrimaryButton" class="primary-action" type="button">Continuer</button>
+              <button id="conversionSecondaryButton" class="secondary-action" type="button" hidden>Voir l'offre</button>
+            </div>
           </div>
 
           <form id="chatForm" class="composer">
