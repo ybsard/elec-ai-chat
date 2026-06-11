@@ -4,6 +4,8 @@ const messagesEl = document.querySelector("#messages");
 const clearButton = document.querySelector("#clearChat");
 const exportReportButton = document.querySelector("#exportReport");
 const saveReportButton = document.querySelector("#saveReport");
+const reportType = document.querySelector("#reportType");
+const showSampleReport = document.querySelector("#showSampleReport");
 const hint = document.querySelector("#hint");
 const counter = document.querySelector("#counter");
 const sendButton = document.querySelector("#sendButton");
@@ -399,76 +401,161 @@ function addClimateSizingMessage(details) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
+function getReportTypeLabel() {
+  return reportType?.selectedOptions?.[0]?.textContent || "Diagnostic de panne";
+}
+
+function getPrimaryUserRequest() {
+  const firstUserBubble = Array.from(messagesEl.querySelectorAll(".message.user .bubble")).find((item) => item.textContent.trim());
+  return firstUserBubble?.textContent?.trim().replace(/\s+/g, " ").slice(0, 180) || "Demande non précisée.";
+}
+
+function getLastAssistantSummary() {
+  const lastAssistantBubble = Array.from(messagesEl.querySelectorAll(".message.assistant .bubble")).reverse()
+    .find((item) => item.textContent.trim() && !item.querySelector(".typing"));
+  return lastAssistantBubble?.textContent?.trim().replace(/\s+/g, " ").slice(0, 260) || "Analyse en attente de détails complémentaires.";
+}
+
 function buildReportDocument() {
   const reportMessages = messagesEl.cloneNode(true);
   reportMessages.querySelectorAll(".typing, .message-actions").forEach((item) => item.remove());
   reportMessages.querySelectorAll("[id]").forEach((item) => item.removeAttribute("id"));
 
+  const generatedAt = new Date().toLocaleString("fr-FR");
+  const reportLabel = getReportTypeLabel();
+  const primaryRequest = getPrimaryUserRequest();
+  const assistantSummary = getLastAssistantSummary();
+  const reportTitle = escapeHtml(getReportTitle());
+
   return `<!doctype html>
     <html lang="fr">
       <head>
         <meta charset="utf-8">
-        <title>Rapport Voltia</title>
+        <title>${reportTitle}</title>
         <style>
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            padding: 32px;
-            color: #101820;
+            padding: 30px;
+            color: #10212b;
             font-family: Arial, Helvetica, sans-serif;
-            background: #f6f8fa;
+            background: #eef4f5;
           }
           .report {
-            max-width: 980px;
+            max-width: 1040px;
             margin: 0 auto;
-            padding: 28px;
-            border: 1px solid #d9e1e7;
-            border-radius: 10px;
+            border: 1px solid #cfdde2;
+            border-radius: 16px;
             background: #ffffff;
+            overflow: hidden;
           }
-          .report-header {
+          .cover {
+            padding: 34px;
+            color: #ffffff;
+            background: linear-gradient(135deg, #101820, #14556d 58%, #1e8a5a);
+          }
+          .brand-row {
             display: flex;
             justify-content: space-between;
-            gap: 18px;
-            border-bottom: 2px solid #f2a51a;
-            padding-bottom: 18px;
-            margin-bottom: 22px;
+            gap: 24px;
+            align-items: flex-start;
           }
           .brand {
-            font-size: 28px;
+            font-size: 34px;
+            font-weight: 950;
+            letter-spacing: -0.03em;
+          }
+          .kicker {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 12px;
             font-weight: 900;
+            text-transform: uppercase;
+          }
+          h1 {
+            max-width: 760px;
+            margin: 28px 0 0;
+            font-size: 38px;
+            line-height: 1.05;
           }
           .meta {
-            color: #637280;
+            color: rgba(255, 255, 255, 0.82);
             text-align: right;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 1.55;
           }
-          .notice {
-            margin: 0 0 22px;
-            padding: 12px 14px;
-            border: 1px solid #f2a51a;
-            border-radius: 8px;
+          .content {
+            display: grid;
+            gap: 18px;
+            padding: 28px;
+          }
+          .summary-grid {
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 14px;
+          }
+          .panel {
+            padding: 18px;
+            border: 1px solid #d9e1e7;
+            border-radius: 12px;
+            background: #ffffff;
+            page-break-inside: avoid;
+          }
+          .panel.soft {
+            background: #f8fbfb;
+          }
+          .panel.warning {
+            border-color: #f2a51a;
             background: #fff8e8;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1.5;
+          }
+          .panel h2 {
+            margin: 0 0 10px;
+            font-size: 18px;
+          }
+          .panel p {
+            margin: 0;
+            color: #4f5d68;
+            line-height: 1.58;
+          }
+          .checklist {
+            display: grid;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+          }
+          .checklist li {
+            padding-left: 22px;
+            position: relative;
+            color: #263542;
+            line-height: 1.45;
+            font-weight: 750;
+          }
+          .checklist li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.45em;
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: #f2a51a;
+          }
+          .messages-section h2 {
+            margin: 0 0 14px;
+            font-size: 20px;
           }
           .messages {
             display: grid;
-            gap: 16px;
+            gap: 14px;
             padding: 0;
             background: transparent;
           }
           .message {
             display: grid;
-            grid-template-columns: 44px minmax(0, 1fr);
+            grid-template-columns: 42px minmax(0, 1fr);
             gap: 10px;
             margin: 0;
             page-break-inside: avoid;
-          }
-          .message.user {
-            grid-template-columns: 44px minmax(0, 1fr);
           }
           .avatar {
             width: 34px;
@@ -481,12 +568,8 @@ function buildReportDocument() {
             font-size: 11px;
             font-weight: 900;
           }
-          .message.user .avatar {
-            background: #1d6f8f;
-          }
-          .message-stack {
-            max-width: none;
-          }
+          .message.user .avatar { background: #1d6f8f; }
+          .message-stack { max-width: none; }
           .message-label {
             display: block;
             margin-bottom: 5px;
@@ -497,24 +580,20 @@ function buildReportDocument() {
           .bubble {
             padding: 14px 16px;
             border: 1px solid #d9e1e7;
-            border-radius: 8px;
+            border-radius: 10px;
             background: #ffffff;
             line-height: 1.55;
             white-space: pre-wrap;
           }
           .message.user .bubble {
             border-color: #15566f;
-            background: #1d6f8f;
-            color: #ffffff;
+            background: #eaf6fa;
+            color: #10212b;
           }
-          .formatted-response {
-            white-space: normal;
-          }
+          .formatted-response { white-space: normal; }
           .formatted-response p,
           .formatted-response ul,
-          .formatted-response ol {
-            margin: 0 0 10px;
-          }
+          .formatted-response ol { margin: 0 0 10px; }
           .line-schema-card {
             margin: 12px 0;
             padding: 12px;
@@ -530,10 +609,7 @@ function buildReportDocument() {
             color: #10212b;
             font-weight: 900;
           }
-          .line-schema-heading small {
-            color: #637280;
-            font-size: 11px;
-          }
+          .line-schema-heading small { color: #637280; font-size: 11px; }
           .line-schema {
             overflow: visible;
             white-space: pre-wrap;
@@ -558,14 +634,10 @@ function buildReportDocument() {
             border-radius: 12px;
             background: #f8fbfb;
           }
-          .diagram-frame svg {
-            display: block;
-            width: 100%;
-            height: auto;
-          }
+          .diagram-frame svg { display: block; width: 100%; height: auto; }
           .report-footer {
-            margin-top: 24px;
-            padding-top: 14px;
+            margin-top: 6px;
+            padding-top: 16px;
             border-top: 1px solid #d9e1e7;
             color: #637280;
             font-size: 12px;
@@ -574,47 +646,83 @@ function buildReportDocument() {
           @media print {
             body { padding: 0; background: white; }
             .report { border: 0; border-radius: 0; }
+            .cover { border-radius: 0; }
           }
         </style>
       </head>
       <body>
         <main class="report">
-          <header class="report-header">
-            <div>
-              <div class="brand">Voltia</div>
-              <div>Rapport de diagnostic et d'accompagnement électrique</div>
+          <section class="cover">
+            <div class="brand-row">
+              <div>
+                <div class="brand">Voltia</div>
+                <div class="kicker">Rapport électrique indicatif</div>
+              </div>
+              <div class="meta">
+                Généré le ${escapeHtml(generatedAt)}<br>
+                Type : ${escapeHtml(reportLabel)}<br>
+                Niveau : ${escapeHtml(selectedLevel)}
+              </div>
             </div>
-            <div class="meta">
-              Généré le ${new Date().toLocaleString("fr-FR")}<br>
-              Niveau: ${escapeHtml(selectedLevel)}
+            <h1>${reportTitle}</h1>
+          </section>
+
+          <section class="content">
+            <div class="summary-grid">
+              <article class="panel soft">
+                <h2>Résumé de la demande</h2>
+                <p>${escapeHtml(primaryRequest)}</p>
+              </article>
+              <article class="panel soft">
+                <h2>Synthèse Voltia</h2>
+                <p>${escapeHtml(assistantSummary)}</p>
+              </article>
             </div>
-          </header>
-          <p class="notice">
-            Rapport indicatif. Ne pas intervenir sous tension. Les schémas, conseils et dimensionnements
-            doivent être vérifiés avec les normes applicables, les notices fabricants et un professionnel qualifié.
-          </p>
-          ${reportMessages.outerHTML}
-          <footer class="report-footer">
-            Voltia by yb - Assistant IA indicatif. Éditeur : Yanis Barthe.
-          </footer>
+
+            <article class="panel warning">
+              <h2>Checklist sécurité avant toute action</h2>
+              <ul class="checklist">
+                <li>Couper l'alimentation avant toute manipulation.</li>
+                <li>Vérifier l'absence de tension avec un appareil adapté.</li>
+                <li>Ne pas intervenir si fumée, odeur de brûlé, humidité, chaleur ou fil dénudé.</li>
+                <li>Faire valider les travaux par un électricien qualifié.</li>
+              </ul>
+            </article>
+
+            <section class="messages-section panel">
+              <h2>Analyse détaillée et livrables</h2>
+              ${reportMessages.outerHTML}
+            </section>
+
+            <article class="panel">
+              <h2>Limites et prochaines actions</h2>
+              <p>Ce rapport est une aide à la compréhension et à la préparation. Il ne constitue pas une attestation de conformité. Vérifie les notices fabricants, la norme applicable et fais valider toute intervention par un professionnel qualifié.</p>
+            </article>
+
+            <footer class="report-footer">
+              Voltia by yb - Assistant IA indicatif. Éditeur : Yanis Barthe.
+            </footer>
+          </section>
         </main>
       </body>
     </html>`;
 }
 
 function getReportPreviewText() {
-  return Array.from(messagesEl.querySelectorAll(".bubble"))
+  const preview = Array.from(messagesEl.querySelectorAll(".message.assistant .bubble"))
     .map((item) => item.textContent.trim())
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
     .slice(0, 220);
+  return preview || getPrimaryUserRequest();
 }
 
 function getReportTitle() {
   const lastUserBubble = Array.from(messagesEl.querySelectorAll(".message.user .bubble")).pop();
-  const base = lastUserBubble?.textContent?.trim().replace(/\s+/g, " ").slice(0, 72);
-  return base || `Rapport Voltia ${new Date().toLocaleDateString("fr-FR")}`;
+  const base = lastUserBubble?.textContent?.trim().replace(/\s+/g, " ").slice(0, 64);
+  const prefix = getReportTypeLabel();
+  return base ? `${prefix} - ${base}` : `${prefix} Voltia ${new Date().toLocaleDateString("fr-FR")}`;
 }
 
 function getVisibleConversation() {
@@ -650,6 +758,57 @@ function exportConversationReport() {
   hint.textContent = "Rapport ouvert. Choisis Enregistrer en PDF dans la fenetre d'impression.";
 }
 
+function showProfessionalReportExample() {
+  messages.length = 0;
+  messagesEl.innerHTML = "";
+  reportType.value = "diagnostic";
+  schemaSymbolMode.value = "normalized";
+
+  const request = "Exemple: le disjoncteur saute quand le four démarre dans la cuisine.";
+  const response = [
+    "Résumé rapide",
+    "- Le symptôme évoque un défaut lié au circuit du four, à l'appareil ou à une surcharge.",
+    "",
+    "Sécurité",
+    "- Ne pas ouvrir le tableau sous tension.",
+    "- Couper l'alimentation si odeur de brûlé, chaleur anormale ou déclenchements répétés.",
+    "",
+    "Hypothèses",
+    "- Four défectueux ou résistance en défaut d'isolement.",
+    "- Circuit spécialisé insuffisant ou protection inadaptée.",
+    "- Mauvais serrage ou échauffement sur le circuit.",
+    "",
+    "Vérifications sans danger",
+    "- Noter quel disjoncteur déclenche exactement.",
+    "- Tester si le défaut arrive four branché mais éteint, puis au démarrage.",
+    "- Vérifier la référence du four et la puissance indiquée sur la plaque signalétique.",
+    "",
+    "Prochaine action",
+    "- Faire contrôler le circuit four et l'appareil par un électricien qualifié."
+  ].join("\n");
+
+  addMessage("user", request);
+  messages.push({ role: "user", content: request });
+  addMessage("assistant", response);
+  messages.push({ role: "assistant", content: response });
+
+  addDiagramMessage(
+    "Schéma indicatif normalisé - circuit four",
+    buildSchema("prise", "cuisine", "four 20A", {
+      sockets: 1,
+      lights: 0,
+      switches: 0,
+      breakers: 1,
+      breakerRatings: "20A four",
+      symbolMode: "normalized"
+    }),
+    "Exemple indicatif: le circuit spécialisé four doit être vérifié selon l'installation réelle.",
+    buildLineSchema("prise", { sockets: 1 })
+  );
+
+  setHint("Exemple de rapport chargé. Tu peux exporter le PDF ou sauvegarder ce modèle dans ton compte.");
+}
+
 function renderReportHistory(reports = []) {
   if (!reportHistory || !reportList) return;
 
@@ -669,12 +828,13 @@ function renderReportHistory(reports = []) {
     item.href = `/?report=${encodeURIComponent(report.id)}`;
     item.dataset.reportId = report.id;
     const date = report.createdAt ? new Date(report.createdAt).toLocaleDateString("fr-FR") : "Date inconnue";
+    const type = String(report.title || "").split(" - ")[0] || "Rapport Voltia";
     item.innerHTML = `
       <span class="report-item-main">
         <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
-        <small>${escapeHtml(date)} | ${escapeHtml(report.preview || "Rapport sauvegarde")}</small>
+        <small><b>${escapeHtml(type)}</b> · ${escapeHtml(date)} · ${escapeHtml(report.preview || "Rapport sauvegardé")}</small>
       </span>
-      <span class="report-item-action">Reprendre</span>
+      <span class="report-item-action">Reprendre / exporter</span>
     `;
     reportList.append(item);
   });
@@ -991,14 +1151,16 @@ async function startCheckout() {
 function buildDiagnosticPrompt() {
   const symptom = symptomInput.value.trim() || "L'utilisateur n'a pas encore donne de detail.";
   const risk = riskSelect.value;
+  const reportLabel = getReportTypeLabel();
   return [
     "Demande de diagnostic électrique guidé.",
+    `Livrable attendu: ${reportLabel}.`,
     `Type de problème: ${selectedIssue}.`,
     `Observation: ${symptom}.`,
     `Niveau de risque indique: ${risk}.`,
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
-    "Reponds avec: 1) verdict securite, 2) causes possibles, 3) verifications simples sans danger, 4) quand appeler un electricien, 5) resume final."
+    "Réponds comme un livrable professionnel avec ces sections: Résumé rapide, Niveau de danger, Hypothèses, Vérifications sans danger, Schéma ou repères utiles, Quand appeler un électricien, Limites, Prochaine action."
   ].join("\n");
 }
 
@@ -1015,7 +1177,7 @@ function buildResponseFormatInstruction() {
   return [
     "Organisation obligatoire de la réponse:",
     "Utilise des titres courts suivis de listes.",
-    "Structure recommandée: Résumé rapide, Sécurité, Causes possibles, À vérifier sans danger, Prochaines étapes, Conclusion.",
+    "Structure recommandée: Résumé rapide, Niveau de danger, Sécurité, Causes possibles, À vérifier sans danger, Schéma ou repères utiles, Prochaines étapes, Limites.",
     "Ne fais pas de gros paragraphes: 1 idée par ligne ou par puce.",
     "Mets les avertissements importants dans la section Sécurité."
   ].join("\n");
@@ -2065,6 +2227,7 @@ clearButton.addEventListener("click", () => {
 
 exportReportButton.addEventListener("click", exportConversationReport);
 saveReportButton.addEventListener("click", saveConversationReport);
+showSampleReport?.addEventListener("click", showProfessionalReportExample);
 
 reportList?.addEventListener("click", async (event) => {
   const link = event.target.closest("[data-report-id]");

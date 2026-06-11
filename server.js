@@ -824,6 +824,8 @@ async function handleChat(req, res) {
           "Aide l'utilisateur à comprendre les causes possibles, les vérifications simples et les prochaines étapes.",
           "Organise toujours tes réponses avec des titres courts et des listes lisibles.",
           "Structure recommandée: Résumé rapide, Sécurité, Causes possibles, À vérifier sans danger, Prochaines étapes, Conclusion.",
+          "Quand la demande vise un diagnostic ou un rapport, réponds comme un livrable professionnel avec ces sections: Résumé rapide, Niveau de danger, Hypothèses, Vérifications sans danger, Schéma ou repères utiles, Limites, Prochaine action.",
+          "Chaque section doit être courte, actionnable et formulée pour être reprise dans un PDF client.",
           "Évite les gros paragraphes. Fais une idée par ligne ou par puce.",
           "Adapte le niveau de détail au niveau demandé par l'utilisateur: débutant, confirmé ou expert.",
           sourceContext
