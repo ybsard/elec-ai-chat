@@ -962,7 +962,7 @@ function latestUserMessage(messages = []) {
 }
 
 function isHighRiskOperationalRequest(messages = []) {
-  const text = normalizePromptText(messages.map((message) => message?.content || "").join("\n"));
+  const text = normalizePromptText(latestUserMessage(messages));
   const actionDemand = textHasAny(text, [
     "branche",
     "branchement",
@@ -1056,15 +1056,15 @@ function highRiskOperationalReply(messages = []) {
     "",
     `Ta demande concerne une intervention électrique potentiellement dangereuse: ${request.slice(0, 260)}${request.length > 260 ? "..." : ""}`,
     "",
-    "Je ne peux pas fournir de schéma de raccordement, d'étapes de branchement, de correspondance de fils, de couleurs à connecter, de calibres à choisir ou de procédure d'installation pour ce cas. Dans une situation qui combine salle d'eau, modification de circuit, repiquage, tableau, protection ou volonté de ne pas couper correctement l'alimentation, transformer la réponse en tutoriel serait risqué.",
+    "Je ne peux pas fournir de schéma de raccordement, d'étapes de branchement, de correspondance de fils, de couleurs à connecter, de calibres à choisir ou de procédure d'installation pour ce cas. Quand la demande vise une intervention opérationnelle sur une installation réelle, surtout avec repiquage, tableau, protection, environnement humide, absence de terre ou volonté de ne pas couper correctement l'alimentation, transformer la réponse en tutoriel serait risqué.",
     "",
     "Niveau de danger",
     "",
-    "Le risque principal est le choc électrique, aggravé par l'humidité et par la possibilité d'une intervention partiellement sous tension. Le second risque est l'incendie ou l'échauffement si un circuit est détourné de son usage, si la protection n'est pas adaptée ou si la terre et le différentiel ne sont pas vérifiés sur place.",
+    "Le risque principal est le choc électrique, surtout si l'intervention est réalisée sous tension ou sur un circuit mal identifié. Le second risque est l'incendie ou l'échauffement si un circuit est détourné de son usage, si la protection n'est pas adaptée ou si la terre et le différentiel ne sont pas vérifiés sur place.",
     "",
     "Pourquoi ce montage ne doit pas être improvisé",
     "",
-    "- Une prise en salle d'eau dépend de volumes, d'emplacements, de protections, d'indice IP et de liaison à la terre qui doivent être vérifiés sur l'installation réelle.",
+    "- Un nouveau point d'utilisation dépend de l'usage prévu, du cheminement, des protections, de la section, de la terre, du différentiel et de l'état réel du tableau.",
     "- Un circuit existant ne peut pas être supposé apte à recevoir un nouvel usage simplement parce qu'il y a une phase et un neutre quelque part.",
     "- Un repiquage sans repérage complet peut masquer une absence de terre, une section inadaptée, une protection mal identifiée, un neutre partagé ou une erreur de circuit.",
     "- Garder une partie du logement alimentée ne justifie pas de travailler sous tension. Il faut organiser l'alimentation temporaire des appareils sensibles autrement.",
@@ -1073,25 +1073,25 @@ function highRiskOperationalReply(messages = []) {
     "",
     "- Ne commence pas le raccordement ce soir.",
     "- Ne démonte pas de prise, d'interrupteur, de luminaire ou de tableau sous tension.",
-    "- Note l'objectif exact: emplacement souhaité, appareil prévu, distance à la douche ou baignoire, contraintes du congélateur, âge du tableau et présence visible d'un différentiel.",
-    "- Prends des photos générales, sans ouvrir les parties sous tension: tableau fermé, étiquettes de circuits, zone de la salle d'eau, chemin possible de câbles.",
-    "- Prévois une solution temporaire non invasive pour le congélateur pendant une coupure organisée, par exemple maintien fermé, déplacement anticipé ou alimentation sécurisée validée par un professionnel.",
+    "- Note l'objectif exact: emplacement souhaité, appareil prévu, puissance, contraintes de coupure, âge du tableau et présence visible d'un différentiel.",
+    "- Prends des photos générales, sans ouvrir les parties sous tension: tableau fermé, étiquettes de circuits, zone concernée, chemin possible de câbles.",
+    "- Prévois une solution temporaire non invasive pour les appareils à maintenir pendant une coupure organisée.",
     "",
     "Alternative conforme à demander",
     "",
-    "Demande à un électricien qualifié de créer ou valider un circuit prise adapté à la salle d'eau, avec protection différentielle, conducteur de protection, emplacement hors zone interdite, matériel adapté à l'humidité et contrôle final. La bonne solution dépend du tableau, de la terre, du cheminement possible et des volumes réels: elle ne peut pas être certifiée à distance.",
+    "Demande à un électricien qualifié de créer ou valider un circuit adapté à l'usage, avec protection différentielle, conducteur de protection, section et protection cohérentes, cheminement acceptable et contrôle final. La bonne solution dépend du tableau, de la terre, de la puissance, de la longueur, du mode de pose et du contexte réel: elle ne peut pas être certifiée à distance.",
     "",
     "Informations à préparer pour le professionnel",
     "",
     "- Photos du tableau et des étiquettes de circuits.",
-    "- Emplacement exact souhaité de la prise et distances aux points d'eau.",
+    "- Emplacement exact souhaité et contraintes autour du point d'utilisation.",
     "- Type d'appareil qui sera branché.",
     "- Année approximative de l'installation et présence ou non de prises avec terre dans la pièce.",
-    "- Contraintes de coupure électrique, notamment congélateur ou appareils à maintenir.",
+    "- Contraintes de coupure électrique et appareils à maintenir.",
     "",
     "Prochaine action",
     "",
-    "Ne réalise pas le repiquage. Planifie une intervention hors tension avec un électricien, ou demande au minimum une validation sur place avant achat et perçage. Voltia peut t'aider à préparer la liste de questions et un mini-cahier des charges, mais pas à transformer ce montage dangereux en procédure de branchement."
+    "Ne réalise pas l'intervention si elle suppose un repiquage, un raccordement incertain ou un travail sous tension. Planifie une intervention hors tension avec un électricien, ou demande au minimum une validation sur place avant achat et perçage. Voltia peut t'aider à préparer la liste de questions et un mini-cahier des charges, mais pas à transformer un montage dangereux en procédure de branchement."
   ].join("\n");
 }
 
@@ -1156,6 +1156,7 @@ async function handleChat(req, res) {
           "En mode expert, donne une analyse approfondie: résumé exécutif, niveau de danger, raisonnement technique, hypothèses classées, contrôles sans danger, informations à collecter, limites et plan d'action. Utilise des paragraphes courts de 2 à 4 phrases, puis des listes quand elles clarifient.",
           "Ne recycle pas une structure inadaptée. Pour une question normative, n'utilise pas 'Causes possibles' sauf s'il y a une panne; utilise plutôt 'Règles à vérifier', 'Points de vigilance', 'Ce qui reste à confirmer' et 'Sources'.",
           "Quand la demande vise un diagnostic ou un rapport, réponds comme un livrable professionnel non certifiant avec sections explicites et conclusions actionnables.",
+          "Pour une demande de dimensionnement, borne de recharge, IRVE, puissance, protection ou section de câble, réponds de façon qualifiée avec les ordres de grandeur utiles, les facteurs de calcul (puissance, courant, monophasé/triphasé, longueur, chute de tension, mode de pose, température, protection, terre, différentiel, délestage), les limites et les points à faire valider. Tu peux donner des plages indicatives et expliquer le raisonnement, sans fournir un tutoriel de raccordement pas à pas.",
           "Pour toute réponse, garde la cohérence question/réponse: reprends le contexte utilisateur, signale les informations manquantes, et ne conclus jamais au-delà des données fournies.",
           detailLevel === "expert"
             ? "Le niveau expert est actif: réponse substantielle attendue, avec vocabulaire technique expliqué, raisonnement nuancé et priorités. Ne sois pas superficiel."
