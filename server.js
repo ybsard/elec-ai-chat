@@ -263,7 +263,7 @@ async function consumeUsage(req, res, feature) {
   const current = anonymousUsage.get(key) || 0;
   if (current >= anonDailyLimit) {
     sendJson(res, 402, {
-      error: `Limite libre-service atteinte (${anonDailyLimit} essais gratuits aujourd'hui). Cree un compte gratuit pour continuer.`,
+      error: `Limite libre-service atteinte (${anonDailyLimit} essais gratuits aujourd'hui). Crée un compte gratuit pour continuer.`,
       signupRequired: true
     });
     return { allowed: false, user: null };
@@ -307,7 +307,7 @@ async function readUpstreamJson(response) {
   } catch {
     return {
       error: {
-        message: text || "Reponse OpenAI illisible."
+        message: text || "Réponse OpenAI illisible."
       }
     };
   }
@@ -484,7 +484,7 @@ async function handleAccessCode(req, res) {
     const token = randomBytes(32).toString("hex");
     store.sessions[token] = {
       accessPass: true,
-      name: "Createur Voltia",
+      name: "Créateur Voltia",
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + sessionDays * 24 * 60 * 60 * 1000).toISOString()
     };
@@ -496,7 +496,7 @@ async function handleAccessCode(req, res) {
       {
         accessPass: true,
         accessName: "Créateur Voltia",
-        message: "Acces complet active."
+        message: "Accès complet activé."
       },
       { "Set-Cookie": sessionCookie(req, token) }
     );
@@ -1412,7 +1412,7 @@ async function serveStatic(req, res) {
 
   if (!filePath.startsWith(resolve(publicDir))) {
     res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
-    res.end("Acces refuse");
+    res.end("Accès refusé");
     return;
   }
 

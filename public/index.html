@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Voltia - Assistant intelligent en électricité</title>
+    <meta name="description" content="Voltia aide à diagnostiquer une panne électrique, préparer un schéma indicatif et exporter un rapport clair avant intervention.">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -48,7 +49,7 @@
               </div>
             </div>
 
-            <div id="accountStatus" class="account-status">Libre-service : 5 essais anonymes. Crée ensuite un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.</div>
+            <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes. Crée ensuite un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.</div>
 
             <div class="account-quick-actions" aria-label="Actions rapides Voltia">
               <a class="primary-action account-start-link" href="#workspace">Démarrer un diagnostic</a>
@@ -108,7 +109,7 @@
             <div class="plan-preview">
               <div>
                 <span class="plan-label">Offre Pro</span>
-                <strong>9,99 EUR / mois</strong>
+                <strong>9,99 € / mois</strong>
               </div>
               <small>Pour enchaîner diagnostics, schémas et recherches sans te heurter au quota quotidien. <a href="/pro.html">Voir l'offre</a></small>
             </div>
@@ -560,7 +561,7 @@
 
           <div id="saveTargetBanner" class="save-target-banner">
             <strong>Destination de sauvegarde</strong>
-            <span id="saveTargetText">Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.</span>
+            <span id="saveTargetText" aria-live="polite">Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.</span>
           </div>
 
           <div class="suggestions" aria-label="Suggestions">
@@ -572,7 +573,7 @@
 
           <div id="messages" class="messages" aria-live="polite">
             <article class="message assistant">
-              <div class="avatar">AI</div>
+              <div class="avatar">V</div>
               <div class="message-stack">
                 <span class="message-label">Voltia</span>
                 <div class="bubble">
@@ -612,7 +613,7 @@
             </div>
             <button id="sendButton" type="submit">Envoyer</button>
           </form>
-          <p id="hint" class="hint">Astuce : indique ce qui saute, quand, et ce qui a changé récemment.</p>
+          <p id="hint" class="hint" role="status" aria-live="polite">Astuce : indique ce qui saute, quand, et ce qui a changé récemment.</p>
         </section>
       </section>
 

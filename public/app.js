@@ -334,8 +334,8 @@ function addPhotoMessage(dataUrl, context) {
   bubble.className = "bubble photo-bubble";
   bubble.innerHTML = `
     <strong>Photo à retranscrire en schéma</strong>
-    <img src="${dataUrl}" alt="Photo envoyee pour analyse">
-    <span>${escapeHtml(context || "Sans contexte ajoute")}</span>
+    <img src="${dataUrl}" alt="Photo envoyée pour analyse">
+    <span>${escapeHtml(context || "Sans contexte ajouté")}</span>
   `;
 
   stack.append(label, bubble);
@@ -392,8 +392,8 @@ function addLightingPlanMessage(details, dataUrl) {
   bubble.className = "bubble photo-bubble";
   bubble.innerHTML = `
     <strong>Dimensionnement éclairage</strong>
-    ${dataUrl ? `<img src="${dataUrl}" alt="Plan envoye pour dimensionnement">` : ""}
-    <span>${escapeHtml(details || "Plan et contexte envoyes")}</span>
+    ${dataUrl ? `<img src="${dataUrl}" alt="Plan envoyé pour dimensionnement">` : ""}
+    <span>${escapeHtml(details || "Plan et contexte envoyés")}</span>
   `;
 
   stack.append(label, bubble);
@@ -844,8 +844,8 @@ function renderReportHistory(reports = [], options = {}) {
   if (!currentUser) return;
 
   const title = options.title || "Mes rapports";
-  const subtitle = options.subtitle || "Les derniers rapports sauvegardes.";
-  const emptyMessage = options.emptyMessage || "Aucun rapport sauvegarde pour l'instant.";
+  const subtitle = options.subtitle || "Les derniers rapports sauvegardés.";
+  const emptyMessage = options.emptyMessage || "Aucun rapport sauvegardé pour l'instant.";
 
   if (reportHistoryTitle) {
     reportHistoryTitle.textContent = title;
@@ -870,7 +870,7 @@ function renderReportHistory(reports = [], options = {}) {
     item.innerHTML = `
       <span class="report-item-main">
         <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
-        <small><b>${escapeHtml(type)}</b>${projectLabel} · ${escapeHtml(date)} · ${escapeHtml(report.preview || "Rapport sauvegarde")}</small>
+        <small><b>${escapeHtml(type)}</b>${projectLabel} · ${escapeHtml(date)} · ${escapeHtml(report.preview || "Rapport sauvegardé")}</small>
       </span>
       <span class="report-item-action">Ouvrir</span>
     `;
@@ -897,13 +897,13 @@ function renderCurrentReportHistory() {
   renderReportHistory(reports, {
     title: activeProject ? `Dossier : ${activeProject.name}` : "Mes rapports",
     subtitle: activeProject
-      ? `${reports.length} rapport${reports.length > 1 ? "s" : ""} dans ce dossier. Les prochains enregistrements peuvent y etre ranges.`
+      ? `${reports.length} rapport${reports.length > 1 ? "s" : ""} dans ce dossier. Les prochains enregistrements peuvent y être rangés.`
       : currentUser.plan === "pro"
-        ? "Tous tes rapports recents, avec ou sans dossier."
-        : "Les derniers rapports sauvegardes dans ton compte.",
+        ? "Tous tes rapports récents, avec ou sans dossier."
+        : "Les derniers rapports sauvegardés dans ton compte.",
     emptyMessage: activeProject
       ? "Aucun rapport dans ce dossier pour l'instant."
-      : "Aucun rapport sauvegarde pour l'instant."
+      : "Aucun rapport sauvegardé pour l'instant."
   });
 }
 
@@ -920,7 +920,7 @@ function updateSaveTargetUi() {
 
   if (currentUser.plan !== "pro") {
     activeProjectId = "";
-    saveTargetText.textContent = "Compte gratuit : tes rapports sont sauvegardes dans un historique unique. Passe Pro pour les classer par chantier, client ou piece.";
+    saveTargetText.textContent = "Compte gratuit : tes rapports sont sauvegardés dans un historique unique. Passe Pro pour les classer par chantier, client ou pièce.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Compte gratuit";
     }
@@ -933,16 +933,16 @@ function updateSaveTargetUi() {
   }
 
   if (activeProject) {
-    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera range dans le dossier "${activeProject.name}".`;
+    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera rangé dans le dossier "${activeProject.name}".`;
     return;
   }
 
   if (projectsCache.length) {
-    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde tous les rapports dans l'historique general.";
+    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde tous les rapports dans l'historique général.";
     return;
   }
 
-  saveTargetText.textContent = "Voltia Pro : cree un premier dossier pour classer tes rapports par chantier, logement ou intervention.";
+  saveTargetText.textContent = "Voltia Pro : crée un premier dossier pour classer tes rapports par chantier, logement ou intervention.";
 }
 
 function renderProjects(projects = []) {
@@ -973,7 +973,7 @@ function renderProjects(projects = []) {
 
   projectWorkspaceTitle.textContent = "Dossiers Pro";
   projectWorkspaceSubtitle.textContent = isPro
-    ? "Cree un dossier puis classe tes rapports par chantier, client ou piece."
+    ? "Crée un dossier puis classe tes rapports par chantier, client ou pièce."
     : "Le compte gratuit sauvegarde tes rapports. Voltia Pro ajoute un vrai classement par dossier.";
 
   projectUpsell.hidden = isPro;
@@ -989,7 +989,7 @@ function renderProjects(projects = []) {
   const allReportsCard = `
     <button type="button" class="project-card ${!activeProjectId ? "is-active" : ""}" data-project-filter="all">
       <strong>Tous les rapports</strong>
-      <span>Vue generale pour retrouver tous les enregistrements recents.</span>
+      <span>Vue générale pour retrouver tous les enregistrements récents.</span>
       <small>${allReportsCache.length} rapport${allReportsCache.length > 1 ? "s" : ""}</small>
     </button>
   `;
@@ -998,8 +998,8 @@ function renderProjects(projects = []) {
     projectList.innerHTML = `
       ${allReportsCard}
       <div class="project-card project-card-empty">
-        <strong>Aucun dossier cree</strong>
-        <span>Commence par creer un dossier chantier pour donner une vraie structure a ton historique.</span>
+        <strong>Aucun dossier créé</strong>
+        <span>Commence par créer un dossier chantier pour donner une vraie structure à ton historique.</span>
       </div>
     `;
     updateSaveTargetUi();
@@ -1013,7 +1013,7 @@ function renderProjects(projects = []) {
     return `
       <button type="button" class="project-card ${activeProjectId === project.id ? "is-active" : ""}" data-project-id="${escapeHtml(project.id)}">
         <strong>${escapeHtml(project.name || "Dossier Voltia")}</strong>
-        <span>${escapeHtml(project.description || "Classe les rapports de ce chantier dans un espace dedie.")}</span>
+        <span>${escapeHtml(project.description || "Classe les rapports de ce chantier dans un espace dédié.")}</span>
         <small>${project.reportCount || 0} rapport${project.reportCount > 1 ? "s" : ""} · Maj ${escapeHtml(updatedAt)}</small>
       </button>
     `;
@@ -1033,7 +1033,7 @@ async function loadSavedConversation(reportId) {
 
     const conversation = data.report?.conversation || [];
     if (!conversation.length) {
-      setHint("Ce rapport ne contient pas encore de conversation a reprendre.", true);
+      setHint("Ce rapport ne contient pas encore de conversation à reprendre.", true);
       return;
     }
 
@@ -1117,7 +1117,7 @@ async function loadProject(projectId) {
     activeProjectId = "";
     renderProjects(projectsCache);
     renderCurrentReportHistory();
-    setHint("Vue generale des rapports reactivee.");
+    setHint("Vue générale des rapports réactivée.");
     return;
   }
 
@@ -1146,7 +1146,7 @@ async function loadProject(projectId) {
 
     renderProjects(projectsCache);
     renderCurrentReportHistory();
-    setHint(`Dossier actif : ${data.project?.name || "Dossier Voltia"}. Le prochain rapport y sera sauvegarde.`);
+    setHint(`Dossier actif : ${data.project?.name || "Dossier Voltia"}. Le prochain rapport y sera sauvegardé.`);
   } catch (error) {
     setHint(error.message, true);
   }
@@ -1155,7 +1155,7 @@ async function loadProject(projectId) {
 async function createProject() {
   if (!currentUser) {
     openSignupFlow();
-    setHint("Cree d'abord un compte pour utiliser l'espace de sauvegarde.", true);
+    setHint("Crée d'abord un compte pour utiliser l'espace de sauvegarde.", true);
     return;
   }
 
@@ -1168,13 +1168,13 @@ async function createProject() {
   const description = projectDescriptionInput?.value.trim() || "";
 
   if (!name) {
-    setHint("Ajoute un nom de dossier avant de le creer.", true);
+    setHint("Ajoute un nom de dossier avant de le créer.", true);
     projectNameInput?.focus();
     return;
   }
 
   createProjectButton.disabled = true;
-  setHint("Creation du dossier en cours...");
+  setHint("Création du dossier en cours...");
 
   try {
     const response = await fetch("/api/projects", {
@@ -1183,7 +1183,7 @@ async function createProject() {
       body: JSON.stringify({ name, description })
     });
     const data = await readJsonResponse(response);
-    if (handleBarrierResponse(response, data, "Creation du dossier impossible.")) return;
+    if (handleBarrierResponse(response, data, "Création du dossier impossible.")) return;
 
     if (projectNameInput) projectNameInput.value = "";
     if (projectDescriptionInput) projectDescriptionInput.value = "";
@@ -1192,7 +1192,7 @@ async function createProject() {
     renderProjects(data.projects || []);
     await loadReportHistory();
     hideConversionBanner();
-    setHint(`Dossier cree : ${data.project?.name || "Dossier Voltia"}. Les prochains rapports peuvent y etre ranges.`);
+    setHint(`Dossier créé : ${data.project?.name || "Dossier Voltia"}. Les prochains rapports peuvent y être rangés.`);
   } catch (error) {
     setHint(error.message, true);
   } finally {
@@ -1254,7 +1254,7 @@ async function saveConversationReport() {
     }
     hideConversionBanner();
     const activeProject = getProjectById(activeProjectId);
-    setHint(activeProject ? `Rapport sauvegarde dans le dossier ${activeProject.name}.` : "Rapport sauvegarde dans ton compte.");
+    setHint(activeProject ? `Rapport sauvegardé dans le dossier ${activeProject.name}.` : "Rapport sauvegardé dans ton compte.");
   } catch (error) {
     setHint(error.message, true);
   } finally {
@@ -1274,7 +1274,7 @@ async function readJsonResponse(response) {
     return text ? JSON.parse(text) : {};
   } catch {
     return {
-      error: text || "Reponse serveur illisible."
+      error: text || "Réponse serveur illisible."
     };
   }
 }
@@ -1285,7 +1285,7 @@ function updateAccountUi(user, meta = {}) {
   accountCard?.classList.toggle("is-connected", Boolean(currentUser || hasAccessPass));
 
   if (hasAccessPass) {
-    accountStatus.textContent = `${meta.accessName || "Acces invite"} | Acces complet actif | Toutes les fonctionnalites sont debloquees.`;
+    accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet activé | Toutes les fonctionnalités sont débloquées.`;
     accessCodeFields.hidden = true;
     authFields.hidden = true;
     signupFields.hidden = true;
@@ -1298,7 +1298,7 @@ function updateAccountUi(user, meta = {}) {
   }
 
   if (!currentUser) {
-    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes. Cree un compte gratuit pour passer a 10 usages par jour et sauvegarder tes rapports.`;
+    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes. Crée un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.`;
     accessCodeFields.hidden = false;
     authFields.hidden = false;
     signupFields.hidden = true;
@@ -1313,13 +1313,13 @@ function updateAccountUi(user, meta = {}) {
   const planLabel = currentUser.plan === "pro" ? "Pro" : "Gratuit";
   const displayName = currentUser.name || currentUser.email;
   const usage = currentUser.plan === "pro"
-    ? "compteur quotidien leve"
+    ? "compteur quotidien levé"
     : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} usages aujourd'hui`;
   const projectsLabel = currentUser.plan === "pro"
     ? ` | ${currentUser.projectCount || 0} dossier${currentUser.projectCount > 1 ? "s" : ""}`
     : "";
 
-  accountStatus.textContent = `Bonjour ${displayName} | Compte ${planLabel} | ${usage}${projectsLabel} | Rapports sauvegardes`;
+  accountStatus.textContent = `Bonjour ${displayName} | Compte ${planLabel} | ${usage}${projectsLabel} | Rapports sauvegardés`;
   accessCodeFields.hidden = true;
   authFields.hidden = true;
   signupFields.hidden = true;
@@ -1524,8 +1524,8 @@ async function submitAuth(mode) {
   signupToggleButton.disabled = true;
   signupButton.disabled = true;
   loginButton.disabled = true;
-  setAccountNotice(mode === "signup" ? "Creation du compte en cours..." : "Connexion en cours...");
-  setHint(mode === "signup" ? "Creation du compte..." : "Connexion...");
+  setAccountNotice(mode === "signup" ? "Création du compte en cours..." : "Connexion en cours...");
+  setHint(mode === "signup" ? "Création du compte..." : "Connexion...");
 
   try {
     const response = await fetch(endpoint, {
@@ -1544,7 +1544,7 @@ async function submitAuth(mode) {
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
       signupFields.hidden = true;
-      setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde des rapports.`);
+      setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
       setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou passer Pro pour lever le compteur quotidien.`);
       hideConversionBanner();
     } else {
@@ -1594,7 +1594,7 @@ async function submitAccessCode() {
     accessCodeInput.value = "";
     updateAccountUi(null, data);
     hideConversionBanner();
-    setHint("Acces complet active sans compte.");
+    setHint("Accès complet activé sans compte.");
   } catch (error) {
     setAccountNotice(error.message);
     setHint(error.message);
@@ -2206,7 +2206,7 @@ ARRIVEE 230V
              │
              ├──> [DJ lumière 10/16A] -> circuit éclairage
              │
-             └──> [DJ dedie]          -> four, chauffe-eau, etc.
+             └──> [DJ dédié]          -> four, chauffe-eau, etc.
 
 Lecture:
 Le differentiel protege les personnes.
@@ -2660,14 +2660,14 @@ sourceOnlyToggle.addEventListener("change", () => {
     hint.textContent = "Colle l'URL exacte de la page que Voltia doit utiliser comme seule source.";
   } else {
     normsSearchToggle.disabled = false;
-    hint.textContent = "Source libre: Voltia peut repondre avec ses connaissances generales.";
+    hint.textContent = "Source libre : Voltia peut répondre avec ses connaissances générales.";
   }
 });
 
 normsSearchToggle.addEventListener("change", () => {
   hint.textContent = normsSearchToggle.checked
-    ? "Mode normes active: Voltia cherchera les regles en vigueur et citera les sources disponibles."
-    : "Mode normes desactive.";
+    ? "Mode normes activé : Voltia cherchera les règles en vigueur et citera les sources disponibles."
+    : "Mode normes désactivé.";
 });
 
 promptInput.addEventListener("keydown", (event) => {
@@ -2697,7 +2697,7 @@ clearButton.addEventListener("click", () => {
   messages.length = 0;
   messagesEl.innerHTML = "";
   addMessage("assistant", "Conversation effacée. Lance un diagnostic ou décris ton prochain problème électrique.");
-  hint.textContent = "Nouvelle recherche demarree.";
+  hint.textContent = "Nouvelle recherche démarrée.";
   promptInput.focus();
 });
 
@@ -2798,9 +2798,9 @@ signupToggleButton.addEventListener("click", () => {
   signupFields.hidden = !signupFields.hidden;
   if (!signupFields.hidden) {
     authName.focus();
-    setHint("Remplis ton nom, ton email et ton mot de passe pour creer ton compte.");
+    setHint("Remplis ton nom, ton email et ton mot de passe pour créer ton compte.");
   } else {
-    setHint("Creation de compte repliee. Tu peux te connecter si tu as deja un compte.");
+    setHint("Création de compte repliée. Tu peux te connecter si tu as déjà un compte.");
   }
 });
 signupButton.addEventListener("click", () => submitAuth("signup"));
@@ -2833,7 +2833,7 @@ createSchema.addEventListener("click", async () => {
 
 schemaType.addEventListener("change", () => {
   syncSchemaDefaults();
-  hint.textContent = "Type de schema mis a jour. Ajuste les quantites puis cree le schema.";
+  hint.textContent = "Type de schéma mis à jour. Ajuste les quantités puis crée le schéma.";
 });
 
 photoInput.addEventListener("change", () => {
@@ -2855,8 +2855,8 @@ photoInput.addEventListener("change", () => {
     selectedPhotoDataUrl = String(reader.result || "");
     photoLabel.textContent = file.name;
     photoPreview.hidden = false;
-    photoPreview.innerHTML = `<img src="${selectedPhotoDataUrl}" alt="Apercu de la photo">`;
-    hint.textContent = "Photo chargee. Ajoute un contexte si besoin puis lance l'analyse.";
+    photoPreview.innerHTML = `<img src="${selectedPhotoDataUrl}" alt="Aperçu de la photo">`;
+    hint.textContent = "Photo chargée. Ajoute un contexte si besoin puis lance l'analyse.";
   });
   reader.readAsDataURL(file);
 });
@@ -2905,8 +2905,8 @@ lightingPlanInput.addEventListener("change", () => {
     selectedLightingPlanDataUrl = String(reader.result || "");
     lightingPlanLabel.textContent = file.name;
     lightingPlanPreview.hidden = false;
-    lightingPlanPreview.innerHTML = `<img src="${selectedLightingPlanDataUrl}" alt="Apercu du plan">`;
-    hint.textContent = "Plan charge. Ajoute les dimensions connues puis lance le dimensionnement.";
+    lightingPlanPreview.innerHTML = `<img src="${selectedLightingPlanDataUrl}" alt="Aperçu du plan">`;
+    hint.textContent = "Plan chargé. Ajoute les dimensions connues puis lance le dimensionnement.";
   });
   reader.readAsDataURL(file);
 });
