@@ -473,7 +473,12 @@ async function handleLogout(req, res) {
 async function handleAccessCode(req, res) {
   try {
     const { code = "" } = await readRequestJson(req);
-    const expectedCode = String(process.env.ACCESS_CODE || "VOLTIA-YB-2026");
+    const expectedCode = String(process.env.ACCESS_CODE || "").trim();
+
+    if (!expectedCode) {
+      sendJson(res, 503, { error: "Code d'accès non configuré." });
+      return;
+    }
 
     if (String(code || "").trim() !== expectedCode) {
       sendJson(res, 401, { error: "Code d'accès incorrect." });
@@ -939,6 +944,82 @@ async function handleStripeWebhook(req, res) {
   sendJson(res, 200, { received: true });
 }
 
+function normalizePromptText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function textHasAny(text, words) {
+  return words.some((word) => text.includes(word));
+}
+
+function isHighRiskOperationalRequest(messages = []) {
+  const text = normalizePromptText(messages.map((message) => message?.content || "").join("\n"));
+  const asksForExecution = textHasAny(text, [
+    "branche",
+    "branchement",
+    "brancher",
+    "raccorde",
+    "raccordement",
+    "repiqu",
+    "cablage",
+    "cabler",
+    "schema",
+    "etapes",
+    "procedure",
+    "couleur",
+    "couleurs",
+    "calibre",
+    "bornier",
+    "borne",
+    "fil",
+    "phase",
+    "neutre",
+    "terre"
+  ]);
+  const dangerousContext = textHasAny(text, [
+    "sous tension",
+    "sans couper",
+    "ne pas couper",
+    "tableau",
+    "disjoncteur",
+    "differentiel",
+    "salle de bain",
+    "douche",
+    "baignoire",
+    "humidite",
+    "prise",
+    "chauffe-eau",
+    "four",
+    "lave-linge",
+    "contacteur",
+    "230v",
+    "400v"
+  ]);
+  const nonCompliantIntent = textHasAny(text, [
+    "ce soir",
+    "rapidement",
+    "temporaire",
+    "bricol",
+    "sans terre",
+    "circuit lumiere",
+    "circuit eclairage",
+    "ajouter une prise",
+    "faire moi meme"
+  ]);
+
+  return asksForExecution && (dangerousContext || nonCompliantIntent);
+}
+
+function requestedDetailLevel(messages = []) {
+  const text = normalizePromptText(messages.map((message) => message?.content || "").join("\n"));
+  if (text.includes("niveau de reponse: expert") || text.includes("mode expert")) return "expert";
+  if (text.includes("niveau de reponse: confirme")) return "confirme";
+  return "debutant";
+}
+
 async function handleChat(req, res) {
   if (!process.env.OPENAI_API_KEY) {
     sendJson(res, 500, {
@@ -954,6 +1035,8 @@ async function handleChat(req, res) {
     const { messages = [], sourceOnly = false, sourceUrl = "", normsSearch = false } = await readRequestJson(req);
     const sourceContext = sourceOnly ? await readSourcePage(sourceUrl) : null;
     const shouldSearchNorms = Boolean(normsSearch && !sourceContext);
+    const highRiskOperational = isHighRiskOperationalRequest(messages);
+    const detailLevel = requestedDetailLevel(messages);
     const input = messages.map((message) => ({
       role: message.role === "assistant" ? "assistant" : "user",
       content: String(message.content || "")
@@ -986,22 +1069,27 @@ async function handleChat(req, res) {
         ] : undefined,
         tool_choice: shouldSearchNorms ? "required" : undefined,
         instructions: [
-          "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
-          "Aide l'utilisateur à comprendre les causes possibles, les vérifications simples et les prochaines étapes.",
-          "Organise toujours tes réponses avec des titres courts et des listes lisibles.",
-          "Structure recommandée: Résumé rapide, Sécurité, Causes possibles, À vérifier sans danger, Prochaines étapes, Conclusion.",
-          "Quand la demande vise un diagnostic ou un rapport, réponds comme un livrable professionnel avec ces sections: Résumé rapide, Niveau de danger, Hypothèses, Vérifications sans danger, Schéma ou repères utiles, Limites, Prochaine action.",
-          "Chaque section doit être courte, actionnable et formulée pour être reprise dans un PDF client.",
-          "Évite les gros paragraphes. Fais une idée par ligne ou par puce.",
-          "Adapte le niveau de détail au niveau demandé par l'utilisateur: débutant, confirmé ou expert.",
+          "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique et petit tertiaire en France.",
+          "Réponds comme un expert prudent: diagnostic, raisonnement, priorisation du risque, limites et prochaine action. Tu dois être utile sans donner de procédure dangereuse.",
+          "Adapte fortement la taille et l'agencement à la question. Une question simple appelle une réponse courte. Une question experte, un rapport ou un cas complexe appelle une réponse complète avec paragraphes structurés et listes ciblées.",
+          "En mode expert, donne une analyse approfondie: résumé exécutif, niveau de danger, raisonnement technique, hypothèses classées, contrôles sans danger, informations à collecter, limites et plan d'action. Utilise des paragraphes courts de 2 à 4 phrases, puis des listes quand elles clarifient.",
+          "Ne recycle pas une structure inadaptée. Pour une question normative, n'utilise pas 'Causes possibles' sauf s'il y a une panne; utilise plutôt 'Règles à vérifier', 'Points de vigilance', 'Ce qui reste à confirmer' et 'Sources'.",
+          "Quand la demande vise un diagnostic ou un rapport, réponds comme un livrable professionnel non certifiant avec sections explicites et conclusions actionnables.",
+          "Pour toute réponse, garde la cohérence question/réponse: reprends le contexte utilisateur, signale les informations manquantes, et ne conclus jamais au-delà des données fournies.",
+          detailLevel === "expert"
+            ? "Le niveau expert est actif: réponse substantielle attendue, avec vocabulaire technique expliqué, raisonnement nuancé et priorités. Ne sois pas superficiel."
+            : "",
           sourceContext
-            ? `L'utilisateur a activé le mode source unique. Tu dois répondre uniquement avec la source fournie (${sourceContext.url}). Si la source ne contient pas l'information demandée, dis clairement que la source indiquée ne permet pas de répondre. Cite l'URL source en fin de réponse. N'utilise pas tes connaissances générales pour compléter.`
+            ? `L'utilisateur a activé le mode source unique. Tu dois répondre uniquement avec la source fournie (${sourceContext.url}). Si la source ne contient pas l'information demandée, dis clairement que la source indiquée ne permet pas de répondre. Termine par une section 'Source utilisée' avec cette URL. N'utilise pas tes connaissances générales pour compléter.`
             : "",
           shouldSearchNorms
-            ? "L'utilisateur a activé le mode normes en vigueur. Lance une recherche web et traite la demande comme une recherche réglementaire française autour de la NF C 15-100, des textes publics applicables et des guides techniques fiables. Priorise les sources AFNOR, Légifrance, Service-public, Promotelec, Qualifelec, fabricants reconnus et guides techniques cités. Donne les exigences utiles au projet de l'utilisateur: hauteurs, volumes, protections, sections, calibres, emplacements, accessibilité, pièces d'eau, prises, éclairage, tableau et circuits quand c'est pertinent. Cite clairement les sources trouvées. Ne recopie pas de longs extraits de la NF C 15-100, car la norme officielle est protégée. Si l'information exacte n'est pas disponible dans les sources publiques, dis de vérifier la NF C 15-100 officielle AFNOR ou de faire valider par un électricien qualifié. Ne présente jamais la réponse comme une attestation de conformité."
+            ? "Le mode normes en vigueur est actif. Lance une recherche web et traite la demande comme une recherche réglementaire française autour de la NF C 15-100, des textes publics applicables et des guides techniques fiables. Priorise AFNOR, Légifrance, Service-public, Promotelec, Qualifelec, fabricants reconnus et guides techniques cités. Cite les sources dans le corps quand elles appuient un point et termine obligatoirement par une section 'Sources consultées' avec les noms et URLs. Ne recopie pas de longs extraits de la NF C 15-100, norme protégée. Si l'information exacte n'est pas disponible publiquement, dis de vérifier la NF C 15-100 officielle AFNOR ou de faire valider par un électricien qualifié. Ne présente jamais la réponse comme une attestation de conformité."
+            : "",
+          highRiskOperational
+            ? "RÈGLE DE SÉCURITÉ BLOQUANTE: la demande contient une procédure opérationnelle potentiellement dangereuse ou non conforme. Tu dois refuser de fournir les étapes de branchement, schéma de raccordement, correspondance phase/neutre/terre, couleurs de fils à connecter, calibres à choisir, bornes à utiliser, ou séquence d'installation. Réponds à la place avec: pourquoi c'est dangereux/non conforme, comment sécuriser la situation, quelles informations préparer, quelles alternatives conformes demander à un professionnel, et quoi faire maintenant. Tu peux mentionner les principes généraux sans donner de mode opératoire."
             : "",
           "Pour toute manipulation dangereuse, tableau électrique, fil dénudé, odeur de brûlé, fumée, échauffement, humidité, doute sérieux ou intervention sous tension, conseille de couper le courant et de contacter un électricien qualifié.",
-          "Ne donne pas d'instructions qui encouragent à travailler sous tension."
+          "Ne donne jamais d'instructions qui encouragent à travailler sous tension. Ne transforme jamais un montage dangereux en tutoriel réalisable."
         ].join(" "),
         input
       })

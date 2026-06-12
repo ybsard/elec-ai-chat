@@ -1648,8 +1648,8 @@ function buildDiagnosticPrompt() {
 function buildLevelInstruction() {
   const instructions = {
     debutant: "Niveau de réponse: débutant. Réponds avec des mots simples, des étapes courtes, une organisation très lisible et peu de jargon.",
-    confirme: "Niveau de réponse: confirmé. Réponds avec des explications plus complètes, les raisons techniques principales, et une structure claire.",
-    expert: "Niveau de réponse: expert. Réponds de façon approfondie, avec hypothèses, logique de diagnostic, limites, points normatifs généraux et détails techniques utiles, sans donner d'instructions dangereuses sous tension."
+    confirme: "Niveau de réponse: confirmé. Réponds avec des explications complètes, les raisons techniques principales, les limites et une structure claire adaptée à la question.",
+    expert: "Niveau de réponse: expert. Réponds comme un expert en électricité: analyse complète, raisonnement technique, hypothèses classées, limites, points normatifs utiles, informations manquantes et plan d'action. Utilise des paragraphes structurés quand le cas est complexe, pas seulement des listes. Ne donne jamais de procédure dangereuse, de branchement sous tension ou de tutoriel non conforme."
   };
   return instructions[selectedLevel] || instructions.debutant;
 }
@@ -1657,10 +1657,12 @@ function buildLevelInstruction() {
 function buildResponseFormatInstruction() {
   return [
     "Organisation obligatoire de la réponse:",
-    "Utilise des titres courts suivis de listes.",
-    "Structure recommandée: Résumé rapide, Niveau de danger, Sécurité, Causes possibles, À vérifier sans danger, Schéma ou repères utiles, Prochaines étapes, Limites.",
-    "Ne fais pas de gros paragraphes: 1 idée par ligne ou par puce.",
-    "Mets les avertissements importants dans la section Sécurité."
+    "Adapte les sections au type de demande au lieu de recycler toujours le même plan.",
+    "Pour une panne: Résumé rapide, Niveau de danger, Raisonnement, Hypothèses classées, Vérifications sans danger, À ne pas faire, Prochaines étapes, Limites.",
+    "Pour une question normative: Contexte, Règles à vérifier, Points de vigilance, Ce qui reste à confirmer, Sources si disponibles, Limites.",
+    "Pour un rapport: Synthèse, Risques, Priorités, Données manquantes, Plan d'action, Limites non certifiantes.",
+    "En mode expert, alterne paragraphes courts et listes ciblées pour obtenir une réponse complète, lisible et exploitable.",
+    "Mets les avertissements importants dans la section Sécurité et refuse tout mode opératoire dangereux."
   ].join("\n");
 }
 
