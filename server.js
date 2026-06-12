@@ -955,6 +955,12 @@ function textHasAny(text, words) {
   return words.some((word) => text.includes(word));
 }
 
+function latestUserMessage(messages = []) {
+  return [...messages]
+    .reverse()
+    .find((message) => message?.role !== "assistant")?.content || "";
+}
+
 function isHighRiskOperationalRequest(messages = []) {
   const text = normalizePromptText(messages.map((message) => message?.content || "").join("\n"));
   const asksForExecution = textHasAny(text, [
@@ -1020,14 +1026,53 @@ function requestedDetailLevel(messages = []) {
   return "debutant";
 }
 
-async function handleChat(req, res) {
-  if (!process.env.OPENAI_API_KEY) {
-    sendJson(res, 500, {
-      error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
-    });
-    return;
-  }
+function highRiskOperationalReply(messages = []) {
+  const request = String(latestUserMessage(messages) || "demande de modification électrique").trim();
+  return [
+    "Résumé rapide",
+    "",
+    `Ta demande concerne une intervention électrique potentiellement dangereuse: ${request.slice(0, 260)}${request.length > 260 ? "..." : ""}`,
+    "",
+    "Je ne peux pas fournir de schéma de raccordement, d'étapes de branchement, de correspondance de fils, de couleurs à connecter, de calibres à choisir ou de procédure d'installation pour ce cas. Dans une situation qui combine salle d'eau, modification de circuit, repiquage, tableau, protection ou volonté de ne pas couper correctement l'alimentation, transformer la réponse en tutoriel serait risqué.",
+    "",
+    "Niveau de danger",
+    "",
+    "Le risque principal est le choc électrique, aggravé par l'humidité et par la possibilité d'une intervention partiellement sous tension. Le second risque est l'incendie ou l'échauffement si un circuit est détourné de son usage, si la protection n'est pas adaptée ou si la terre et le différentiel ne sont pas vérifiés sur place.",
+    "",
+    "Pourquoi ce montage ne doit pas être improvisé",
+    "",
+    "- Une prise en salle d'eau dépend de volumes, d'emplacements, de protections, d'indice IP et de liaison à la terre qui doivent être vérifiés sur l'installation réelle.",
+    "- Un circuit existant ne peut pas être supposé apte à recevoir un nouvel usage simplement parce qu'il y a une phase et un neutre quelque part.",
+    "- Un repiquage sans repérage complet peut masquer une absence de terre, une section inadaptée, une protection mal identifiée, un neutre partagé ou une erreur de circuit.",
+    "- Garder une partie du logement alimentée ne justifie pas de travailler sous tension. Il faut organiser l'alimentation temporaire des appareils sensibles autrement.",
+    "",
+    "Ce que tu peux faire sans danger maintenant",
+    "",
+    "- Ne commence pas le raccordement ce soir.",
+    "- Ne démonte pas de prise, d'interrupteur, de luminaire ou de tableau sous tension.",
+    "- Note l'objectif exact: emplacement souhaité, appareil prévu, distance à la douche ou baignoire, contraintes du congélateur, âge du tableau et présence visible d'un différentiel.",
+    "- Prends des photos générales, sans ouvrir les parties sous tension: tableau fermé, étiquettes de circuits, zone de la salle d'eau, chemin possible de câbles.",
+    "- Prévois une solution temporaire non invasive pour le congélateur pendant une coupure organisée, par exemple maintien fermé, déplacement anticipé ou alimentation sécurisée validée par un professionnel.",
+    "",
+    "Alternative conforme à demander",
+    "",
+    "Demande à un électricien qualifié de créer ou valider un circuit prise adapté à la salle d'eau, avec protection différentielle, conducteur de protection, emplacement hors zone interdite, matériel adapté à l'humidité et contrôle final. La bonne solution dépend du tableau, de la terre, du cheminement possible et des volumes réels: elle ne peut pas être certifiée à distance.",
+    "",
+    "Informations à préparer pour le professionnel",
+    "",
+    "- Photos du tableau et des étiquettes de circuits.",
+    "- Emplacement exact souhaité de la prise et distances aux points d'eau.",
+    "- Type d'appareil qui sera branché.",
+    "- Année approximative de l'installation et présence ou non de prises avec terre dans la pièce.",
+    "- Contraintes de coupure électrique, notamment congélateur ou appareils à maintenir.",
+    "",
+    "Prochaine action",
+    "",
+    "Ne réalise pas le repiquage. Planifie une intervention hors tension avec un électricien, ou demande au minimum une validation sur place avant achat et perçage. Voltia peut t'aider à préparer la liste de questions et un mini-cahier des charges, mais pas à transformer ce montage dangereux en procédure de branchement."
+  ].join("\n");
+}
 
+async function handleChat(req, res) {
   try {
     const usage = await consumeUsage(req, res, "chat");
     if (!usage.allowed) return;
@@ -1037,6 +1082,19 @@ async function handleChat(req, res) {
     const shouldSearchNorms = Boolean(normsSearch && !sourceContext);
     const highRiskOperational = isHighRiskOperationalRequest(messages);
     const detailLevel = requestedDetailLevel(messages);
+
+    if (highRiskOperational) {
+      sendJson(res, 200, { reply: highRiskOperationalReply(messages), safetyBlocked: true });
+      return;
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      sendJson(res, 500, {
+        error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
+      });
+      return;
+    }
+
     const input = messages.map((message) => ({
       role: message.role === "assistant" ? "assistant" : "user",
       content: String(message.content || "")
