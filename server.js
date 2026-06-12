@@ -963,7 +963,7 @@ function latestUserMessage(messages = []) {
 
 function isHighRiskOperationalRequest(messages = []) {
   const text = normalizePromptText(messages.map((message) => message?.content || "").join("\n"));
-  const asksForExecution = textHasAny(text, [
+  const actionDemand = textHasAny(text, [
     "branche",
     "branchement",
     "brancher",
@@ -972,9 +972,32 @@ function isHighRiskOperationalRequest(messages = []) {
     "repiqu",
     "cablage",
     "cabler",
-    "schema",
     "etapes",
-    "procedure",
+    "procedure"
+  ]);
+  const operationalDetailDemand = textHasAny(text, [
+    "donne-moi le schema",
+    "donne moi le schema",
+    "schema de branchement",
+    "schema de raccordement",
+    "couleur",
+    "couleurs",
+    "calibre",
+    "bornier",
+    "borne"
+  ]);
+  const executionIntent = actionDemand || (
+    operationalDetailDemand && textHasAny(text, [
+      "comment",
+      "faire",
+      "installer",
+      "ajouter",
+      "ce soir",
+      "rapidement",
+      "etapes"
+    ])
+  );
+  const electricalParts = textHasAny(text, [
     "couleur",
     "couleurs",
     "calibre",
@@ -1016,7 +1039,7 @@ function isHighRiskOperationalRequest(messages = []) {
     "faire moi meme"
   ]);
 
-  return asksForExecution && (dangerousContext || nonCompliantIntent);
+  return executionIntent && electricalParts && (dangerousContext || nonCompliantIntent);
 }
 
 function requestedDetailLevel(messages = []) {
