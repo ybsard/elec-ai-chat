@@ -1642,7 +1642,7 @@ function buildDiagnosticPrompt() {
     `Niveau de risque indique: ${risk}.`,
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
-    "Réponds comme un livrable professionnel avec ces sections: Résumé rapide, Niveau de danger, Hypothèses, Vérifications sans danger, Schéma ou repères utiles, Quand appeler un électricien, Limites, Prochaine action."
+    "Réponds comme un livrable professionnel avec ces sections: Réponse directe, Résumé rapide, Niveau de danger, Hypothèses, Vérifications sans danger, Schéma ou repères utiles, Quand appeler un électricien, Limites, Prochaine action."
   ].join("\n");
 }
 
@@ -1658,10 +1658,13 @@ function buildLevelInstruction() {
 function buildResponseFormatInstruction() {
   return [
     "Organisation obligatoire de la réponse:",
+    "Commence toujours par une section 'Réponse directe' qui répond exactement à la question posée en 2 à 5 phrases.",
+    "Ne démarre pas par des généralités, un avertissement vague ou un plan standard si l'utilisateur a posé une question concrète.",
+    "Après la réponse directe, ajoute seulement les détails utiles: raisonnement, limites, risques et prochaine action.",
     "Adapte les sections au type de demande au lieu de recycler toujours le même plan.",
-    "Pour une panne: Résumé rapide, Niveau de danger, Raisonnement, Hypothèses classées, Vérifications sans danger, À ne pas faire, Prochaines étapes, Limites.",
-    "Pour une question normative: Contexte, Règles à vérifier, Points de vigilance, Ce qui reste à confirmer, Sources si disponibles, Limites.",
-    "Pour un rapport: Synthèse, Risques, Priorités, Données manquantes, Plan d'action, Limites non certifiantes.",
+    "Pour une panne: Réponse directe, Résumé rapide, Niveau de danger, Raisonnement, Hypothèses classées, Vérifications sans danger, À ne pas faire, Prochaines étapes, Limites.",
+    "Pour une question normative: Réponse directe, Contexte, Règles à vérifier, Points de vigilance, Ce qui reste à confirmer, Sources si disponibles, Limites.",
+    "Pour un rapport: Réponse directe, Synthèse, Risques, Priorités, Données manquantes, Plan d'action, Limites non certifiantes.",
     "En mode expert, alterne paragraphes courts et listes ciblées pour obtenir une réponse complète, lisible et exploitable.",
     "Mets les avertissements importants dans la section Sécurité et refuse tout mode opératoire dangereux."
   ].join("\n");

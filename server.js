@@ -17,6 +17,9 @@ const supabaseStateTable = String(process.env.SUPABASE_STATE_TABLE || "app_state
 const userStoreKey = "voltia_user_store";
 const sessionDays = 30;
 const anonymousUsage = new Map();
+const openaiDefaultModel = "gpt-5.5";
+const openaiReasoningEfforts = new Set(["none", "low", "medium", "high", "xhigh"]);
+const openaiVerbosities = new Set(["low", "medium", "high"]);
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -31,6 +34,52 @@ function normalizeSupabaseUrl(rawUrl) {
     .trim()
     .replace(/\/rest\/v1\/?$/i, "")
     .replace(/\/+$/, "");
+}
+
+function normalizeOpenAIOption(value, allowed, fallback) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return allowed.has(normalized) ? normalized : fallback;
+}
+
+function getOpenAIModel() {
+  return String(process.env.OPENAI_MODEL || openaiDefaultModel).trim() || openaiDefaultModel;
+}
+
+function getOpenAISearchModel() {
+  return String(process.env.OPENAI_SEARCH_MODEL || getOpenAIModel()).trim() || getOpenAIModel();
+}
+
+function supportsGpt5Controls(model) {
+  return String(model || "").trim().toLowerCase().startsWith("gpt-5");
+}
+
+function openAIQualityOptions(model, { expert = false, verbosity = "medium" } = {}) {
+  if (!supportsGpt5Controls(model)) return {};
+
+  const effort = normalizeOpenAIOption(
+    process.env[expert ? "OPENAI_EXPERT_REASONING_EFFORT" : "OPENAI_REASONING_EFFORT"],
+    openaiReasoningEfforts,
+    expert ? "high" : "medium"
+  );
+  const textVerbosity = normalizeOpenAIOption(
+    process.env.OPENAI_TEXT_VERBOSITY || verbosity,
+    openaiVerbosities,
+    verbosity
+  );
+
+  return {
+    reasoning: { effort },
+    text: { verbosity: textVerbosity }
+  };
+}
+
+function clearAnswerInstructions(task = "la question posée") {
+  return [
+    `Contrat de qualité: commence toujours par une section "Réponse directe" qui répond exactement à ${task} en 2 à 5 phrases.`,
+    "Ne remplace pas la réponse par des généralités, une prévention vague ou un plan hors sujet. Traite les mots exacts de l'utilisateur, puis détaille seulement ce qui aide à décider ou agir.",
+    "Si plusieurs interprétations sont possibles, donne l'hypothèse la plus probable, puis les alternatives à vérifier. Si une information manque, explique en quoi elle change la conclusion.",
+    "La réponse doit être claire, qualifiée et exploitable: conclusion, raisonnement utile, limites, niveau de confiance si nécessaire, puis prochaine action concrète."
+  ];
 }
 
 function sendJson(res, status, body) {
@@ -1134,6 +1183,7 @@ async function handleChat(req, res) {
       });
     }
 
+    const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -1141,7 +1191,11 @@ async function handleChat(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
+        ...openAIQualityOptions(model, {
+          expert: detailLevel === "expert",
+          verbosity: detailLevel === "expert" ? "high" : "medium"
+        }),
         tools: shouldSearchNorms ? [
           {
             type: "web_search",
@@ -1151,6 +1205,7 @@ async function handleChat(req, res) {
         tool_choice: shouldSearchNorms ? "required" : undefined,
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique et petit tertiaire en France.",
+          ...clearAnswerInstructions("la question électrique posée par l'utilisateur"),
           "Réponds comme un expert prudent: diagnostic, raisonnement, priorisation du risque, limites et prochaine action. Tu dois être utile sans donner de procédure dangereuse.",
           "Adapte fortement la taille et l'agencement à la question. Une question simple appelle une réponse courte. Une question experte, un rapport ou un cas complexe appelle une réponse complète avec paragraphes structurés et listes ciblées.",
           "En mode expert, donne une analyse approfondie: résumé exécutif, niveau de danger, raisonnement technique, hypothèses classées, contrôles sans danger, informations à collecter, limites et plan d'action. Utilise des paragraphes courts de 2 à 4 phrases, puis des listes quand elles clarifient.",
@@ -1207,6 +1262,7 @@ async function handlePhotoSchema(req, res) {
       return;
     }
 
+    const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -1214,12 +1270,14 @@ async function handlePhotoSchema(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
+        ...openAIQualityOptions(model, { verbosity: "medium" }),
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
+          ...clearAnswerInstructions("ce qui est visible sur la photo"),
           "Analyse la photo fournie pour retranscrire ce qui est visible en schéma électrique simple.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
-          "Réponds en français avec exactement ces sections: Résumé rapide, Ce que je vois, Schéma en traits, Légende, Points à vérifier, Sécurité, Conclusion.",
+          "Réponds en français avec exactement ces sections: Réponse directe, Résumé rapide, Ce que je vois, Schéma en traits, Légende, Points à vérifier, Sécurité, Conclusion.",
           "Le schéma en traits doit utiliser des caractères simples avec L phase, N neutre, PE terre, protections, interrupteurs, lampes, prises ou borniers si visibles.",
           "Rappelle que le schéma est indicatif et qu'il faut couper le courant et faire valider par un électricien qualifié avant toute intervention."
         ].join(" "),
@@ -1281,7 +1339,7 @@ async function handleManualSearch(req, res) {
           "Recherche une notice technique ou notice utilisateur fiable pour cet appareil électrique.",
           `Référence saisie: ${cleanReference || "aucune référence texte"}.`,
           "Si une photo est fournie, lis la marque, le modèle, la référence, les tensions/courants visibles, puis utilise ces éléments pour chercher.",
-          "Réponds en français avec ces sections: Résumé rapide, Référence identifiée, Liens de notice probables, Infos utiles, Points de vigilance, Conclusion.",
+          "Réponds en français avec ces sections: Réponse directe, Résumé rapide, Référence identifiée, Liens de notice probables, Infos utiles, Points de vigilance, Conclusion.",
           "Dans Liens de notice probables, donne uniquement des liens ou sources que tu juges plausibles, avec le nom du site et pourquoi c'est probablement la bonne notice.",
           "Si tu n'es pas certain, dis clairement que la notice doit être vérifiée par comparaison exacte de la référence."
         ].join(" ")
@@ -1295,6 +1353,7 @@ async function handleManualSearch(req, res) {
       });
     }
 
+    const model = getOpenAISearchModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -1302,10 +1361,12 @@ async function handleManualSearch(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
+        ...openAIQualityOptions(model, { verbosity: "medium" }),
         tools: [{ type: "web_search_preview" }],
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
+          ...clearAnswerInstructions("la notice ou reference demandee"),
           "Tu aides à retrouver des notices constructeur à partir d'une référence texte ou d'une photo.",
           "Priorise les sources constructeur, distributeurs techniques reconnus, catalogues officiels et PDF de notice.",
           "Ne donne pas de certitude si la référence ne correspond pas exactement.",
@@ -1359,6 +1420,7 @@ async function handleLightingPlan(req, res) {
       return;
     }
 
+    const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -1366,16 +1428,21 @@ async function handleLightingPlan(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
+        ...openAIQualityOptions(model, {
+          expert: level === "expert",
+          verbosity: level === "expert" ? "high" : "medium"
+        }),
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'éclairage domestique et le dimensionnement indicatif.",
+          ...clearAnswerInstructions("la demande d'implantation lumineuse"),
           "Analyse le plan fourni et propose une implantation logique des éclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la pièce.",
           "Si l'échelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
           "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
           "Calcule une puissance indicative a partir des lumens, en rappelant qu'une LED courante donne environ 80 a 120 lm/W selon modele.",
           "Propose le type de luminaire adapté: spot encastré, suspension, plafonnier, rail, applique, ruban LED ou éclairage de tâche.",
           "Ne présente pas le résultat comme une étude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un électricien qualifié.",
-          "Réponds avec exactement ces sections: Résumé rapide, Lecture du plan, Hypothèses, Calcul indicatif, Implantation proposée, Plan en traits, Type et puissance des luminaires, Sécurité, Conclusion.",
+          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Lecture du plan, Hypothèses, Calcul indicatif, Implantation proposée, Plan en traits, Type et puissance des luminaires, Sécurité, Conclusion.",
           "Dans Plan en traits, fais un petit plan ASCII simple avec les points lumineux notes L1, L2, L3 et les zones importantes."
         ].join(" "),
         input: [
@@ -1499,6 +1566,7 @@ async function handleClimateSizing(req, res) {
       return;
     }
 
+    const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -1506,13 +1574,18 @@ async function handleClimateSizing(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
+        ...openAIQualityOptions(model, {
+          expert: input.level === "expert",
+          verbosity: input.level === "expert" ? "high" : "medium"
+        }),
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans le dimensionnement indicatif de climatisation domestique.",
+          ...clearAnswerInstructions("la demande de dimensionnement de climatisation"),
           "Explique une estimation de puissance de climatiseur à partir des données fournies.",
           "Ne présente jamais le résultat comme une étude thermique professionnelle.",
           "Rappelle qu'un bilan thermique réel dépend des vitrages, murs, orientation, apports internes, ventilation, région, humidité et contraintes de pose.",
-          "Réponds avec exactement ces sections: Résumé rapide, Données prises en compte, Calcul indicatif, Puissance conseillée, Type de climatiseur, Points de vigilance, Conclusion.",
+          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Données prises en compte, Calcul indicatif, Puissance conseillée, Type de climatiseur, Points de vigilance, Conclusion.",
           "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait être sous-dimensionné ou surdimensionné."
         ].join(" "),
         input: [

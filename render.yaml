@@ -21,9 +21,15 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: gpt-4.1-mini
+        value: gpt-5.5
       - key: OPENAI_SEARCH_MODEL
-        value: gpt-4.1-mini
+        value: gpt-5.5
+      - key: OPENAI_REASONING_EFFORT
+        value: medium
+      - key: OPENAI_EXPERT_REASONING_EFFORT
+        value: high
+      - key: OPENAI_TEXT_VERBOSITY
+        value: medium
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
