@@ -42,11 +42,13 @@ function normalizeOpenAIOption(value, allowed, fallback) {
 }
 
 function getOpenAIModel() {
-  return String(process.env.OPENAI_MODEL || openaiDefaultModel).trim() || openaiDefaultModel;
+  const configuredModel = String(process.env.OPENAI_MODEL || "").trim();
+  return configuredModel && configuredModel !== "gpt-4.1-mini" ? configuredModel : openaiDefaultModel;
 }
 
 function getOpenAISearchModel() {
-  return String(process.env.OPENAI_SEARCH_MODEL || getOpenAIModel()).trim() || getOpenAIModel();
+  const configuredModel = String(process.env.OPENAI_SEARCH_MODEL || "").trim();
+  return configuredModel && configuredModel !== "gpt-4.1-mini" ? configuredModel : getOpenAIModel();
 }
 
 function supportsGpt5Controls(model) {
