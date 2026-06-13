@@ -1,6 +1,8 @@
 const form = document.querySelector("#chatForm");
 const promptInput = document.querySelector("#prompt");
 const messagesEl = document.querySelector("#messages");
+const chatShell = document.querySelector(".chat-shell");
+const fullscreenButton = document.querySelector("#toggleChatFullscreen");
 const clearButton = document.querySelector("#clearChat");
 const exportReportButton = document.querySelector("#exportReport");
 const saveReportButton = document.querySelector("#saveReport");
@@ -111,9 +113,59 @@ let conversionSecondaryAction = () => {};
 let projectsCache = [];
 let allReportsCache = [];
 let activeProjectId = "";
+let fallbackChatFullscreen = false;
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
+}
+
+function setChatFullscreenState(active) {
+  fallbackChatFullscreen = active && document.fullscreenElement !== chatShell;
+  chatShell?.classList.toggle("is-chat-fullscreen", active);
+  document.body.classList.toggle("chat-fullscreen-active", active);
+
+  if (!fullscreenButton) return;
+  fullscreenButton.setAttribute("aria-pressed", String(active));
+  fullscreenButton.textContent = active ? "Réduire" : "Plein écran";
+  fullscreenButton.title = active ? "Quitter le plein écran" : "Mettre le chat en plein écran";
+  fullscreenButton.setAttribute(
+    "aria-label",
+    active ? "Quitter le plein écran du chat" : "Mettre le chat en plein écran"
+  );
+}
+
+async function enterChatFullscreen() {
+  if (!chatShell) return;
+
+  if (chatShell.requestFullscreen) {
+    try {
+      await chatShell.requestFullscreen();
+      setChatFullscreenState(true);
+      return;
+    } catch {
+      // Fallback for browsers or embedded contexts that block the fullscreen API.
+    }
+  }
+
+  setChatFullscreenState(true);
+}
+
+async function exitChatFullscreen() {
+  if (document.fullscreenElement === chatShell && document.exitFullscreen) {
+    await document.exitFullscreen();
+    return;
+  }
+
+  setChatFullscreenState(false);
+}
+
+async function toggleChatFullscreen() {
+  if (chatShell?.classList.contains("is-chat-fullscreen") || document.fullscreenElement === chatShell) {
+    await exitChatFullscreen();
+    return;
+  }
+
+  await enterChatFullscreen();
 }
 
 function addMessage(role, content, options = {}) {
@@ -2709,11 +2761,21 @@ clearButton.addEventListener("click", () => {
 
 exportReportButton.addEventListener("click", exportConversationReport);
 saveReportButton.addEventListener("click", saveConversationReport);
+fullscreenButton?.addEventListener("click", toggleChatFullscreen);
 showSampleReport?.addEventListener("click", showProfessionalReportExample);
 conversionPrimaryButton?.addEventListener("click", () => conversionPrimaryAction());
 conversionSecondaryButton?.addEventListener("click", () => conversionSecondaryAction());
 projectUpsellButton?.addEventListener("click", startCheckout);
 createProjectButton?.addEventListener("click", createProject);
+
+document.addEventListener("fullscreenchange", () => {
+  setChatFullscreenState(document.fullscreenElement === chatShell);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !fallbackChatFullscreen) return;
+  setChatFullscreenState(false);
+});
 
 reportList?.addEventListener("click", async (event) => {
   const link = event.target.closest("[data-report-id]");

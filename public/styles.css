@@ -3066,3 +3066,128 @@ body {
     max-height: none;
   }
 }
+
+body.chat-fullscreen-active {
+  overflow: hidden;
+}
+
+.fullscreen-button {
+  min-width: 116px;
+  border-color: rgba(16, 33, 43, 0.85);
+  background: linear-gradient(135deg, #10212b, #14556d);
+  color: #ffffff;
+}
+
+.fullscreen-button:hover {
+  border-color: #10212b;
+  box-shadow: 0 8px 18px rgba(16, 33, 43, 0.16);
+}
+
+.chat-shell.is-chat-fullscreen,
+.chat-shell:fullscreen {
+  position: fixed;
+  inset: 12px;
+  top: auto;
+  z-index: 1000;
+  width: auto;
+  height: calc(100dvh - 24px);
+  min-height: 0;
+  max-height: none;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+  overflow: hidden;
+  border-radius: 16px;
+  border-color: rgba(16, 33, 43, 0.18);
+  background: #ffffff;
+  box-shadow: 0 32px 120px rgba(16, 24, 32, 0.34);
+}
+
+.chat-shell:fullscreen {
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+}
+
+.chat-shell.is-chat-fullscreen .chat-header,
+.chat-shell.is-chat-fullscreen .chat-level-control,
+.chat-shell.is-chat-fullscreen .messages,
+.chat-shell.is-chat-fullscreen .source-control,
+.chat-shell.is-chat-fullscreen .conversion-banner,
+.chat-shell.is-chat-fullscreen .composer,
+.chat-shell.is-chat-fullscreen .hint,
+.chat-shell:fullscreen .chat-header,
+.chat-shell:fullscreen .chat-level-control,
+.chat-shell:fullscreen .messages,
+.chat-shell:fullscreen .source-control,
+.chat-shell:fullscreen .conversion-banner,
+.chat-shell:fullscreen .composer,
+.chat-shell:fullscreen .hint {
+  grid-column: 1;
+}
+
+.chat-shell.is-chat-fullscreen .chat-header,
+.chat-shell:fullscreen .chat-header {
+  padding: 16px 20px 14px;
+}
+
+.chat-shell.is-chat-fullscreen .messages,
+.chat-shell:fullscreen .messages {
+  min-height: 0;
+  margin: 10px 16px;
+  padding: 24px;
+}
+
+.chat-shell.is-chat-fullscreen .message-stack,
+.chat-shell:fullscreen .message-stack {
+  max-width: min(94%, 1220px);
+}
+
+.chat-shell.is-chat-fullscreen .bubble,
+.chat-shell:fullscreen .bubble {
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.chat-shell.is-chat-fullscreen .source-control,
+.chat-shell.is-chat-fullscreen .composer,
+.chat-shell:fullscreen .source-control,
+.chat-shell:fullscreen .composer {
+  padding-inline: 16px;
+}
+
+.chat-shell.is-chat-fullscreen .hint,
+.chat-shell:fullscreen .hint {
+  padding-bottom: 12px;
+}
+
+@media (max-width: 760px) {
+  .chat-shell.is-chat-fullscreen,
+  .chat-shell:fullscreen {
+    inset: 0;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .chat-shell.is-chat-fullscreen .chat-header,
+  .chat-shell:fullscreen .chat-header {
+    padding: 12px;
+  }
+
+  .chat-shell.is-chat-fullscreen .chat-header-actions,
+  .chat-shell:fullscreen .chat-header-actions {
+    width: 100%;
+  }
+
+  .chat-shell.is-chat-fullscreen .chat-header-actions .icon-button,
+  .chat-shell:fullscreen .chat-header-actions .icon-button {
+    flex: 1 1 120px;
+  }
+
+  .chat-shell.is-chat-fullscreen .messages,
+  .chat-shell:fullscreen .messages {
+    margin: 8px;
+    padding: 16px;
+  }
+}
