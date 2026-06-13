@@ -17,7 +17,6 @@ const conversionBannerTitle = document.querySelector("#conversionBannerTitle");
 const conversionBannerText = document.querySelector("#conversionBannerText");
 const conversionPrimaryButton = document.querySelector("#conversionPrimaryButton");
 const conversionSecondaryButton = document.querySelector("#conversionSecondaryButton");
-const suggestionButtons = document.querySelectorAll("[data-prompt]");
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const toolCards = document.querySelectorAll(".diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
@@ -2771,14 +2770,6 @@ function syncToolCardStates() {
 }
 
 syncToolCardStates();
-
-suggestionButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    promptInput.value = button.dataset.prompt;
-    autosize();
-    promptInput.focus();
-  });
-});
 
 issueButtons.forEach((button) => {
   button.addEventListener("click", () => {
