@@ -787,7 +787,9 @@ function exportConversationReport() {
 function showProfessionalReportExample() {
   messages.length = 0;
   messagesEl.innerHTML = "";
-  reportType.value = "diagnostic";
+  if (reportType) {
+    reportType.value = "diagnostic";
+  }
   schemaSymbolMode.value = "normalized";
 
   const request = "Exemple: le disjoncteur saute quand le four démarre dans la cuisine.";
