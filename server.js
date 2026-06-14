@@ -1734,13 +1734,15 @@ async function handleLightingPlan(req, res) {
           "Analyse le plan fourni et propose une implantation logique des éclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la pièce.",
           "Si le plan est un croquis quadrillé dessiné à la main, tu dois le refaire proprement dans la réponse: murs, ouvertures, meubles ou zones utiles, cotes connues, hypothèse d'échelle du quadrillage et limites.",
           "Ne te limite pas à décrire le croquis. Produis un schéma propre et coté en texte monospacé avec les cotes placées autour du plan et les spots directement positionnés sur le schéma.",
+          "Utilise obligatoirement le symbole lumineux ⊗ pour chaque point lumineux ou spot, placé au bon endroit dans le contour de la pièce. Écris le repère juste à côté du symbole: ⊗ S1, ⊗ S2, ⊗ S3. Ne remplace jamais ce placement par une simple liste sous le plan.",
           "Si l'échelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
           "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
           "Calcule une puissance indicative a partir des lumens, en rappelant qu'une LED courante donne environ 80 a 120 lm/W selon modele.",
           "Propose le type de luminaire adapté: spot encastré, suspension, plafonnier, rail, applique, ruban LED ou éclairage de tâche.",
           "Ne présente pas le résultat comme une étude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un électricien qualifié.",
           "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Lecture du plan, Hypothèses, Schéma propre coté, Calcul indicatif, Implantation des spots sur le schéma, Tableau des spots, Type et puissance des luminaires, Sécurité, Conclusion.",
-          "Dans Schéma propre coté, fournis obligatoirement un bloc de code avec un plan ASCII propre: contour de la pièce, cotes en haut/bas/gauche/droite, ouvertures et repères utiles. Mets les spots sur ce même plan avec les repères S1, S2, S3, etc.",
+          "Dans Schéma propre coté, fournis obligatoirement un bloc de code avec un plan propre: contour de la pièce, cotes en haut/bas/gauche/droite, ouvertures et repères utiles. Mets les spots sur ce même plan avec le symbole ⊗ et les repères S1, S2, S3, etc.",
+          "Dans ce bloc de code, place chaque symbole ⊗ à une position proportionnelle à la pièce: centré dans sa zone d'éclairage, aligné avec les axes logiques, à distance lisible des murs et des meubles. Ajoute sous le dessin une légende courte: ⊗ = spot / point lumineux, P = porte, F = fenêtre.",
           "Dans Implantation des spots sur le schéma, explique pourquoi chaque spot est placé là: centrage, zones de passage, plan de travail, évitement des murs/meubles, homogénéité lumineuse.",
           "Dans Tableau des spots, donne pour chaque spot: repère, position approximative par rapport aux murs ou aux cotes visibles, type conseillé, puissance/lumens indicatifs et remarque de pose.",
           "Si les cotes manquent, indique les distances comme hypothèses à confirmer plutôt que de les inventer comme certitudes."
@@ -1758,7 +1760,7 @@ async function handleLightingPlan(req, res) {
                   `Type de luminaire souhaité: ${String(type || "non précisé").slice(0, 80)}.`,
                   `Source du plan: ${String(source || "import").slice(0, 40)}.`,
                   `Niveau de détail demandé: ${String(level || "débutant").slice(0, 40)}.`,
-                  "Donne une proposition claire, lisible et exploitable pour placer les points lumineux. Si la source est sketch, traite l'image comme un croquis quadrillé à nettoyer en plan coté. La réponse doit montrer le plan propre avec les cotes placées et les spots placés sur le schéma."
+                  "Donne une proposition claire, lisible et exploitable pour placer les points lumineux. Si la source est sketch, traite l'image comme un croquis quadrillé à nettoyer en plan coté. La réponse doit montrer le plan propre avec les cotes placées et les spots placés sur le schéma avec le symbole lumineux ⊗ au bon endroit, pas seulement dans une liste."
                 ].join(" ")
               },
               {

@@ -289,7 +289,9 @@ function renderAssistantContent(content) {
 
   function flushCode() {
     if (!codeLines.length) return;
-    html.push(`<pre class="response-code">${escapeHtml(codeLines.join("\n"))}</pre>`);
+    const codeText = codeLines.join("\n");
+    const extraClass = /⊗\s*S\d+|S\d+/.test(codeText) ? " lighting-plan-code" : "";
+    html.push(`<pre class="response-code${extraClass}">${escapeHtml(codeText)}</pre>`);
     codeLines = [];
   }
 
@@ -2836,7 +2838,7 @@ async function analyzeLightingPlan() {
     height ? `Hauteur: ${height}` : "",
     type ? `Type souhaite: ${type}` : "",
     selectedLightingPlanSource === "sketch"
-      ? "Demande: retranscrire le croquis en plan coté propre, placer les cotes sur le dessin et ajouter les spots directement sur le schéma."
+      ? "Demande: retranscrire le croquis en plan coté propre, placer les cotes sur le dessin et ajouter les spots directement sur le schéma avec le symbole lumineux ⊗ au bon endroit."
       : ""
   ].filter(Boolean).join(" | ");
 
