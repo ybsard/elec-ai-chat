@@ -1709,6 +1709,7 @@ async function handleLightingPlan(req, res) {
       dimensions = "",
       height = "",
       type = "",
+      source = "",
       level = "debutant"
     } = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
 
@@ -1731,13 +1732,15 @@ async function handleLightingPlan(req, res) {
           "Tu es Voltia, un assistant français spécialisé dans l'éclairage domestique et le dimensionnement indicatif.",
           ...clearAnswerInstructions("la demande d'implantation lumineuse"),
           "Analyse le plan fourni et propose une implantation logique des éclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la pièce.",
+          "Si le plan est un croquis quadrillé dessiné à la main, retranscris-le en plan coté propre: murs, ouvertures, meubles ou zones utiles, cotes connues, hypothèse d'échelle du quadrillage et limites.",
           "Si l'échelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
           "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
           "Calcule une puissance indicative a partir des lumens, en rappelant qu'une LED courante donne environ 80 a 120 lm/W selon modele.",
           "Propose le type de luminaire adapté: spot encastré, suspension, plafonnier, rail, applique, ruban LED ou éclairage de tâche.",
           "Ne présente pas le résultat comme une étude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un électricien qualifié.",
-          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Lecture du plan, Hypothèses, Calcul indicatif, Implantation proposée, Plan en traits, Type et puissance des luminaires, Sécurité, Conclusion.",
-          "Dans Plan en traits, fais un petit plan ASCII simple avec les points lumineux notes L1, L2, L3 et les zones importantes."
+          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Lecture du plan, Hypothèses, Plan coté retranscrit, Calcul indicatif, Implantation proposée, Plan en traits, Type et puissance des luminaires, Sécurité, Conclusion.",
+          "Dans Plan coté retranscrit, reformule les dimensions utiles et les cotes manquantes à confirmer.",
+          "Dans Plan en traits, fais un plan ASCII simple avec les murs et les luminaires notes L1, L2, L3 aux emplacements logiques. Ajoute des distances approximatives aux murs quand les cotes permettent de les estimer."
         ].join(" "),
         input: [
           {
@@ -1750,8 +1753,9 @@ async function handleLightingPlan(req, res) {
                   `Dimensions connues: ${String(dimensions || "non précisées").slice(0, 120)}.`,
                   `Hauteur sous plafond: ${String(height || "non précisée").slice(0, 80)}.`,
                   `Type de luminaire souhaité: ${String(type || "non précisé").slice(0, 80)}.`,
+                  `Source du plan: ${String(source || "import").slice(0, 40)}.`,
                   `Niveau de détail demandé: ${String(level || "débutant").slice(0, 40)}.`,
-                  "Donne une proposition claire, lisible et exploitable pour placer les points lumineux."
+                  "Donne une proposition claire, lisible et exploitable pour placer les points lumineux. Si la source est sketch, traite l'image comme un croquis quadrillé à nettoyer en plan coté."
                 ].join(" ")
               },
               {

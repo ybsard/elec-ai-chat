@@ -386,14 +386,33 @@
 
             <div id="lightingPlanPreview" class="photo-preview" hidden></div>
 
+            <section class="lighting-sketch-pad" aria-label="Croquis quadrillé pour le plan d'éclairage">
+              <div class="lighting-sketch-heading">
+                <div>
+                  <strong>Croquis quadrillé</strong>
+                  <span>Dessine la pièce, les cloisons, portes, meubles et les cotes utiles.</span>
+                </div>
+                <div class="lighting-sketch-tools" aria-label="Outils de dessin">
+                  <button class="sketch-tool is-active" type="button" data-lighting-draw-mode="draw">Crayon</button>
+                  <button class="sketch-tool" type="button" data-lighting-draw-mode="erase">Gomme</button>
+                </div>
+              </div>
+              <canvas id="lightingSketchCanvas" width="900" height="560" tabindex="0" aria-label="Zone de dessin quadrillée"></canvas>
+              <div class="lighting-sketch-actions">
+                <button id="useLightingSketch" class="secondary-action" type="button">Utiliser ce croquis</button>
+                <button id="clearLightingSketch" class="secondary-action" type="button">Effacer</button>
+              </div>
+              <p id="lightingSketchStatus" class="sketch-status">Un carreau peut représenter 50 cm ou 1 m selon les cotes indiquées.</p>
+            </section>
+
             <div class="schema-row">
               <label class="field">
                 <span>Pièce / usage</span>
                 <input id="lightingRoom" type="text" placeholder="Ex: salon, cuisine, chambre">
               </label>
               <label class="field">
-                <span>Dimensions si connues</span>
-                <input id="lightingDimensions" type="text" placeholder="Ex: 4,2 m x 3,1 m">
+                <span>Dimensions / cotes principales</span>
+                <input id="lightingDimensions" type="text" placeholder="Ex: pièce 4,2 x 3,1 m ; 1 carreau = 50 cm">
               </label>
             </div>
 

@@ -1009,6 +1009,85 @@ textarea:focus {
   object-fit: cover;
 }
 
+.lighting-sketch-pad {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid rgba(29, 111, 143, 0.18);
+  border-radius: 8px;
+  background: #f8fbfb;
+}
+
+.lighting-sketch-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lighting-sketch-heading strong,
+.lighting-sketch-heading span {
+  display: block;
+}
+
+.lighting-sketch-heading strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.lighting-sketch-heading span,
+.sketch-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.lighting-sketch-tools,
+.lighting-sketch-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.lighting-sketch-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.sketch-tool {
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid rgba(29, 111, 143, 0.22);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #14556d;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.sketch-tool.is-active {
+  border-color: var(--warning);
+  background: #fff8e8;
+  color: var(--warning-dark);
+}
+
+#lightingSketchCanvas {
+  width: 100%;
+  aspect-ratio: 45 / 28;
+  display: block;
+  border: 1px solid rgba(159, 180, 193, 0.62);
+  border-radius: 8px;
+  background: #ffffff;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sketch-status {
+  margin: 0;
+}
+
 .secondary-action {
   border: 1px solid rgba(29, 111, 143, 0.26);
   background: #eef8fb;
@@ -2434,8 +2513,21 @@ textarea:disabled {
 
   .account-actions,
   .member-actions,
+  .lighting-sketch-heading,
   .plan-preview div {
     grid-template-columns: 1fr;
+  }
+
+  .lighting-sketch-heading {
+    display: grid;
+  }
+
+  .lighting-sketch-tools {
+    width: 100%;
+  }
+
+  .sketch-tool {
+    flex: 1;
   }
 
   .plan-preview div {

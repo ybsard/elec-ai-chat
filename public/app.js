@@ -84,6 +84,11 @@ const searchManual = document.querySelector("#searchManual");
 const lightingPlanInput = document.querySelector("#lightingPlanInput");
 const lightingPlanLabel = document.querySelector("#lightingPlanLabel");
 const lightingPlanPreview = document.querySelector("#lightingPlanPreview");
+const lightingSketchCanvas = document.querySelector("#lightingSketchCanvas");
+const lightingDrawModeButtons = document.querySelectorAll("[data-lighting-draw-mode]");
+const useLightingSketch = document.querySelector("#useLightingSketch");
+const clearLightingSketch = document.querySelector("#clearLightingSketch");
+const lightingSketchStatus = document.querySelector("#lightingSketchStatus");
 const lightingRoom = document.querySelector("#lightingRoom");
 const lightingDimensions = document.querySelector("#lightingDimensions");
 const lightingHeight = document.querySelector("#lightingHeight");
@@ -106,6 +111,7 @@ let selectedIssue = "Disjoncteur qui saute";
 let selectedPhotoDataUrl = "";
 let selectedManualPhotoDataUrl = "";
 let selectedLightingPlanDataUrl = "";
+let selectedLightingPlanSource = "";
 let selectedLevel = "debutant";
 let currentUser = null;
 let hasAccessPass = false;
@@ -116,6 +122,10 @@ let projectsCache = [];
 let allReportsCache = [];
 let activeProjectId = "";
 let fallbackChatFullscreen = false;
+let lightingSketchMode = "draw";
+let lightingSketchDrawing = false;
+let lightingSketchCurrentStroke = null;
+let lightingSketchStrokes = [];
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -453,6 +463,159 @@ function addLightingPlanMessage(details, dataUrl) {
   item.append(avatar, stack);
   messagesEl.append(item);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function getLightingSketchContext() {
+  return lightingSketchCanvas?.getContext("2d") || null;
+}
+
+function drawLightingSketchGrid(ctx) {
+  const width = lightingSketchCanvas.width;
+  const height = lightingSketchCanvas.height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  for (let x = 0; x <= width; x += 20) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.strokeStyle = x % 100 === 0 ? "#b7cbd6" : "#e4edf2";
+    ctx.lineWidth = x % 100 === 0 ? 1.4 : 1;
+    ctx.stroke();
+  }
+
+  for (let y = 0; y <= height; y += 20) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.strokeStyle = y % 100 === 0 ? "#b7cbd6" : "#e4edf2";
+    ctx.lineWidth = y % 100 === 0 ? 1.4 : 1;
+    ctx.stroke();
+  }
+}
+
+function drawLightingSketchStroke(ctx, stroke) {
+  if (!stroke?.points?.length) return;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = stroke.mode === "erase" ? "#ffffff" : "#10212b";
+  ctx.lineWidth = stroke.mode === "erase" ? 28 : 5;
+  ctx.beginPath();
+  stroke.points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+    } else {
+      ctx.lineTo(point.x, point.y);
+    }
+  });
+  ctx.stroke();
+  ctx.restore();
+}
+
+function renderLightingSketch() {
+  const ctx = getLightingSketchContext();
+  if (!ctx) return;
+  drawLightingSketchGrid(ctx);
+  lightingSketchStrokes.forEach((stroke) => drawLightingSketchStroke(ctx, stroke));
+}
+
+function getLightingSketchPoint(event) {
+  const rect = lightingSketchCanvas.getBoundingClientRect();
+  const scaleX = lightingSketchCanvas.width / rect.width;
+  const scaleY = lightingSketchCanvas.height / rect.height;
+  return {
+    x: Math.min(Math.max((event.clientX - rect.left) * scaleX, 0), lightingSketchCanvas.width),
+    y: Math.min(Math.max((event.clientY - rect.top) * scaleY, 0), lightingSketchCanvas.height)
+  };
+}
+
+function setLightingSketchMode(mode) {
+  lightingSketchMode = mode === "erase" ? "erase" : "draw";
+  lightingDrawModeButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.lightingDrawMode === lightingSketchMode);
+  });
+  if (lightingSketchStatus) {
+    lightingSketchStatus.textContent = lightingSketchMode === "erase"
+      ? "Gomme active. Efface les traits inutiles puis utilise le croquis comme plan."
+      : "Crayon actif. Dessine murs, portes, meubles, zones et cotes utiles.";
+  }
+}
+
+function useLightingSketchAsPlan({ silent = false } = {}) {
+  if (!lightingSketchCanvas || !lightingSketchStrokes.length) {
+    if (!silent) {
+      setHint("Dessine d'abord un croquis sur le quadrillage ou importe un plan.", true);
+      lightingSketchCanvas?.focus();
+    }
+    return false;
+  }
+
+  selectedLightingPlanDataUrl = lightingSketchCanvas.toDataURL("image/png");
+  selectedLightingPlanSource = "sketch";
+  lightingPlanLabel.textContent = "Croquis quadrillé";
+  lightingPlanPreview.hidden = false;
+  lightingPlanPreview.innerHTML = `<img src="${selectedLightingPlanDataUrl}" alt="Aperçu du croquis quadrillé">`;
+  if (lightingSketchStatus) {
+    lightingSketchStatus.textContent = "Croquis utilisé comme plan d'entrée pour Voltia.";
+  }
+  if (!silent) {
+    setHint("Croquis quadrillé prêt. Ajoute les cotes connues puis lance le dimensionnement.");
+  }
+  return true;
+}
+
+function clearLightingSketchCanvas() {
+  lightingSketchStrokes = [];
+  lightingSketchCurrentStroke = null;
+  lightingSketchDrawing = false;
+  renderLightingSketch();
+
+  if (selectedLightingPlanSource === "sketch") {
+    selectedLightingPlanDataUrl = "";
+    selectedLightingPlanSource = "";
+    lightingPlanLabel.textContent = "Choisir un plan";
+    lightingPlanPreview.hidden = true;
+    lightingPlanPreview.innerHTML = "";
+  }
+
+  if (lightingSketchStatus) {
+    lightingSketchStatus.textContent = "Croquis effacé. Redessine la pièce ou importe un plan.";
+  }
+  setHint("Croquis effacé.");
+}
+
+function startLightingSketchStroke(event) {
+  if (!lightingSketchCanvas) return;
+  event.preventDefault();
+  lightingSketchDrawing = true;
+  lightingSketchCurrentStroke = {
+    mode: lightingSketchMode,
+    points: [getLightingSketchPoint(event)]
+  };
+  lightingSketchCanvas.setPointerCapture?.(event.pointerId);
+}
+
+function moveLightingSketchStroke(event) {
+  if (!lightingSketchDrawing || !lightingSketchCurrentStroke) return;
+  event.preventDefault();
+  lightingSketchCurrentStroke.points.push(getLightingSketchPoint(event));
+  renderLightingSketch();
+  drawLightingSketchStroke(getLightingSketchContext(), lightingSketchCurrentStroke);
+}
+
+function endLightingSketchStroke(event) {
+  if (!lightingSketchDrawing || !lightingSketchCurrentStroke) return;
+  event.preventDefault();
+  lightingSketchDrawing = false;
+  lightingSketchCanvas.releasePointerCapture?.(event.pointerId);
+  lightingSketchStrokes.push(lightingSketchCurrentStroke);
+  lightingSketchCurrentStroke = null;
+  renderLightingSketch();
+  if (lightingSketchStatus) {
+    lightingSketchStatus.textContent = "Croquis modifié. Clique sur Utiliser ce croquis pour l'envoyer à Voltia.";
+  }
 }
 
 function addClimateSizingMessage(details) {
@@ -2653,20 +2816,28 @@ async function searchManualNotice() {
 
 async function analyzeLightingPlan() {
   if (!selectedLightingPlanDataUrl) {
-    hint.textContent = "Ajoute un plan avant de lancer le dimensionnement éclairage.";
-    lightingPlanInput.focus();
-    return;
+    const sketchReady = useLightingSketchAsPlan({ silent: true });
+    if (!sketchReady) {
+      hint.textContent = "Ajoute un plan ou dessine un croquis quadrillé avant de lancer le dimensionnement éclairage.";
+      lightingPlanInput.focus();
+      return;
+    }
   }
 
   const room = lightingRoom.value.trim();
   const dimensions = lightingDimensions.value.trim();
   const height = lightingHeight.value.trim();
   const type = lightingType.value;
+  const sourceLabel = selectedLightingPlanSource === "sketch" ? "croquis quadrillé dessiné à la main" : "plan importé";
   const details = [
+    `Source: ${sourceLabel}`,
     room ? `Piece: ${room}` : "",
     dimensions ? `Dimensions: ${dimensions}` : "",
     height ? `Hauteur: ${height}` : "",
-    type ? `Type souhaite: ${type}` : ""
+    type ? `Type souhaite: ${type}` : "",
+    selectedLightingPlanSource === "sketch"
+      ? "Demande: retranscrire le croquis en plan coté propre puis placer les luminaires aux emplacements logiques."
+      : ""
   ].filter(Boolean).join(" | ");
 
   addLightingPlanMessage(details, selectedLightingPlanDataUrl);
@@ -2685,6 +2856,7 @@ async function analyzeLightingPlan() {
         dimensions,
         height,
         type,
+        source: selectedLightingPlanSource,
         level: selectedLevel
       })
     });
@@ -3033,6 +3205,7 @@ lightingPlanInput.addEventListener("change", () => {
   const reader = new FileReader();
   reader.addEventListener("load", () => {
     selectedLightingPlanDataUrl = String(reader.result || "");
+    selectedLightingPlanSource = "upload";
     lightingPlanLabel.textContent = file.name;
     lightingPlanPreview.hidden = false;
     lightingPlanPreview.innerHTML = `<img src="${selectedLightingPlanDataUrl}" alt="Aperçu du plan">`;
@@ -3041,11 +3214,28 @@ lightingPlanInput.addEventListener("change", () => {
   reader.readAsDataURL(file);
 });
 
+lightingDrawModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setLightingSketchMode(button.dataset.lightingDrawMode);
+  });
+});
+
+lightingSketchCanvas?.addEventListener("pointerdown", startLightingSketchStroke);
+lightingSketchCanvas?.addEventListener("pointermove", moveLightingSketchStroke);
+lightingSketchCanvas?.addEventListener("pointerup", endLightingSketchStroke);
+lightingSketchCanvas?.addEventListener("pointercancel", endLightingSketchStroke);
+lightingSketchCanvas?.addEventListener("pointerleave", (event) => {
+  if (lightingSketchDrawing) endLightingSketchStroke(event);
+});
+useLightingSketch?.addEventListener("click", () => useLightingSketchAsPlan());
+clearLightingSketch?.addEventListener("click", clearLightingSketchCanvas);
+
 analyzePhoto.addEventListener("click", analyzePhotoToSchema);
 searchManual.addEventListener("click", searchManualNotice);
 analyzeLighting.addEventListener("click", analyzeLightingPlan);
 sizeClimate.addEventListener("click", sizeClimateSystem);
 
+renderLightingSketch();
 await refreshAccount();
 handleLandingState();
 const initialReportId = pageParams.get("report");
