@@ -1943,7 +1943,8 @@ async function handleHealth(req, res) {
 }
 
 async function serveStatic(req, res) {
-  const rawPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
+  const pathOnly = req.url.split("?")[0];
+  const rawPath = pathOnly === "/" ? "/index.html" : pathOnly;
   const decodedPath = decodeURIComponent(rawPath);
   const safePath = normalize(decodedPath).replace(/^[/\\]+/, "");
   const filePath = resolve(publicDir, safePath);
