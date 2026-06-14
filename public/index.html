@@ -123,6 +123,8 @@
 
             <div id="memberActions" class="member-actions" hidden>
               <button id="upgradeButton" class="primary-action" type="button">Passer Pro</button>
+              <button id="exportAccountButton" class="secondary-action" type="button">Exporter mes données</button>
+              <button id="deleteAccountButton" class="secondary-action danger-action" type="button">Supprimer mon compte</button>
               <button id="logoutButton" class="secondary-action" type="button">Déconnexion</button>
             </div>
 
@@ -542,6 +544,23 @@
               <button type="button" class="level-option" data-level="confirme">Confirmé</button>
               <button type="button" class="level-option" data-level="expert">Expert</button>
             </div>
+          </div>
+
+          <div class="report-toolbar" aria-label="Livrable professionnel">
+            <label class="field report-type-field">
+              <span>Livrable</span>
+              <select id="reportType">
+                <option value="diagnostic">Diagnostic de panne</option>
+                <option value="schema">Schéma indicatif</option>
+                <option value="notice">Recherche de notice</option>
+                <option value="eclairage">Plan d'éclairage</option>
+                <option value="clim">Dimensionnement climatisation</option>
+              </select>
+            </label>
+            <button id="showSampleReport" class="secondary-action report-sample-button" type="button">Voir un exemple</button>
+            <p id="saveTargetText" class="save-target-text" role="status" aria-live="polite">
+              Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.
+            </p>
           </div>
 
           <div id="messages" class="messages" aria-live="polite">

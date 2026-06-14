@@ -14,12 +14,18 @@ const anonDailyLimit = Number(process.env.ANON_DAILY_LIMIT || 5);
 const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
 const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const supabaseStateTable = String(process.env.SUPABASE_STATE_TABLE || "app_state");
+const supabaseStorageMode = String(process.env.SUPABASE_STORAGE_MODE || "state").trim().toLowerCase();
 const userStoreKey = "voltia_user_store";
 const sessionDays = 30;
 const anonymousUsage = new Map();
+const rateLimitBuckets = new Map();
 const openaiDefaultModel = "gpt-5.5";
 const openaiReasoningEfforts = new Set(["none", "low", "medium", "high", "xhigh"]);
 const openaiVerbosities = new Set(["low", "medium", "high"]);
+const maxJsonBodyBytes = positiveNumber(process.env.MAX_JSON_BODY_BYTES, 1_200_000);
+const maxImageJsonBodyBytes = positiveNumber(process.env.MAX_IMAGE_JSON_BODY_BYTES, 9_000_000);
+const maxStripeBodyBytes = positiveNumber(process.env.MAX_STRIPE_BODY_BYTES, 1_000_000);
+const maxDataImageBytes = positiveNumber(process.env.MAX_DATA_IMAGE_BYTES, 6_500_000);
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -39,6 +45,11 @@ function normalizeSupabaseUrl(rawUrl) {
 function normalizeOpenAIOption(value, allowed, fallback) {
   const normalized = String(value || "").trim().toLowerCase();
   return allowed.has(normalized) ? normalized : fallback;
+}
+
+function positiveNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function getOpenAIModel() {
@@ -146,7 +157,20 @@ function clearSessionCookie(req) {
 }
 
 function securityHeaders() {
+  const contentSecurityPolicy = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self' https://checkout.stripe.com",
+    "frame-ancestors 'self'"
+  ].join("; ");
+
   return {
+    "Content-Security-Policy": contentSecurityPolicy,
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "SAMEORIGIN",
@@ -281,6 +305,76 @@ function getClientKey(req) {
   return forwarded || req.socket.remoteAddress || "anonymous";
 }
 
+function getRequestPath(req) {
+  return String(req.url || "").split("?")[0] || "/";
+}
+
+function requestOriginAllowed(req) {
+  const method = String(req.method || "GET").toUpperCase();
+  const path = getRequestPath(req);
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS" || path === "/api/stripe-webhook") {
+    return true;
+  }
+
+  const origin = String(req.headers.origin || "").trim();
+  if (!origin) return true;
+
+  const host = String(req.headers.host || "").trim();
+  const protocol = isSecureRequest(req) ? "https" : "http";
+  const sameOrigin = `${protocol}://${host}`;
+  const configuredOrigins = String(process.env.APP_ORIGIN || process.env.PUBLIC_ORIGIN || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return new Set([sameOrigin, ...configuredOrigins]).has(origin);
+}
+
+function consumeRateLimit(req, scope, { limit, windowMs }) {
+  const now = Date.now();
+  const key = `${scope}:${getClientKey(req)}`;
+  const current = rateLimitBuckets.get(key);
+  if (!current || current.resetAt <= now) {
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: limit - 1, retryAfter: 0 };
+  }
+
+  if (current.count >= limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1000))
+    };
+  }
+
+  current.count += 1;
+  return {
+    allowed: true,
+    remaining: Math.max(0, limit - current.count),
+    retryAfter: 0
+  };
+}
+
+function requireRateLimit(req, res, scope, options) {
+  const result = consumeRateLimit(req, scope, options);
+  if (result.allowed) return true;
+
+  sendJsonWithHeaders(
+    res,
+    429,
+    { error: options.message || "Trop de tentatives. Attends un peu avant de recommencer." },
+    { "Retry-After": String(result.retryAfter) }
+  );
+  return false;
+}
+
+function sendError(res, error, fallback = "Erreur serveur.") {
+  const status = Number(error?.statusCode || error?.status || 500);
+  sendJson(res, status >= 400 && status < 600 ? status : 500, {
+    error: error?.message || fallback
+  });
+}
+
 async function consumeUsage(req, res, feature) {
   const auth = await getSessionUser(req);
   const date = todayKey();
@@ -343,12 +437,30 @@ function extractResponseText(data) {
   return parts.join("\n").trim();
 }
 
-async function readRequestJson(req) {
+async function readLimitedBody(req, limitBytes) {
   const chunks = [];
+  let totalBytes = 0;
   for await (const chunk of req) {
+    totalBytes += chunk.length;
+    if (totalBytes > limitBytes) {
+      const error = new Error("Requête trop volumineuse.");
+      error.statusCode = 413;
+      throw error;
+    }
     chunks.push(chunk);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+  return Buffer.concat(chunks);
+}
+
+async function readRequestJson(req, { limitBytes = maxJsonBodyBytes } = {}) {
+  const rawBody = await readLimitedBody(req, limitBytes);
+  try {
+    return JSON.parse(rawBody.toString("utf8") || "{}");
+  } catch {
+    const error = new Error("JSON de requête invalide.");
+    error.statusCode = 400;
+    throw error;
+  }
 }
 
 async function readUpstreamJson(response) {
@@ -373,7 +485,7 @@ function normalizeSourceUrl(rawUrl) {
   }
 
   if (!["http:", "https:"].includes(url.protocol)) {
-    throw new Error("La source doit etre une URL web en http ou https.");
+    throw new Error("La source doit être une URL web en http ou https.");
   }
 
   if (url.username || url.password) {
@@ -424,7 +536,7 @@ async function readSourcePage(rawUrl) {
 
   const contentType = String(response.headers.get("content-type") || "").toLowerCase();
   if (!contentType.includes("text/html") && !contentType.includes("text/plain") && !contentType.includes("application/xhtml")) {
-    throw new Error("La source doit etre une page web lisible en texte.");
+    throw new Error("La source doit être une page web lisible en texte.");
   }
 
   const text = cleanSourceText(await response.text());
@@ -435,7 +547,36 @@ async function readSourcePage(rawUrl) {
   return { url: sourceUrl, text };
 }
 
+function isSupportedImageDataUrl(value) {
+  return /^data:image\/(?:png|jpe?g|webp);base64,/i.test(String(value || ""));
+}
+
+function dataImageByteLength(value) {
+  const payload = String(value || "").split(",", 2)[1] || "";
+  return Math.ceil((payload.length * 3) / 4);
+}
+
+function assertSupportedImageDataUrl(value, label = "Image") {
+  if (!isSupportedImageDataUrl(value)) {
+    const error = new Error(`${label} manquante ou format non supporté.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (dataImageByteLength(value) > maxDataImageBytes) {
+    const error = new Error(`${label} trop lourde. Limite serveur: ${Math.round(maxDataImageBytes / 1024 / 1024)} Mo.`);
+    error.statusCode = 413;
+    throw error;
+  }
+}
+
 async function handleSignup(req, res) {
+  if (!requireRateLimit(req, res, "auth:signup", {
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+    message: "Trop de créations de compte depuis cette adresse. Réessaie plus tard."
+  })) return;
+
   try {
     const { name = "", email, password } = await readRequestJson(req);
     const cleanName = String(name || "").trim().slice(0, 80);
@@ -482,11 +623,17 @@ async function handleSignup(req, res) {
 
     sendJsonWithHeaders(res, 201, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(req, token) });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
 async function handleLogin(req, res) {
+  if (!requireRateLimit(req, res, "auth:login", {
+    limit: 8,
+    windowMs: 15 * 60 * 1000,
+    message: "Trop de tentatives de connexion. Attends quelques minutes avant de recommencer."
+  })) return;
+
   try {
     const { email, password } = await readRequestJson(req);
     const cleanEmail = normalizeEmail(email);
@@ -508,7 +655,7 @@ async function handleLogin(req, res) {
 
     sendJsonWithHeaders(res, 200, { user: publicUser(user) }, { "Set-Cookie": sessionCookie(req, token) });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -522,6 +669,12 @@ async function handleLogout(req, res) {
 }
 
 async function handleAccessCode(req, res) {
+  if (!requireRateLimit(req, res, "auth:access-code", {
+    limit: 6,
+    windowMs: 15 * 60 * 1000,
+    message: "Trop de tentatives de code d'accès. Attends quelques minutes avant de recommencer."
+  })) return;
+
   try {
     const { code = "" } = await readRequestJson(req);
     const expectedCode = String(process.env.ACCESS_CODE || "").trim();
@@ -557,7 +710,7 @@ async function handleAccessCode(req, res) {
       { "Set-Cookie": sessionCookie(req, token) }
     );
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -571,12 +724,84 @@ async function handleMe(req, res) {
   });
 }
 
+function privateUserExport(user) {
+  return {
+    id: user.id,
+    name: user.name || "",
+    email: user.email || "",
+    plan: user.plan || "free",
+    subscriptionStatus: user.subscriptionStatus || "free",
+    usage: user.usage || null,
+    lastFeature: user.lastFeature || "",
+    createdAt: user.createdAt || "",
+    updatedAt: user.updatedAt || "",
+    stripeCustomerId: user.stripeCustomerId || "",
+    stripeSubscriptionId: user.stripeSubscriptionId || "",
+    projects: Array.isArray(user.projects) ? user.projects : [],
+    reports: Array.isArray(user.reports) ? user.reports : []
+  };
+}
+
+async function handleAccountExport(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour exporter tes données." });
+    return;
+  }
+
+  sendJsonWithHeaders(
+    res,
+    200,
+    {
+      app: "Voltia",
+      exportVersion: 1,
+      generatedAt: new Date().toISOString(),
+      user: privateUserExport(auth.user)
+    },
+    {
+      "Cache-Control": "no-store",
+      "Content-Disposition": `attachment; filename="voltia-donnees-${auth.user.id}.json"`
+    }
+  );
+}
+
+async function handleDeleteAccount(req, res) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    sendJson(res, 401, { error: "Connecte-toi pour supprimer ton compte." });
+    return;
+  }
+
+  const deletedUser = auth.user;
+  auth.store.users = auth.store.users.filter((user) => user.id !== deletedUser.id);
+  for (const [token, session] of Object.entries(auth.store.sessions || {})) {
+    if (token === auth.token || session?.userId === deletedUser.id) {
+      delete auth.store.sessions[token];
+    }
+  }
+
+  await saveUserStore(auth.store);
+  sendJsonWithHeaders(
+    res,
+    200,
+    {
+      ok: true,
+      deletedUserId: deletedUser.id,
+      billingNotice: deletedUser.stripeSubscriptionId
+        ? "Le compte Voltia local est supprimé. Si un abonnement Stripe existe encore, il doit être annulé dans Stripe."
+        : ""
+    },
+    { "Set-Cookie": clearSessionCookie(req), "Cache-Control": "no-store" }
+  );
+}
+
 function publicReport(report) {
   return {
     id: report.id,
     title: report.title || "Rapport Voltia",
     preview: report.preview || "",
     createdAt: report.createdAt || "",
+    exportVersion: report.exportVersion || 1,
     projectId: report.projectId || "",
     projectName: report.projectName || ""
   };
@@ -700,6 +925,39 @@ async function handleGetReport(req, res, reportId) {
   });
 }
 
+async function handleExportReportHtml(req, res, reportId) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    res.writeHead(401, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+    res.end("Connecte-toi pour exporter ce rapport.");
+    return;
+  }
+
+  const reports = Array.isArray(auth.user.reports) ? auth.user.reports : [];
+  const report = reports.find((item) => item.id === reportId);
+  if (!report) {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+    res.end("Rapport introuvable.");
+    return;
+  }
+
+  const safeTitle = String(report.title || "rapport-voltia")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "rapport-voltia";
+  const html = String(report.html || "");
+  res.writeHead(200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Content-Disposition": `inline; filename="${safeTitle}.html"`,
+    "Cache-Control": "no-store",
+    ...securityHeaders()
+  });
+  res.end(html || "<!doctype html><meta charset=\"utf-8\"><title>Rapport Voltia</title><p>Rapport vide.</p>");
+}
+
 async function handleSaveReport(req, res) {
   const auth = await getSessionUser(req);
   if (!auth.user) {
@@ -756,6 +1014,7 @@ async function handleSaveReport(req, res) {
       html: cleanHtml,
       conversation: cleanConversation,
       projectId: linkedProject?.id || "",
+      exportVersion: 2,
       createdAt: new Date().toISOString()
     };
 
@@ -774,7 +1033,7 @@ async function handleSaveReport(req, res) {
       projects: listUserProjects(auth.user)
     });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -868,7 +1127,7 @@ async function handleCreateProject(req, res) {
       projects: listUserProjects(auth.user)
     });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -883,6 +1142,12 @@ function stripeFormBody(values) {
 }
 
 async function handleCreateCheckout(req, res) {
+  if (!requireRateLimit(req, res, "billing:checkout", {
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+    message: "Trop de tentatives de paiement. Attends quelques minutes avant de recommencer."
+  })) return;
+
   const auth = await getSessionUser(req);
   if (!auth.user) {
     sendJson(res, 401, { error: "Connecte-toi avant de passer en Pro." });
@@ -925,16 +1190,12 @@ async function handleCreateCheckout(req, res) {
 
     sendJson(res, 200, { url: data.url });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
-async function readRawBody(req) {
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
+async function readRawBody(req, { limitBytes = maxStripeBodyBytes } = {}) {
+  return readLimitedBody(req, limitBytes);
 }
 
 function verifyStripeSignature(rawBody, signature, secret) {
@@ -958,41 +1219,45 @@ async function handleStripeWebhook(req, res) {
     return;
   }
 
-  const rawBody = await readRawBody(req);
-  if (!verifyStripeSignature(rawBody, req.headers["stripe-signature"], process.env.STRIPE_WEBHOOK_SECRET)) {
-    sendJson(res, 400, { error: "Signature Stripe invalide." });
-    return;
-  }
-
-  const event = JSON.parse(rawBody.toString("utf8"));
-  const store = await loadUserStore();
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data?.object || {};
-    const userId = session.client_reference_id || session.metadata?.userId;
-    const user = store.users.find((item) => item.id === userId);
-    if (user) {
-      user.plan = "pro";
-      user.subscriptionStatus = "active";
-      user.stripeCustomerId = session.customer;
-      user.stripeSubscriptionId = session.subscription;
-      user.updatedAt = new Date().toISOString();
-      await saveUserStore(store);
+  try {
+    const rawBody = await readRawBody(req);
+    if (!verifyStripeSignature(rawBody, req.headers["stripe-signature"], process.env.STRIPE_WEBHOOK_SECRET)) {
+      sendJson(res, 400, { error: "Signature Stripe invalide." });
+      return;
     }
-  }
 
-  if (event.type === "customer.subscription.deleted") {
-    const subscription = event.data?.object || {};
-    const user = store.users.find((item) => item.stripeSubscriptionId === subscription.id);
-    if (user) {
-      user.plan = "free";
-      user.subscriptionStatus = "canceled";
-      user.updatedAt = new Date().toISOString();
-      await saveUserStore(store);
+    const event = JSON.parse(rawBody.toString("utf8"));
+    const store = await loadUserStore();
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data?.object || {};
+      const userId = session.client_reference_id || session.metadata?.userId;
+      const user = store.users.find((item) => item.id === userId);
+      if (user) {
+        user.plan = "pro";
+        user.subscriptionStatus = "active";
+        user.stripeCustomerId = session.customer;
+        user.stripeSubscriptionId = session.subscription;
+        user.updatedAt = new Date().toISOString();
+        await saveUserStore(store);
+      }
     }
-  }
 
-  sendJson(res, 200, { received: true });
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data?.object || {};
+      const user = store.users.find((item) => item.stripeSubscriptionId === subscription.id);
+      if (user) {
+        user.plan = "free";
+        user.subscriptionStatus = "canceled";
+        user.updatedAt = new Date().toISOString();
+        await saveUserStore(store);
+      }
+    }
+
+    sendJson(res, 200, { received: true });
+  } catch (error) {
+    sendError(res, error, "Webhook Stripe illisible.");
+  }
 }
 
 function normalizePromptText(value) {
@@ -1014,6 +1279,36 @@ function latestUserMessage(messages = []) {
 
 function isHighRiskOperationalRequest(messages = []) {
   const text = normalizePromptText(latestUserMessage(messages));
+  const evChargingPlanning = textHasAny(text, [
+    "borne de recharge",
+    "irve"
+  ]) && textHasAny(text, [
+    "facteur",
+    "facteurs",
+    "verifier",
+    "dimensionnement",
+    "dimensionner",
+    "section de cable",
+    "chute de tension",
+    "differentiel",
+    "protection"
+  ]) && !textHasAny(text, [
+    "schema de branchement",
+    "schema de raccordement",
+    "couleurs",
+    "phase",
+    "neutre",
+    "terre",
+    "etapes",
+    "procedure",
+    "raccorde",
+    "raccordement",
+    "branche",
+    "brancher",
+    "repiqu"
+  ]);
+  if (evChargingPlanning) return false;
+
   const actionDemand = textHasAny(text, [
     "branche",
     "branchement",
@@ -1242,7 +1537,7 @@ async function handleChat(req, res) {
 
     sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu générer de réponse." });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -1258,11 +1553,8 @@ async function handlePhotoSchema(req, res) {
     const usage = await consumeUsage(req, res, "photo-schema");
     if (!usage.allowed) return;
 
-    const { image, context = "" } = await readRequestJson(req);
-    if (!image || !String(image).startsWith("data:image/")) {
-      sendJson(res, 400, { error: "Image manquante ou format non supporte." });
-      return;
-    }
+    const { image, context = "" } = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
+    assertSupportedImageDataUrl(image);
 
     const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -1309,7 +1601,7 @@ async function handlePhotoSchema(req, res) {
 
     sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu analyser cette photo." });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -1325,9 +1617,12 @@ async function handleManualSearch(req, res) {
     const usage = await consumeUsage(req, res, "manual-search");
     if (!usage.allowed) return;
 
-    const { reference = "", image = "" } = await readRequestJson(req);
+    const { reference = "", image = "" } = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
     const cleanReference = String(reference || "").slice(0, 300).trim();
-    const hasImage = image && String(image).startsWith("data:image/");
+    const hasImage = Boolean(image);
+    if (hasImage) {
+      assertSupportedImageDataUrl(image, "Photo de référence");
+    }
 
     if (!cleanReference && !hasImage) {
       sendJson(res, 400, { error: "Ajoute une référence ou une photo pour rechercher une notice." });
@@ -1392,7 +1687,7 @@ async function handleManualSearch(req, res) {
 
     sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu trouver de notice fiable." });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -1415,12 +1710,9 @@ async function handleLightingPlan(req, res) {
       height = "",
       type = "",
       level = "debutant"
-    } = await readRequestJson(req);
+    } = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
 
-    if (!image || !String(image).startsWith("data:image/")) {
-      sendJson(res, 400, { error: "Plan manquant ou format non supporte." });
-      return;
-    }
+    assertSupportedImageDataUrl(image, "Plan");
 
     const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -1480,7 +1772,7 @@ async function handleLightingPlan(req, res) {
 
     sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cet éclairage." });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -1624,7 +1916,7 @@ async function handleClimateSizing(req, res) {
       estimate
     });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Erreur serveur." });
+    sendError(res, error);
   }
 }
 
@@ -1643,6 +1935,7 @@ async function handleHealth(req, res) {
     ok: storageReady,
     app: "Voltia",
     storage,
+    storageMode: supabaseStorageMode,
     openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
     stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID),
     checkedAt: new Date().toISOString()
@@ -1674,100 +1967,123 @@ async function serveStatic(req, res) {
   }
 }
 
-createServer(async (req, res) => {
-  if (req.method === "GET" && req.url === "/api/health") {
+async function requestListener(req, res) {
+  const path = getRequestPath(req);
+
+  if (!requestOriginAllowed(req)) {
+    sendJson(res, 403, { error: "Origine de requête non autorisée." });
+    return;
+  }
+
+  if (req.method === "GET" && path === "/api/health") {
     await handleHealth(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/auth/signup") {
+  if (req.method === "POST" && path === "/api/auth/signup") {
     await handleSignup(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/auth/login") {
+  if (req.method === "POST" && path === "/api/auth/login") {
     await handleLogin(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/auth/logout") {
+  if (req.method === "POST" && path === "/api/auth/logout") {
     await handleLogout(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/access-code") {
+  if (req.method === "POST" && path === "/api/access-code") {
     await handleAccessCode(req, res);
     return;
   }
 
-  if (req.method === "GET" && req.url === "/api/auth/me") {
+  if (req.method === "GET" && path === "/api/auth/me") {
     await handleMe(req, res);
     return;
   }
 
-  if (req.method === "GET" && req.url === "/api/reports") {
+  if (req.method === "GET" && path === "/api/account/export") {
+    await handleAccountExport(req, res);
+    return;
+  }
+
+  if (req.method === "DELETE" && path === "/api/account") {
+    await handleDeleteAccount(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && path === "/api/reports") {
     await handleListReports(req, res);
     return;
   }
 
-  if (req.method === "GET" && req.url === "/api/projects") {
+  if (req.method === "GET" && path === "/api/projects") {
     await handleListProjects(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/projects") {
+  if (req.method === "POST" && path === "/api/projects") {
     await handleCreateProject(req, res);
     return;
   }
 
-  if (req.method === "GET" && req.url.startsWith("/api/projects/")) {
-    const projectId = decodeURIComponent(req.url.split("?")[0].replace("/api/projects/", ""));
+  if (req.method === "GET" && path.startsWith("/api/projects/")) {
+    const projectId = decodeURIComponent(path.replace("/api/projects/", ""));
     await handleGetProject(req, res, projectId);
     return;
   }
 
-  if (req.method === "GET" && req.url.startsWith("/api/reports/")) {
-    const reportId = decodeURIComponent(req.url.split("?")[0].replace("/api/reports/", ""));
+  const reportExportMatch = /^\/api\/reports\/([^/]+)\/export\.html$/.exec(path);
+  if (req.method === "GET" && reportExportMatch) {
+    await handleExportReportHtml(req, res, decodeURIComponent(reportExportMatch[1]));
+    return;
+  }
+
+  if (req.method === "GET" && path.startsWith("/api/reports/")) {
+    const reportId = decodeURIComponent(path.replace("/api/reports/", ""));
     await handleGetReport(req, res, reportId);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/reports") {
+  if (req.method === "POST" && path === "/api/reports") {
     await handleSaveReport(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/billing/checkout") {
+  if (req.method === "POST" && path === "/api/billing/checkout") {
     await handleCreateCheckout(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/stripe-webhook") {
+  if (req.method === "POST" && path === "/api/stripe-webhook") {
     await handleStripeWebhook(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/chat") {
+  if (req.method === "POST" && path === "/api/chat") {
     await handleChat(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/photo-schema") {
+  if (req.method === "POST" && path === "/api/photo-schema") {
     await handlePhotoSchema(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/manual-search") {
+  if (req.method === "POST" && path === "/api/manual-search") {
     await handleManualSearch(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/lighting-plan") {
+  if (req.method === "POST" && path === "/api/lighting-plan") {
     await handleLightingPlan(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/climate-sizing") {
+  if (req.method === "POST" && path === "/api/climate-sizing") {
     await handleClimateSizing(req, res);
     return;
   }
@@ -1779,6 +2095,21 @@ createServer(async (req, res) => {
 
   res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
   res.end("Methode non autorisee");
-}).listen(port, () => {
-  console.log(`Voltia chat site: http://localhost:${port}`);
-});
+}
+
+if (process.env.NODE_ENV !== "test") {
+  createServer(requestListener).listen(port, () => {
+    console.log(`Voltia chat site: http://localhost:${port}`);
+  });
+}
+
+export {
+  assertSupportedImageDataUrl,
+  clearAnswerInstructions,
+  estimateClimateSizing,
+  highRiskOperationalReply,
+  isHighRiskOperationalRequest,
+  normalizeSourceUrl,
+  requestListener,
+  requestedDetailLevel
+};

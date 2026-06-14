@@ -40,6 +40,8 @@ const signupButton = document.querySelector("#signupButton");
 const loginButton = document.querySelector("#loginButton");
 const memberActions = document.querySelector("#memberActions");
 const upgradeButton = document.querySelector("#upgradeButton");
+const exportAccountButton = document.querySelector("#exportAccountButton");
+const deleteAccountButton = document.querySelector("#deleteAccountButton");
 const logoutButton = document.querySelector("#logoutButton");
 const reportHistory = document.querySelector("#reportHistory");
 const reportHistoryTitle = document.querySelector("#reportHistoryTitle");
@@ -738,7 +740,8 @@ function buildReportDocument() {
               <div class="meta">
                 Généré le ${escapeHtml(generatedAt)}<br>
                 Type : ${escapeHtml(reportLabel)}<br>
-                Niveau : ${escapeHtml(selectedLevel)}
+                Niveau : ${escapeHtml(selectedLevel)}<br>
+                Version export : 2
               </div>
             </div>
             <h1>${reportTitle}</h1>
@@ -813,7 +816,7 @@ function getVisibleConversation() {
 }
 
 function exportConversationReport() {
-  const hasConversation = messagesEl.querySelectorAll(".message").length > 0;
+  const hasConversation = getVisibleConversation().length > 0;
   if (!hasConversation) {
     setHint("Lance d'abord une conversation avant d'exporter un rapport.", true);
     return;
@@ -832,7 +835,7 @@ function exportConversationReport() {
     reportWindow.focus();
     reportWindow.print();
   }, 350);
-  hint.textContent = "Rapport ouvert. Choisis Enregistrer en PDF dans la fenetre d'impression.";
+  hint.textContent = "Rapport ouvert. Choisis Enregistrer en PDF dans la fenêtre d'impression.";
 }
 
 function showProfessionalReportExample() {
@@ -913,19 +916,17 @@ function renderReportHistory(reports = [], options = {}) {
   }
 
   reports.forEach((report) => {
-    const item = document.createElement("a");
+    const item = document.createElement("article");
     item.className = "report-history-item";
-    item.href = `/?report=${encodeURIComponent(report.id)}`;
-    item.dataset.reportId = report.id;
     const date = report.createdAt ? new Date(report.createdAt).toLocaleDateString("fr-FR") : "Date inconnue";
     const type = String(report.title || "").split(" - ")[0] || "Rapport Voltia";
     const projectLabel = report.projectName ? ` · Dossier ${escapeHtml(report.projectName)}` : "";
     item.innerHTML = `
-      <span class="report-item-main">
+      <a class="report-item-main" href="/?report=${encodeURIComponent(report.id)}" data-report-id="${escapeHtml(report.id)}">
         <strong>${escapeHtml(report.title || "Rapport Voltia")}</strong>
         <small><b>${escapeHtml(type)}</b>${projectLabel} · ${escapeHtml(date)} · ${escapeHtml(report.preview || "Rapport sauvegardé")}</small>
-      </span>
-      <span class="report-item-action">Ouvrir</span>
+      </a>
+      <a class="report-item-action" href="/api/reports/${encodeURIComponent(report.id)}/export.html" target="_blank" rel="noopener noreferrer">Exporter</a>
     `;
     reportList.append(item);
   });
@@ -1213,7 +1214,7 @@ async function createProject() {
   }
 
   if (currentUser.plan !== "pro") {
-    showProjectsUpgradePrompt("Les dossiers par chantier sont reserves a Voltia Pro.");
+    showProjectsUpgradePrompt("Les dossiers par chantier sont réservés à Voltia Pro.");
     return;
   }
 
@@ -1344,6 +1345,8 @@ function updateAccountUi(user, meta = {}) {
     signupFields.hidden = true;
     memberActions.hidden = false;
     upgradeButton.hidden = true;
+    exportAccountButton.hidden = true;
+    deleteAccountButton.hidden = true;
     logoutButton.hidden = false;
     renderReportHistory([]);
     renderProjects([]);
@@ -1357,6 +1360,8 @@ function updateAccountUi(user, meta = {}) {
     signupFields.hidden = true;
     memberActions.hidden = true;
     upgradeButton.hidden = true;
+    exportAccountButton.hidden = true;
+    deleteAccountButton.hidden = true;
     logoutButton.hidden = true;
     renderReportHistory([]);
     renderProjects([]);
@@ -1378,6 +1383,8 @@ function updateAccountUi(user, meta = {}) {
   signupFields.hidden = true;
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
+  exportAccountButton.hidden = false;
+  deleteAccountButton.hidden = false;
   logoutButton.hidden = false;
   reportHistory.hidden = false;
   updateSaveTargetUi();
@@ -1499,7 +1506,7 @@ function handleBarrierResponse(response, data, fallbackError) {
 
   if (response.status === 402 && data.upgradeRequired && data.feature === "projects") {
     setAccountNotice(errorMessage);
-    setHint("Les dossiers par chantier sont reserves a Voltia Pro.", true);
+    setHint("Les dossiers par chantier sont réservés à Voltia Pro.", true);
     showProjectsUpgradePrompt(errorMessage);
     return true;
   }
@@ -1621,6 +1628,67 @@ async function logoutAccount() {
   renderReportHistory([]);
   hideConversionBanner();
   setHint("Tu es deconnecte.");
+}
+
+async function exportAccountData() {
+  if (!currentUser) {
+    setAccountNotice("Connecte-toi pour exporter tes donnees.");
+    return;
+  }
+
+  exportAccountButton.disabled = true;
+  setHint("Export des donnees du compte...");
+
+  try {
+    const response = await fetch("/api/account/export");
+    const data = await readJsonResponse(response);
+    if (handleBarrierResponse(response, data, "Export impossible.")) return;
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `voltia-donnees-${data.user?.id || "compte"}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setHint("Export JSON genere. Conserve-le dans un emplacement sur.");
+  } catch (error) {
+    setAccountNotice(error.message);
+    setHint(error.message, true);
+  } finally {
+    exportAccountButton.disabled = false;
+  }
+}
+
+async function deleteAccount() {
+  if (!currentUser) return;
+
+  const confirmed = window.confirm(
+    "Supprimer ton compte Voltia, tes rapports et tes dossiers de cette application ? Cette action est definitive."
+  );
+  if (!confirmed) return;
+
+  deleteAccountButton.disabled = true;
+  setAccountNotice("Suppression du compte en cours...");
+
+  try {
+    const response = await fetch("/api/account", { method: "DELETE" });
+    const data = await readJsonResponse(response);
+    if (handleBarrierResponse(response, data, "Suppression impossible.")) return;
+
+    updateAccountUi(null, { anonymousDailyLimit: 5 });
+    renderReportHistory([]);
+    renderProjects([]);
+    hideConversionBanner();
+    setHint(data.billingNotice || "Compte supprime. Les donnees locales Voltia ont ete effacees.");
+  } catch (error) {
+    setAccountNotice(error.message);
+    setHint(error.message, true);
+  } finally {
+    deleteAccountButton.disabled = false;
+  }
 }
 
 async function submitAccessCode() {
@@ -2701,7 +2769,7 @@ async function sizeClimateSystem() {
     hint.textContent = "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner la clim pour l'instant: ${error.message}`);
-    hint.textContent = "Verifie les donnees ou les logs Render si le site est en ligne.";
+    hint.textContent = "Vérifie les données ou les logs Render si le site est en ligne.";
   } finally {
     sizeClimate.disabled = false;
   }
@@ -2867,6 +2935,8 @@ signupButton.addEventListener("click", () => submitAuth("signup"));
 loginButton.addEventListener("click", () => submitAuth("login"));
 accessCodeButton.addEventListener("click", submitAccessCode);
 logoutButton.addEventListener("click", logoutAccount);
+exportAccountButton?.addEventListener("click", exportAccountData);
+deleteAccountButton?.addEventListener("click", deleteAccount);
 upgradeButton.addEventListener("click", startCheckout);
 
 startDiagnostic.addEventListener("click", async () => {
@@ -2901,7 +2971,7 @@ photoInput.addEventListener("change", () => {
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
-    hint.textContent = "Le fichier doit etre une image.";
+    hint.textContent = "Le fichier doit être une image.";
     return;
   }
 
@@ -2926,7 +2996,7 @@ manualPhotoInput.addEventListener("change", () => {
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
-    hint.textContent = "Le fichier doit etre une image.";
+    hint.textContent = "Le fichier doit être une image.";
     return;
   }
 
@@ -2951,7 +3021,7 @@ lightingPlanInput.addEventListener("change", () => {
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
-    hint.textContent = "Le fichier doit etre une image.";
+    hint.textContent = "Le fichier doit être une image.";
     return;
   }
 

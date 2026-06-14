@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "migrate:supabase": "node scripts/migrate-supabase-relational.js",
+    "test": "node --test"
   }
 }

@@ -14,6 +14,16 @@ services:
         value: production
       - key: SUPABASE_STATE_TABLE
         value: app_state
+      - key: SUPABASE_STORAGE_MODE
+        value: state
+      - key: APP_ORIGIN
+        value: https://elec-ai-chat.onrender.com
+      - key: MAX_JSON_BODY_BYTES
+        value: "1200000"
+      - key: MAX_IMAGE_JSON_BODY_BYTES
+        value: "9000000"
+      - key: MAX_DATA_IMAGE_BYTES
+        value: "6500000"
       - key: FREE_DAILY_LIMIT
         value: "10"
       - key: ANON_DAILY_LIMIT

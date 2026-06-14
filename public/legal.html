@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Voltia - Sécurité et mentions</title>
-    <meta name="description" content="Consignes de sécurité, conditions d'utilisation, confidentialité et informations légales du service Voltia.">
+    <title>Voltia - Securite, confidentialite et conditions</title>
+    <meta name="description" content="Consignes de securite, conditions d'utilisation, confidentialite, donnees personnelles et informations legales du service Voltia.">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -19,100 +19,135 @@
             <span>Voltia</span>
           </a>
           <div class="topbar-actions">
-            <a href="/">Retour à l'assistant</a>
-            <span class="pill">Sécurité</span>
+            <a href="/">Retour a l'assistant</a>
+            <a href="/pro.html">Offre Pro</a>
+            <span class="pill">Securite</span>
           </div>
         </nav>
 
         <div class="legal-hero">
           <p class="eyebrow">Informations importantes</p>
-          <h1>Sécurité, confidentialité et conditions Voltia.</h1>
+          <h1>Securite, confidentialite et conditions Voltia.</h1>
           <p class="intro">
-            Voltia aide à comprendre, diagnostiquer et préparer un projet électrique. Les réponses,
-            schémas et dimensionnements restent indicatifs et ne remplacent pas un professionnel qualifié.
+            Voltia aide a comprendre une situation electrique, preparer un rapport indicatif
+            et mieux dialoguer avec un professionnel. Le service ne certifie jamais une installation
+            et ne remplace pas un electricien qualifie.
           </p>
         </div>
       </header>
 
-      <section class="legal-summary" aria-label="Résumé légal Voltia">
+      <section class="legal-summary" aria-label="Resume legal Voltia">
         <article class="legal-panel legal-identity">
           <div>
-            <span class="legal-kicker">Éditeur</span>
+            <span class="legal-kicker">Editeur</span>
             <strong>Yanis Barthe</strong>
             <span>Contact: yanisbarthe.lb@gmail.com</span>
           </div>
           <div>
             <span class="legal-kicker">Service</span>
             <strong>Voltia</strong>
-            <span>Assistant IA indicatif pour l'électricité</span>
+            <span>Assistant IA indicatif pour electricite domestique et petit tertiaire</span>
           </div>
           <div>
-            <span class="legal-kicker">Hébergement</span>
-            <strong>Render</strong>
-            <span>Paiements gérés par Stripe</span>
+            <span class="legal-kicker">Hebergement et paiement</span>
+            <strong>Render, Supabase, Stripe</strong>
+            <span>Les paiements sont traites par Stripe. Les donnees applicatives peuvent etre stockees via Supabase.</span>
           </div>
         </article>
       </section>
 
-      <section class="legal-grid" aria-label="Informations légales et sécurité">
+      <section class="legal-grid" aria-label="Informations legales et securite">
         <article class="legal-panel legal-panel-primary">
-          <h2>Sécurité électrique</h2>
+          <h2>Securite electrique</h2>
           <p>
-            Ne travaille jamais sous tension. Coupe l'alimentation au disjoncteur général,
-            vérifie l'absence de tension avec un appareil adapté et fais valider toute intervention
-            par un électricien qualifié.
+            Ne travaille jamais sous tension. Coupe l'alimentation au disjoncteur general,
+            verifie l'absence de tension avec un appareil adapte et n'interviens pas si tu as un doute.
           </p>
           <p>
-            Les schémas générés par Voltia sont des schémas de principe. Ils doivent être adaptés
-            au logement, au tableau, aux protections et à la norme applicable.
+            Toute odeur de brule, fumee, echauffement, humidite, fil denude, declenchement repete
+            ou tableau ouvert doit etre traite comme un signal de danger: coupe l'alimentation si possible
+            et contacte un professionnel qualifie.
           </p>
         </article>
 
         <article class="legal-panel">
-          <h2>Conditions d'utilisation</h2>
+          <h2>Nature du service</h2>
           <p>
-            Voltia peut se tromper, manquer de contexte ou simplifier une situation. Les conseils
-            ne constituent pas une garantie de conformité, de sécurité ou de résultat.
+            Voltia fournit des explications, hypotheses, checklists, schemas de principe, estimations
+            et rapports indicatifs. Les reponses peuvent contenir des erreurs, manquer de contexte
+            ou devenir obsoletes.
           </p>
           <p>
-            Pour les travaux réels, la NF C 15-100, les notices fabricants et les prescriptions
-            locales doivent toujours être vérifiées sur les sources officielles.
+            Les reponses ne constituent ni un diagnostic certifie, ni une attestation de conformite,
+            ni une etude technique opposable, ni une validation de travaux.
+          </p>
+        </article>
+
+        <article class="legal-panel">
+          <h2>Normes et validation</h2>
+          <p>
+            Les indications normatives doivent toujours etre verifiees dans les sources officielles
+            applicables, notamment la NF C 15-100, les textes publics pertinents, les notices fabricants
+            et les prescriptions locales.
+          </p>
+          <p>
+            Avant achat, pose, modification de tableau, raccordement ou intervention sur une installation,
+            fais valider le projet par un electricien qualifie.
+          </p>
+        </article>
+
+        <article class="legal-panel">
+          <h2>Compte, historique et donnees</h2>
+          <p>
+            Un compte permet de conserver des rapports, conversations et dossiers. Les donnees stockees
+            peuvent inclure nom, email, statut d'abonnement, usage, rapports, projets, conversations
+            et metadonnees techniques necessaires au fonctionnement.
+          </p>
+          <p>
+            Depuis ton compte, tu peux exporter tes donnees au format JSON et demander la suppression
+            des donnees applicatives locales. Evite d'envoyer des secrets, mots de passe, donnees bancaires,
+            informations tres sensibles ou photos inutiles.
           </p>
         </article>
 
         <article class="legal-panel">
           <h2>Offre Pro et paiement</h2>
           <p>
-            Le mode gratuit peut être limité. L'offre Voltia Pro est proposée à 9,99 € par mois
-            et débloque davantage d'usages et de fonctions.
+            Le mode anonyme et le compte gratuit peuvent etre limites par quota. Voltia Pro est propose
+            a 9,99 EUR par mois et leve le compteur quotidien pour un usage intensif. Les fonctions Pro
+            peuvent inclure dossiers par chantier, confort d'usage, historique et exports selon l'etat du produit.
           </p>
           <p>
-            Les paiements sont gérés par Stripe. L'abonnement peut être annulé à tout moment.
-            Aucun remboursement automatique n'est prévu après paiement d'une période d'abonnement.
+            L'abonnement est traite par Stripe. L'annulation doit etre effectuee selon le parcours Stripe
+            disponible ou en contactant l'editeur. La suppression du compte Voltia ne garantit pas a elle seule
+            l'annulation d'un abonnement Stripe deja actif.
           </p>
         </article>
 
         <article class="legal-panel">
-          <h2>Confidentialité</h2>
+          <h2>Responsabilite utilisateur</h2>
           <p>
-            Évite d'envoyer des données sensibles inutiles. Les photos, plans, références et messages
-            peuvent être traités pour fournir la réponse demandée.
+            Tu restes responsable des decisions prises a partir des reponses Voltia. N'utilise pas le service
+            pour contourner une norme, improviser un raccordement, travailler sous tension ou remplacer une visite
+            sur site quand la securite depend de l'installation reelle.
           </p>
           <p>
-            Les données techniques nécessaires au fonctionnement peuvent être stockées par les services
-            utilisés par l'application. Les clés API et secrets techniques ne doivent jamais être envoyés.
+            Si une reponse semble dangereuse, incomplete ou contradictoire, interromps l'usage pratique de cette
+            reponse et demande une validation professionnelle.
           </p>
         </article>
 
         <article class="legal-panel wide-panel">
-          <h2>Responsabilité et validation professionnelle</h2>
+          <h2>Contact, droits et support</h2>
           <p>
-            Les schémas, recherches de notices, indications de normes et dimensionnements sont fournis
-            comme aide à la compréhension et à la préparation d'un projet.
+            Pour une question sur les donnees personnelles, l'abonnement, la suppression de compte,
+            une anomalie de securite ou une reponse Voltia problematique, contacte l'editeur a
+            yanisbarthe.lb@gmail.com.
           </p>
           <p>
-            Avant achat, pose, modification de tableau ou intervention sur une installation, vérifie les
-            notices fabricants, la réglementation applicable et fais valider le projet par un professionnel qualifié.
+            Cette page pourra evoluer avec le produit. Les informations affichees dans l'application
+            et les rapports doivent rester coherentes avec ces limites: aide indicative, prudence,
+            validation professionnelle obligatoire avant travaux.
           </p>
         </article>
       </section>
