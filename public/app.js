@@ -2836,7 +2836,7 @@ async function analyzeLightingPlan() {
     height ? `Hauteur: ${height}` : "",
     type ? `Type souhaite: ${type}` : "",
     selectedLightingPlanSource === "sketch"
-      ? "Demande: retranscrire le croquis en plan coté propre puis placer les luminaires aux emplacements logiques."
+      ? "Demande: retranscrire le croquis en plan coté propre, placer les cotes sur le dessin et ajouter les spots directement sur le schéma."
       : ""
   ].filter(Boolean).join(" | ");
 
