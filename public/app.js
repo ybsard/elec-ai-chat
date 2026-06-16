@@ -22,6 +22,7 @@ const conversionSecondaryButton = document.querySelector("#conversionSecondaryBu
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const toolCards = document.querySelectorAll(".diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
+const plusToolCards = document.querySelectorAll(".schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
 const accountCard = document.querySelector(".intro-account-card");
 const accountStatus = document.querySelector("#accountStatus");
 const accountAuthDetails = document.querySelector(".account-auth-details");
@@ -122,6 +123,7 @@ let conversionSecondaryAction = () => {};
 let projectsCache = [];
 let allReportsCache = [];
 let activeProjectId = "";
+let anonymousQuotaExhausted = false;
 let fallbackChatFullscreen = false;
 let lightingSketchMode = "draw";
 let lightingSketchDrawing = false;
@@ -1070,7 +1072,7 @@ function showProfessionalReportExample() {
         openSignupFlow();
         setHint("Crée ton compte gratuit pour garder ce niveau de lisibilité sur tes vrais diagnostics.", true);
       },
-      secondaryLabel: "Voir Pro",
+      secondaryLabel: "Voir Plus",
       onSecondary: () => {
         window.location.href = "/pro.html";
       }
@@ -1078,12 +1080,12 @@ function showProfessionalReportExample() {
   } else if (currentUser.plan !== "pro") {
     showConversionBanner({
       title: "Tu peux déjà garder ce format dans ton compte",
-      text: "Le compte gratuit sauvegarde tes rapports. Passe Pro seulement si tu veux classer par chantier et travailler sans coupure.",
+      text: "Le compte gratuit sauvegarde tes rapports. Active Plus si tu veux photo vers schéma, notices, dimensionnements et dossiers.",
       primaryLabel: "Sauvegarder un rapport",
       onPrimary: () => {
         saveConversationReport();
       },
-      secondaryLabel: "Voir Pro",
+      secondaryLabel: "Voir Plus",
       onSecondary: () => {
         window.location.href = "/pro.html";
       }
@@ -1157,7 +1159,7 @@ function renderCurrentReportHistory() {
     subtitle: activeProject
       ? `${reports.length} rapport${reports.length > 1 ? "s" : ""} dans ce dossier. Les prochains enregistrements peuvent y être rangés.`
       : currentUser.plan === "pro"
-        ? "Tous tes rapports récents, avec ou sans dossier."
+        ? "Tous tes rapports Plus récents, avec ou sans dossier."
         : "Les derniers rapports sauvegardés dans ton compte.",
     emptyMessage: activeProject
       ? "Aucun rapport dans ce dossier pour l'instant."
@@ -1169,7 +1171,7 @@ function updateSaveTargetUi() {
   if (!saveTargetText) return;
 
   if (!currentUser) {
-    saveTargetText.textContent = "Crée un compte gratuit pour garder tes rapports après un vrai diagnostic. Passe Pro si tu veux les classer par chantier.";
+    saveTargetText.textContent = "Crée un compte gratuit pour garder tes rapports. Active Plus pour photo vers schéma, notices, dimensionnements et dossiers.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Tous les rapports";
     }
@@ -1182,7 +1184,7 @@ function updateSaveTargetUi() {
 
   if (currentUser.plan !== "pro") {
     activeProjectId = "";
-    saveTargetText.textContent = "Compte gratuit : tes rapports restent dans un historique unique, pratique pour préparer un devis ou un rendez-vous. Passe Pro pour les classer par chantier, client ou pièce.";
+    saveTargetText.textContent = "Compte gratuit : tes rapports restent dans un historique unique. Plus ajoute photo vers schéma, notices, dimensionnements et dossiers.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Compte gratuit";
     }
@@ -1205,16 +1207,16 @@ function updateSaveTargetUi() {
   }
 
   if (activeProject) {
-    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera rangé dans le dossier "${activeProject.name}". Tu peux aussi exporter ce dossier complet pour l'imprimer ou le partager.`;
+    saveTargetText.textContent = `Voltia Plus : le prochain rapport sera rangé dans le dossier "${activeProject.name}". Tu peux aussi exporter ce dossier complet pour l'imprimer ou le partager.`;
     return;
   }
 
   if (projectsCache.length) {
-    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde une vue générale de tous tes cas récents.";
+    saveTargetText.textContent = "Voltia Plus : choisis un dossier pour ranger le prochain rapport, ou garde une vue générale de tous tes cas récents.";
     return;
   }
 
-  saveTargetText.textContent = "Voltia Pro : crée un premier dossier pour classer tes rapports par chantier, logement ou intervention.";
+  saveTargetText.textContent = "Voltia Plus : crée un premier dossier pour classer tes photos, notices, dimensionnements et rapports.";
 }
 
 function renderProjects(projects = []) {
@@ -1243,10 +1245,10 @@ function renderProjects(projects = []) {
     activeProjectId = "";
   }
 
-  projectWorkspaceTitle.textContent = "Dossiers Pro";
+  projectWorkspaceTitle.textContent = "Dossiers Plus";
   projectWorkspaceSubtitle.textContent = isPro
-    ? "Crée un dossier puis classe tes rapports par chantier, client ou pièce."
-    : "Le compte gratuit sauvegarde tes rapports. Voltia Pro ajoute un vrai classement par dossier.";
+    ? "Classe tes schémas, notices, dimensionnements et rapports par projet."
+    : "Le compte gratuit sauvegarde tes rapports. Voltia Plus ajoute les modules premium et les dossiers.";
 
   projectUpsell.hidden = isPro;
   projectManager.hidden = !isPro;
@@ -1271,7 +1273,7 @@ function renderProjects(projects = []) {
       ${allReportsCard}
       <div class="project-card project-card-empty">
         <strong>Aucun dossier créé</strong>
-        <span>Commence par créer un dossier chantier pour donner une vraie structure à ton historique.</span>
+      <span>Commence par créer un dossier pour regrouper photos, notices, dimensionnements et rapports.</span>
       </div>
     `;
     updateSaveTargetUi();
@@ -1285,7 +1287,7 @@ function renderProjects(projects = []) {
     return `
       <button type="button" class="project-card ${activeProjectId === project.id ? "is-active" : ""}" data-project-id="${escapeHtml(project.id)}">
         <strong>${escapeHtml(project.name || "Dossier Voltia")}</strong>
-        <span>${escapeHtml(project.description || "Classe les rapports de ce chantier dans un espace dédié.")}</span>
+        <span>${escapeHtml(project.description || "Regroupe les livrables de ce dossier dans un espace dédié.")}</span>
         <small>${project.reportCount || 0} rapport${project.reportCount > 1 ? "s" : ""} · Maj ${escapeHtml(updatedAt)}</small>
       </button>
     `;
@@ -1432,7 +1434,7 @@ async function createProject() {
   }
 
   if (currentUser.plan !== "pro") {
-    showProjectsUpgradePrompt("Les dossiers par chantier sont réservés à Voltia Pro.");
+    showProjectsUpgradePrompt("Les dossiers et exports sont réservés à Voltia Plus.");
     return;
   }
 
@@ -1483,7 +1485,7 @@ async function saveConversationReport() {
       onPrimary: () => {
         openSignupFlow();
       },
-      secondaryLabel: "Voir Pro",
+      secondaryLabel: "Voir Plus",
       onSecondary: () => {
         window.location.href = "/pro.html";
       }
@@ -1555,6 +1557,7 @@ function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
   hasAccessPass = Boolean(meta.accessPass);
   accountCard?.classList.toggle("is-connected", Boolean(currentUser || hasAccessPass));
+  accountCard?.classList.toggle("is-plus-account", currentUser?.plan === "pro" || hasAccessPass);
 
   if (hasAccessPass) {
     accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet activé | Toutes les fonctionnalités sont débloquées.`;
@@ -1568,6 +1571,7 @@ function updateAccountUi(user, meta = {}) {
     logoutButton.hidden = false;
     renderReportHistory([]);
     renderProjects([]);
+    updatePlusToolCards();
     return;
   }
 
@@ -1583,10 +1587,11 @@ function updateAccountUi(user, meta = {}) {
     logoutButton.hidden = true;
     renderReportHistory([]);
     renderProjects([]);
+    updatePlusToolCards();
     return;
   }
 
-  const planLabel = currentUser.plan === "pro" ? "Pro" : "Gratuit";
+  const planLabel = currentUser.plan === "pro" ? "Plus" : "Gratuit";
   const displayName = currentUser.name || currentUser.email;
   const usage = currentUser.plan === "pro"
     ? "compteur quotidien levé"
@@ -1606,6 +1611,7 @@ function updateAccountUi(user, meta = {}) {
   logoutButton.hidden = false;
   reportHistory.hidden = false;
   updateSaveTargetUi();
+  updatePlusToolCards();
 }
 
 function setAccountNotice(message) {
@@ -1615,6 +1621,102 @@ function setAccountNotice(message) {
 function setHint(message, important = false) {
   hint.textContent = message;
   hint.classList.toggle("important-hint", important);
+}
+
+function isPlusToolCard(card) {
+  return Boolean(card && Array.from(plusToolCards).includes(card));
+}
+
+function getPlusToolState() {
+  if (hasAccessPass || currentUser?.plan === "pro") {
+    return {
+      locked: false,
+      label: "Plus actif",
+      hint: "Module premium débloqué."
+    };
+  }
+
+  if (currentUser) {
+    const limit = Number(currentUser.freeDailyLimit || 10);
+    const used = Number(currentUser.usageToday || 0);
+    const remaining = Math.max(limit - used, 0);
+
+    if (remaining <= 0) {
+      return {
+        locked: true,
+        label: "Plus requis",
+        hint: "Quota gratuit terminé. Active Voltia Plus pour utiliser ce module."
+      };
+    }
+
+    return {
+      locked: false,
+      label: `${remaining} essai${remaining > 1 ? "s" : ""} gratuit${remaining > 1 ? "s" : ""}`,
+      hint: "Inclus dans ton quota gratuit, puis disponible avec Voltia Plus."
+    };
+  }
+
+  if (anonymousQuotaExhausted) {
+    return {
+      locked: true,
+      label: "Compte requis",
+      hint: "Tes essais anonymes sont terminés. Crée un compte gratuit pour continuer."
+    };
+  }
+
+  return {
+    locked: false,
+    label: "Essais gratuits",
+    hint: "Inclus pendant les essais gratuits, puis disponible avec Voltia Plus."
+  };
+}
+
+function updatePlusToolCards() {
+  const state = getPlusToolState();
+
+  plusToolCards.forEach((card) => {
+    card.classList.add("is-plus-module");
+    card.classList.toggle("is-plus-locked", state.locked);
+    card.classList.toggle("is-plus-active", state.label === "Plus actif");
+    card.setAttribute("data-plus-state", state.label);
+
+    const heading = card.querySelector(".card-heading");
+    if (!heading) return;
+
+    let badge = heading.querySelector(".tool-plan-badge");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "tool-plan-badge";
+      heading.append(badge);
+    }
+    badge.textContent = state.label;
+    badge.title = state.hint;
+
+    if (state.locked) {
+      card.classList.remove("is-open");
+    }
+  });
+
+  syncToolCardStates();
+}
+
+function guardPlusToolCard(card) {
+  if (!isPlusToolCard(card)) return false;
+
+  const state = getPlusToolState();
+  if (!state.locked) return false;
+
+  if (!currentUser) {
+    showAnonymousUpgradePrompt(state.hint);
+    setHint(state.hint, true);
+    updatePlusToolCards();
+    return true;
+  }
+
+  showProUpgradePrompt(state.hint);
+  setHint(state.hint, true);
+  updatePlusToolCards();
+  return true;
 }
 
 function hideConversionBanner() {
@@ -1673,7 +1775,7 @@ function showAnonymousUpgradePrompt(message) {
       openSignupFlow();
       setHint("Crée ton compte gratuit pour reprendre immédiatement.", true);
     },
-    secondaryLabel: "Voir Pro",
+    secondaryLabel: "Voir Plus",
     onSecondary: () => {
       window.location.href = "/pro.html";
     }
@@ -1683,8 +1785,8 @@ function showAnonymousUpgradePrompt(message) {
 function showProUpgradePrompt(message) {
   showConversionBanner({
     title: "Le quota du compte gratuit est atteint",
-    text: message || "Passe en Pro pour lever le compteur quotidien et enchaîner plusieurs diagnostics sans interruption.",
-    primaryLabel: "Passer Pro",
+    text: message || "Passe à Voltia Plus pour lever le compteur quotidien et débloquer les modules premium.",
+    primaryLabel: "Passer à Plus",
     onPrimary: () => {
       startCheckout();
     },
@@ -1697,9 +1799,9 @@ function showProUpgradePrompt(message) {
 
 function showProjectsUpgradePrompt(message) {
   showConversionBanner({
-    title: "Classement par chantier reserve a Pro",
-    text: message || "Voltia Pro ajoute des dossiers pour ranger tes rapports par client, chantier, logement ou intervention.",
-    primaryLabel: "Passer Pro",
+    title: "Dossiers réservés à Voltia Plus",
+    text: message || "Voltia Plus ajoute des dossiers pour ranger tes rapports par projet, logement ou besoin.",
+    primaryLabel: "Passer à Plus",
     onPrimary: () => {
       startCheckout();
     },
@@ -1716,22 +1818,26 @@ function handleBarrierResponse(response, data, fallbackError) {
   const errorMessage = data.error || fallbackError || "Erreur inconnue.";
 
   if (response.status === 402 && data.signupRequired) {
+    anonymousQuotaExhausted = true;
     setAccountNotice(errorMessage);
     setHint("Le mode anonyme est épuisé. Crée un compte gratuit pour continuer.", true);
+    updatePlusToolCards();
     showAnonymousUpgradePrompt(errorMessage);
     return true;
   }
 
   if (response.status === 402 && data.upgradeRequired && data.feature === "projects") {
     setAccountNotice(errorMessage);
-    setHint("Les dossiers par chantier sont réservés à Voltia Pro.", true);
+    setHint("Les dossiers sont réservés à Voltia Plus.", true);
+    updatePlusToolCards();
     showProjectsUpgradePrompt(errorMessage);
     return true;
   }
 
   if (response.status === 402 && data.upgradeRequired) {
     setAccountNotice(errorMessage);
-    setHint("Le quota du compte gratuit est atteint. Passe Pro pour continuer sans compteur quotidien.", true);
+    setHint("Le quota du compte gratuit est atteint. Passe à Voltia Plus pour continuer sans compteur quotidien.", true);
+    updatePlusToolCards();
     showProUpgradePrompt(errorMessage);
     return true;
   }
@@ -1751,17 +1857,17 @@ function handleLandingState() {
     setHint("Compte gratuit : sauvegarde des rapports, reprise des échanges et 10 usages par jour.");
   } else if (shouldOpenAuth) {
     openAccountPanel();
-    setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe Pro si tu utilises Voltia plusieurs fois par semaine.");
+    setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe à Plus si tu utilises Voltia plusieurs fois par semaine.");
   }
 
   if (intent === "pro") {
-    setAccountNotice("Crée ton compte gratuit, puis clique sur Passer Pro pour lever le quota quotidien et activer les dossiers chantier.");
-    setHint("Parcours recommandé : compte gratuit d'abord, puis activation Pro depuis l'espace compte.", true);
+    setAccountNotice("Crée ton compte gratuit, puis clique sur Passer à Plus pour lever le quota quotidien et activer les modules premium.");
+    setHint("Parcours recommandé : compte gratuit d'abord, puis activation Plus depuis l'espace compte.", true);
   }
 
   if (checkoutState === "success") {
-    setAccountNotice("Paiement confirmé. Voltia Pro est en cours d'activation sur ton compte.");
-    setHint("Paiement confirmé. Recharge la page dans quelques secondes si le statut Pro n'apparaît pas encore.");
+    setAccountNotice("Paiement confirmé. Voltia Plus est en cours d'activation sur ton compte.");
+    setHint("Paiement confirmé. Recharge la page dans quelques secondes si le statut Plus n'apparaît pas encore.");
   } else if (checkoutState === "cancel") {
     setAccountNotice("Paiement annulé. Ton compte gratuit reste actif.");
     setHint("Paiement annulé. Tu peux continuer avec le compte gratuit ou réessayer plus tard.");
@@ -1839,7 +1945,7 @@ async function submitAuth(mode) {
     if (mode === "signup") {
       signupFields.hidden = true;
       setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
-      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou passer Pro pour lever le compteur quotidien.`);
+      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou passer à Plus pour lever le compteur quotidien.`);
       hideConversionBanner();
     } else {
       setAccountNotice(`Bonjour ${displayName}. Connexion réussie. Ton historique de rapports est disponible dans ton compte.`);
@@ -1960,14 +2066,14 @@ async function submitAccessCode() {
 
 async function startCheckout() {
   if (!currentUser) {
-    setAccountNotice("Connecte-toi ou crée un compte avant de passer en Pro.");
-    setHint("Connecte-toi ou crée un compte avant de passer Pro.", true);
+    setAccountNotice("Connecte-toi ou crée un compte avant d'activer Voltia Plus.");
+    setHint("Connecte-toi ou crée un compte avant d'activer Plus.", true);
     openAccountPanel();
     return;
   }
 
   upgradeButton.disabled = true;
-  setAccountNotice("Préparation du paiement Stripe pour lever le compteur quotidien...");
+  setAccountNotice("Préparation du paiement Stripe pour activer Voltia Plus...");
   setHint("Préparation du paiement Stripe...");
 
   try {
@@ -3115,6 +3221,8 @@ toolCards.forEach((card) => {
   if (!heading) return;
 
   const setOpenCard = () => {
+    if (guardPlusToolCard(card)) return;
+
     const alreadyOpen = card.classList.contains("is-open");
     toolCards.forEach((item) => item.classList.remove("is-open"));
     if (!alreadyOpen) {
@@ -3135,6 +3243,7 @@ toolCards.forEach((card) => {
   card.addEventListener("click", (event) => {
     if (event.target.closest("input, select, textarea, button, label, .upload-zone, .card-heading")) return;
     if (card.classList.contains("is-open")) return;
+    if (guardPlusToolCard(card)) return;
     setOpenCard();
   });
 });
@@ -3146,6 +3255,7 @@ function syncToolCardStates() {
 }
 
 syncToolCardStates();
+updatePlusToolCards();
 
 issueButtons.forEach((button) => {
   button.addEventListener("click", () => {

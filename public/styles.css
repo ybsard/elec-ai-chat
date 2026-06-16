@@ -2984,7 +2984,7 @@ body {
   }
 }
 
-/* Product polish after audit: compact account, Pro page, accessible cards. */
+/* Product polish after audit: compact account, Plus page, accessible cards. */
 .account-quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3405,6 +3405,316 @@ body {
 
 body.chat-fullscreen-active {
   overflow: hidden;
+}
+
+/* Voltia Plus pass: premium visual layer and paid-state modules. */
+:root {
+  --plus-ink: #101a2a;
+  --plus-panel: #132337;
+  --plus-gold: #f6bf45;
+  --plus-cyan: #4fc0b0;
+  --plus-soft: #fff8e6;
+}
+
+.intro-account-card {
+  border-color: rgba(246, 191, 69, 0.48);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(246, 191, 69, 0.34), transparent 28%),
+    radial-gradient(circle at 0% 100%, rgba(79, 192, 176, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 250, 0.96));
+}
+
+.intro-account-card .account-badge {
+  background: linear-gradient(135deg, var(--plus-ink), #27415a);
+  color: var(--plus-gold);
+  box-shadow: 0 8px 18px rgba(16, 26, 42, 0.22);
+}
+
+.intro-account-card .plan-preview {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(246, 191, 69, 0.38);
+  background:
+    linear-gradient(135deg, #111a29, #1d3549 58%, #245b58);
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(16, 26, 42, 0.18);
+}
+
+.intro-account-card .plan-preview::after {
+  content: "";
+  position: absolute;
+  inset: -40% -18% auto auto;
+  width: 150px;
+  height: 150px;
+  border-radius: 999px;
+  background: rgba(246, 191, 69, 0.22);
+}
+
+.intro-account-card .plan-preview .plan-label,
+.intro-account-card .plan-preview strong,
+.intro-account-card .plan-preview small,
+.intro-account-card .plan-preview a {
+  position: relative;
+  z-index: 1;
+}
+
+.intro-account-card .plan-preview .plan-label {
+  color: var(--plus-gold);
+}
+
+.intro-account-card .plan-preview small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.intro-account-card .plan-preview a {
+  color: #ffffff;
+  font-weight: 950;
+}
+
+.account-card.is-plus-account {
+  border-color: rgba(79, 192, 176, 0.45);
+  box-shadow:
+    0 0 0 3px rgba(79, 192, 176, 0.1),
+    0 18px 42px rgba(16, 26, 42, 0.14);
+}
+
+.diagnostic-panel .plus-tool-card {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(246, 191, 69, 0.3);
+  background:
+    linear-gradient(180deg, #ffffff, #fffaf0);
+}
+
+.diagnostic-panel .plus-tool-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--plus-gold), var(--plus-cyan));
+}
+
+.diagnostic-panel .plus-tool-card.is-plus-active {
+  border-color: rgba(79, 192, 176, 0.52);
+  background: linear-gradient(180deg, #f7fffd, #ffffff);
+}
+
+.diagnostic-panel .plus-tool-card.is-plus-locked {
+  border-color: rgba(16, 26, 42, 0.2);
+  background:
+    linear-gradient(135deg, rgba(16, 26, 42, 0.08), rgba(246, 191, 69, 0.14)),
+    #ffffff;
+}
+
+.diagnostic-panel .plus-tool-card.is-plus-locked:hover {
+  border-color: rgba(246, 191, 69, 0.72);
+  box-shadow: 0 14px 30px rgba(16, 26, 42, 0.12);
+}
+
+.tool-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #eef8fb;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.plus-tool-card.is-plus-locked .tool-plan-badge {
+  background: var(--plus-ink);
+  color: var(--plus-gold);
+  box-shadow: 0 7px 15px rgba(16, 26, 42, 0.18);
+}
+
+.plus-tool-card.is-plus-active .tool-plan-badge {
+  background: rgba(79, 192, 176, 0.16);
+  color: #137265;
+}
+
+.plus-page {
+  max-width: 1180px;
+}
+
+.plus-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(246, 191, 69, 0.34);
+  background:
+    radial-gradient(circle at 85% -10%, rgba(246, 191, 69, 0.33), transparent 30%),
+    radial-gradient(circle at 6% 96%, rgba(79, 192, 176, 0.18), transparent 28%),
+    linear-gradient(135deg, #0d1624, #17263a 48%, #183f45);
+  color: #ffffff;
+}
+
+.plus-hero::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.plus-hero .topbar,
+.plus-hero .pro-hero-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.plus-hero .brand-lockup,
+.plus-hero .topbar-actions a,
+.plus-hero .eyebrow,
+.plus-hero h1 {
+  color: #ffffff;
+}
+
+.plus-hero .topbar-actions .pill,
+.plus-hero .hero-proof-row span {
+  border-color: rgba(246, 191, 69, 0.34);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff2c4;
+}
+
+.plus-hero .intro {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.plus-price-card {
+  border-color: rgba(246, 191, 69, 0.48);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
+    rgba(10, 18, 29, 0.72);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 24px 64px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px);
+}
+
+.plus-price-card .plan-label {
+  color: var(--plus-gold);
+}
+
+.plus-price-card strong {
+  color: #ffffff;
+}
+
+.plus-price-card p,
+.plus-price-card li,
+.plus-price-card .pro-activation-note {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.plus-price-card ul {
+  padding-left: 0;
+  list-style: none;
+}
+
+.plus-price-card li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.plus-price-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--plus-gold);
+  box-shadow: 0 0 0 4px rgba(246, 191, 69, 0.12);
+}
+
+.plus-lock-strip {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-color: rgba(246, 191, 69, 0.34);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 230, 0.96), rgba(243, 251, 249, 0.96));
+}
+
+.plus-lock-strip h2 {
+  max-width: 880px;
+  margin: 0;
+  font-size: clamp(23px, 3vw, 34px);
+  line-height: 1.08;
+}
+
+.plus-lock-strip p {
+  max-width: 820px;
+}
+
+.pro-value-strip article,
+.pro-feature-card {
+  border-radius: 16px;
+}
+
+.pro-value-strip article {
+  border-color: rgba(246, 191, 69, 0.22);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(246, 191, 69, 0.16), transparent 32%),
+    linear-gradient(180deg, #ffffff, #fbfdfc);
+}
+
+.pro-feature-card {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(17, 24, 39, 0.08);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.pro-feature-card::before {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 4px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--plus-gold), var(--plus-cyan));
+}
+
+.pro-feature-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(246, 191, 69, 0.4);
+  box-shadow: 0 20px 46px rgba(16, 26, 42, 0.12);
+}
+
+.pro-compare article:last-child {
+  border-color: rgba(246, 191, 69, 0.42);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(246, 191, 69, 0.18), transparent 28%),
+    linear-gradient(180deg, #132337, #101a2a);
+  color: #ffffff;
+}
+
+.pro-compare article:last-child p,
+.pro-compare article:last-child li {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.pro-compare article:last-child .legal-kicker {
+  color: var(--plus-gold) !important;
+}
+
+@media (max-width: 760px) {
+  .tool-plan-badge {
+    width: 100%;
+    justify-content: center;
+    order: 4;
+  }
+
+  .plus-hero::before {
+    inset: 8px;
+  }
 }
 
 .fullscreen-button {

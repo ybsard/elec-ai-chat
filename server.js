@@ -393,7 +393,7 @@ async function consumeUsage(req, res, feature) {
     }
     if (auth.user.usage.count >= freeDailyLimit) {
       sendJson(res, 402, {
-        error: `Limite gratuite atteinte (${freeDailyLimit} utilisations aujourd'hui). Passe en Pro pour continuer.`,
+        error: `Limite gratuite atteinte (${freeDailyLimit} utilisations aujourd'hui). Passe à Voltia Plus pour continuer.`,
         upgradeRequired: true
       });
       return { allowed: false, user: auth.user };
@@ -921,7 +921,7 @@ function getReportConversation(report) {
 function buildProjectExportHtml(project, reports = []) {
   const generatedAt = new Date().toLocaleString("fr-FR");
   const safeProjectName = escapeHtml(project.name || "Dossier Voltia");
-  const safeDescription = escapeHtml(project.description || "Dossier chantier exporté depuis Voltia Pro.");
+  const safeDescription = escapeHtml(project.description || "Dossier exporté depuis Voltia Plus.");
   const reportBlocks = reports.length
     ? reports.map((report, index) => {
       const conversation = getReportConversation(report);
@@ -1133,8 +1133,8 @@ function buildProjectExportHtml(project, reports = []) {
         <main>
           <section class="cover">
             <div class="brand-row">
-              <span>Voltia Pro</span>
-              <span>Dossier chantier complet</span>
+              <span>Voltia Plus</span>
+              <span>Dossier complet</span>
             </div>
             <h1>${safeProjectName}</h1>
             <p>${safeDescription}</p>
@@ -1156,7 +1156,7 @@ function buildProjectExportHtml(project, reports = []) {
           <section class="content">
             ${reportBlocks}
             <p class="footer-note">
-              Export indicatif généré par Voltia Pro. Il ne remplace pas une vérification sur site,
+              Export indicatif généré par Voltia Plus. Il ne remplace pas une vérification sur site,
               une notice fabricant, une norme officielle ou l'avis d'un professionnel qualifié.
             </p>
           </section>
@@ -1266,7 +1266,7 @@ async function handleSaveReport(req, res) {
     if (cleanProjectId) {
       if (!isProUser(auth.user)) {
         sendJson(res, 402, {
-          error: "Les dossiers Pro permettent de classer les rapports par chantier. Passe en Pro pour utiliser cette fonction.",
+          error: "Les dossiers Voltia Plus permettent de classer les rapports. Passe à Plus pour utiliser cette fonction.",
           upgradeRequired: true,
           feature: "projects"
         });
@@ -1359,7 +1359,7 @@ async function handleExportProjectHtml(req, res, projectId) {
 
   if (!isProUser(auth.user)) {
     res.writeHead(402, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
-    res.end("L'export de dossier chantier est réservé à Voltia Pro.");
+    res.end("L'export de dossier est réservé à Voltia Plus.");
     return;
   }
 
@@ -1394,7 +1394,7 @@ async function handleCreateProject(req, res) {
 
   if (!isProUser(auth.user)) {
     sendJson(res, 402, {
-      error: "Les dossiers par chantier sont réservés à Voltia Pro.",
+      error: "Les dossiers sont réservés à Voltia Plus.",
       upgradeRequired: true,
       feature: "projects"
     });
@@ -1459,7 +1459,7 @@ async function handleCreateCheckout(req, res) {
 
   const auth = await getSessionUser(req);
   if (!auth.user) {
-    sendJson(res, 401, { error: "Connecte-toi avant de passer en Pro." });
+    sendJson(res, 401, { error: "Connecte-toi avant d'activer Voltia Plus." });
     return;
   }
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
