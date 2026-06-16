@@ -481,7 +481,7 @@ function normalizeSourceUrl(rawUrl) {
   try {
     url = new URL(String(rawUrl || "").trim());
   } catch {
-    throw new Error("URL de source invalide. Colle une adresse complete qui commence par https://");
+    throw new Error("URL de source invalide. Colle une adresse complète qui commence par https://");
   }
 
   if (!["http:", "https:"].includes(url.protocol)) {
@@ -497,7 +497,7 @@ function normalizeSourceUrl(rawUrl) {
   const blockedPrefixes = ["10.", "192.168.", "169.254."];
   const private172 = /^172\.(1[6-9]|2\d|3[0-1])\./;
   if (blockedHosts.includes(hostname) || blockedPrefixes.some((prefix) => hostname.startsWith(prefix)) || private172.test(hostname)) {
-    throw new Error("Cette adresse n'est pas acceptee comme source publique.");
+    throw new Error("Cette adresse n'est pas acceptée comme source publique.");
   }
 
   return url.toString();
@@ -531,7 +531,7 @@ async function readSourcePage(rawUrl) {
   });
 
   if (!response.ok) {
-    throw new Error(`Impossible de lire la source indiquee (${response.status}).`);
+    throw new Error(`Impossible de lire la source indiquée (${response.status}).`);
   }
 
   const contentType = String(response.headers.get("content-type") || "").toLowerCase();
@@ -584,7 +584,7 @@ async function handleSignup(req, res) {
     const cleanPassword = String(password || "");
 
     if (!cleanName) {
-      sendJson(res, 400, { error: "Ajoute ton nom ou prenom." });
+      sendJson(res, 400, { error: "Ajoute ton nom ou prénom." });
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -592,13 +592,13 @@ async function handleSignup(req, res) {
       return;
     }
     if (cleanPassword.length < 8) {
-      sendJson(res, 400, { error: "Le mot de passe doit contenir au moins 8 caracteres." });
+      sendJson(res, 400, { error: "Le mot de passe doit contenir au moins 8 caractères." });
       return;
     }
 
     const store = await loadUserStore();
     if (store.users.some((user) => user.email === cleanEmail)) {
-      sendJson(res, 409, { error: "Un compte existe deja avec cet email." });
+      sendJson(res, 409, { error: "Un compte existe déjà avec cet email." });
       return;
     }
 
@@ -886,6 +886,285 @@ function conversationFromReportHtml(html) {
     .slice(0, 40);
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function slugifyFilename(value, fallback = "voltia") {
+  return String(value || fallback)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || fallback;
+}
+
+function formatExportDate(value) {
+  if (!value) return "Date inconnue";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date inconnue";
+  return date.toLocaleDateString("fr-FR");
+}
+
+function getReportConversation(report) {
+  return Array.isArray(report?.conversation) && report.conversation.length
+    ? report.conversation
+    : conversationFromReportHtml(report?.html);
+}
+
+function buildProjectExportHtml(project, reports = []) {
+  const generatedAt = new Date().toLocaleString("fr-FR");
+  const safeProjectName = escapeHtml(project.name || "Dossier Voltia");
+  const safeDescription = escapeHtml(project.description || "Dossier chantier exporté depuis Voltia Pro.");
+  const reportBlocks = reports.length
+    ? reports.map((report, index) => {
+      const conversation = getReportConversation(report);
+      const messages = conversation.length
+        ? conversation.map((message) => {
+          const role = message.role === "user" ? "Demande" : "Voltia";
+          const roleClass = message.role === "user" ? "user" : "assistant";
+          return `
+            <div class="message ${roleClass}">
+              <span>${role}</span>
+              <p>${escapeHtml(message.content)}</p>
+            </div>
+          `;
+        }).join("")
+        : `<p>${escapeHtml(report.preview || "Rapport sans conversation détaillée.")}</p>`;
+
+      return `
+        <article class="report-block">
+          <header>
+            <div>
+              <span class="report-index">Rapport ${index + 1}</span>
+              <h2>${escapeHtml(report.title || "Rapport Voltia")}</h2>
+            </div>
+            <time>${escapeHtml(formatExportDate(report.createdAt))}</time>
+          </header>
+          <p class="preview">${escapeHtml(report.preview || "Aperçu indisponible.")}</p>
+          <section class="messages">
+            ${messages}
+          </section>
+        </article>
+      `;
+    }).join("")
+    : `
+      <article class="report-block empty">
+        <h2>Aucun rapport dans ce dossier</h2>
+        <p>Ajoute un premier diagnostic au dossier depuis l'espace de travail Voltia.</p>
+      </article>
+    `;
+
+  return `<!doctype html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Dossier Voltia - ${safeProjectName}</title>
+        <style>
+          :root {
+            --ink: #10212b;
+            --muted: #637280;
+            --line: #d9e1e7;
+            --accent: #14556d;
+            --warning: #f2a51a;
+            --soft: #f6f8fa;
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            padding: 28px;
+            color: var(--ink);
+            background: #eef4f5;
+            font-family: Inter, "Segoe UI", sans-serif;
+          }
+          main {
+            max-width: 980px;
+            margin: 0 auto;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #ffffff;
+          }
+          .cover {
+            padding: 28px;
+            background: linear-gradient(135deg, #10212b, #14556d 72%, #1e8a5a);
+            color: #ffffff;
+          }
+          .brand-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 22px;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 12px;
+            font-weight: 850;
+            text-transform: uppercase;
+          }
+          h1 {
+            margin: 0 0 10px;
+            font-size: 34px;
+            line-height: 1.08;
+          }
+          .cover p {
+            max-width: 720px;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.82);
+            line-height: 1.55;
+          }
+          .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            padding: 18px 28px;
+            border-bottom: 1px solid var(--line);
+            background: #f8fbfb;
+          }
+          .stat {
+            padding: 12px;
+            border: 1px solid rgba(20, 85, 109, 0.12);
+            border-radius: 8px;
+            background: #ffffff;
+          }
+          .stat span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+          }
+          .stat strong {
+            display: block;
+            margin-top: 4px;
+            font-size: 18px;
+          }
+          .content {
+            display: grid;
+            gap: 18px;
+            padding: 24px 28px 30px;
+          }
+          .report-block {
+            break-inside: avoid;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #ffffff;
+          }
+          .report-block header {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+          }
+          .report-index {
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 950;
+            text-transform: uppercase;
+          }
+          h2 {
+            margin: 4px 0 0;
+            font-size: 20px;
+            line-height: 1.2;
+          }
+          time {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 850;
+            white-space: nowrap;
+          }
+          .preview {
+            margin: 0 0 14px;
+            color: var(--muted);
+            line-height: 1.5;
+          }
+          .messages {
+            display: grid;
+            gap: 10px;
+          }
+          .message {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--soft);
+          }
+          .message.user {
+            border-color: rgba(20, 85, 109, 0.24);
+            background: #edf6f7;
+          }
+          .message span {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 950;
+            text-transform: uppercase;
+          }
+          .message p {
+            margin: 0;
+            white-space: pre-wrap;
+            line-height: 1.58;
+          }
+          .footer-note {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+          }
+          @media (max-width: 700px) {
+            body { padding: 12px; }
+            .stats { grid-template-columns: 1fr; }
+            .report-block header { flex-direction: column; }
+          }
+          @media print {
+            body { padding: 0; background: #ffffff; }
+            main { border: 0; border-radius: 0; }
+            .cover { border-radius: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <section class="cover">
+            <div class="brand-row">
+              <span>Voltia Pro</span>
+              <span>Dossier chantier complet</span>
+            </div>
+            <h1>${safeProjectName}</h1>
+            <p>${safeDescription}</p>
+          </section>
+          <section class="stats" aria-label="Synthèse du dossier">
+            <div class="stat">
+              <span>Rapports</span>
+              <strong>${reports.length}</strong>
+            </div>
+            <div class="stat">
+              <span>Dernier ajout</span>
+              <strong>${escapeHtml(formatExportDate(reports[0]?.createdAt))}</strong>
+            </div>
+            <div class="stat">
+              <span>Exporté le</span>
+              <strong>${escapeHtml(generatedAt)}</strong>
+            </div>
+          </section>
+          <section class="content">
+            ${reportBlocks}
+            <p class="footer-note">
+              Export indicatif généré par Voltia Pro. Il ne remplace pas une vérification sur site,
+              une notice fabricant, une norme officielle ou l'avis d'un professionnel qualifié.
+            </p>
+          </section>
+        </main>
+      </body>
+    </html>`;
+}
+
 async function handleListReports(req, res) {
   const auth = await getSessionUser(req);
   if (!auth.user) {
@@ -941,13 +1220,7 @@ async function handleExportReportHtml(req, res, reportId) {
     return;
   }
 
-  const safeTitle = String(report.title || "rapport-voltia")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "rapport-voltia";
+  const safeTitle = slugifyFilename(report.title || "rapport-voltia", "rapport-voltia");
   const html = String(report.html || "");
   res.writeHead(200, {
     "Content-Type": "text/html; charset=utf-8",
@@ -1074,6 +1347,42 @@ async function handleGetProject(req, res, projectId) {
     project: publicProject(project, auth.user.reports || []),
     reports
   });
+}
+
+async function handleExportProjectHtml(req, res, projectId) {
+  const auth = await getSessionUser(req);
+  if (!auth.user) {
+    res.writeHead(401, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+    res.end("Connecte-toi pour exporter ce dossier.");
+    return;
+  }
+
+  if (!isProUser(auth.user)) {
+    res.writeHead(402, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+    res.end("L'export de dossier chantier est réservé à Voltia Pro.");
+    return;
+  }
+
+  auth.user.projects = Array.isArray(auth.user.projects) ? auth.user.projects : [];
+  const project = auth.user.projects.find((item) => item.id === projectId);
+  if (!project) {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
+    res.end("Dossier introuvable.");
+    return;
+  }
+
+  const reports = (Array.isArray(auth.user.reports) ? auth.user.reports : [])
+    .filter((report) => report.projectId === project.id);
+  const safeTitle = slugifyFilename(project.name || "dossier-voltia", "dossier-voltia");
+  const html = buildProjectExportHtml(project, reports);
+
+  res.writeHead(200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Content-Disposition": `inline; filename="voltia-dossier-${safeTitle}.html"`,
+    "Cache-Control": "no-store",
+    ...securityHeaders()
+  });
+  res.end(html);
 }
 
 async function handleCreateProject(req, res) {
@@ -2037,6 +2346,12 @@ async function requestListener(req, res) {
 
   if (req.method === "POST" && path === "/api/projects") {
     await handleCreateProject(req, res);
+    return;
+  }
+
+  const projectExportMatch = /^\/api\/projects\/([^/]+)\/export\.html$/.exec(path);
+  if (req.method === "GET" && projectExportMatch) {
+    await handleExportProjectHtml(req, res, decodeURIComponent(projectExportMatch[1]));
     return;
   }
 

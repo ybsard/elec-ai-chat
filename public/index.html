@@ -27,16 +27,36 @@
 
         <div class="intro-layout">
           <div class="hero-copy">
-            <p class="eyebrow">Assistant IA pour comprendre une panne, préparer un schéma et garder un rapport.</p>
-            <h1>Comprendre une panne électrique et repartir avec un plan d'action clair.</h1>
+            <p class="eyebrow">Assistant IA pour clarifier une panne, préparer un schéma et garder un rapport exploitable.</p>
+            <h1>Décris le problème électrique, récupère un plan d'action prudent et garde un rapport clair.</h1>
             <p class="intro">
-              Voltia t'aide à trier les causes probables, repérer les signaux de danger,
-              préparer un schéma indicatif et garder une trace utile avant achat ou rendez-vous avec un professionnel.
+              Voltia t'aide à poser les bonnes hypothèses, repérer les signaux de danger,
+              préparer un schéma indicatif et repartir avec un livrable lisible avant achat,
+              devis ou rendez-vous avec un professionnel.
             </p>
             <div class="hero-proof-row" aria-label="Capacités Voltia">
+              <span>Sans carte pour commencer</span>
               <span>5 essais anonymes</span>
               <span>Compte gratuit : 10 usages / jour</span>
               <span>Pro : sans compteur quotidien</span>
+            </div>
+            <div class="hero-cta-row">
+              <a class="primary-action hero-link-button" href="/?sampleReport=1#workspace">Voir un exemple de rapport</a>
+              <a class="secondary-action hero-link-button" href="/pro.html">Comprendre l'offre Pro</a>
+            </div>
+            <div class="hero-flow" aria-label="Parcours Voltia">
+              <article>
+                <strong>1. Décris le cas</strong>
+                <span>Panne, photo, plan ou référence appareil.</span>
+              </article>
+              <article>
+                <strong>2. Reçois une réponse structurée</strong>
+                <span>Sécurité, hypothèses et prochaines vérifications.</span>
+              </article>
+              <article>
+                <strong>3. Garde un livrable utile</strong>
+                <span>Historique gratuit, dossiers chantier en Pro.</span>
+              </article>
             </div>
           </div>
 
@@ -49,18 +69,18 @@
               </div>
             </div>
 
-            <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes. Crée ensuite un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.</div>
+            <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes sans carte. Crée ensuite un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.</div>
 
             <div class="account-quick-actions" aria-label="Actions rapides Voltia">
               <a class="primary-action account-start-link" href="#workspace">Démarrer un diagnostic</a>
-              <a class="secondary-action account-start-link" href="/?openAuth=1">Créer un compte gratuit</a>
+              <a class="secondary-action account-start-link" href="/?openAuth=1&openSignup=1">Créer un compte gratuit</a>
             </div>
 
             <details class="account-auth-details">
-              <summary>Connexion, compte ou code d'accès</summary>
+              <summary>Créer un compte gratuit, se connecter ou entrer un code</summary>
               <div class="auth-panel-intro">
                 <span>Accès sécurisé</span>
-                <strong>Crée un compte gratuit pour retrouver tes rapports, puis passe Pro si tu utilises Voltia tous les jours.</strong>
+                <strong>Le compte gratuit suffit pour sauvegarder tes rapports et reprendre tes échanges. Passe Pro quand tu veux travailler sans coupure et classer par chantier.</strong>
               </div>
 
             <div id="authFields" class="auth-panel">
@@ -111,14 +131,14 @@
                 <span class="plan-label">Offre Pro</span>
                 <strong>9,99 € / mois</strong>
               </div>
-              <small>Pour enchaîner diagnostics, schémas et recherches sans te heurter au quota quotidien. <a href="/pro.html">Voir l'offre</a></small>
+              <small>Crée d'abord un compte gratuit, puis passe Pro quand tu veux enchaîner plusieurs diagnostics par semaine ou classer tes rapports par chantier. <a href="/pro.html">Voir l'offre</a></small>
             </div>
 
             <ul class="plan-benefits" aria-label="Avantages Voltia Pro">
-              <li>Plus de recherches IA</li>
-              <li>Photos, plans et notices</li>
-              <li>Dimensionnements plus complets</li>
-              <li>Réponses personnalisées</li>
+              <li>Quota quotidien levé</li>
+              <li>Dossiers par chantier</li>
+              <li>Export dossier complet</li>
+              <li>Usage intensif plus fluide</li>
             </ul>
 
             <div id="memberActions" class="member-actions" hidden>
@@ -142,7 +162,10 @@
                   <strong id="projectWorkspaceTitle">Dossiers Pro</strong>
                   <span id="projectWorkspaceSubtitle">Range tes rapports par chantier, client ou pièce.</span>
                 </div>
-                <span id="activeProjectBadge" class="active-project-badge">Tous les rapports</span>
+                <div class="project-heading-actions">
+                  <span id="activeProjectBadge" class="active-project-badge">Tous les rapports</span>
+                  <a id="projectExportLink" class="project-export-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Exporter dossier</a>
+                </div>
               </div>
 
               <div id="projectUpsell" class="project-upsell" hidden>
@@ -195,7 +218,7 @@
         <article>
           <span>Pro</span>
           <strong>Travailler sans coupure</strong>
-          <p>Le quota quotidien est levé pour enchaîner plusieurs diagnostics, schémas, notices et rapports.</p>
+          <p>Le quota quotidien est levé, les rapports sont classés par dossier et un dossier chantier peut être exporté en entier.</p>
         </article>
       </section>
 
@@ -576,10 +599,19 @@
                 <option value="clim">Dimensionnement climatisation</option>
               </select>
             </label>
-            <button id="showSampleReport" class="secondary-action report-sample-button" type="button">Voir un exemple</button>
+            <button id="showSampleReport" class="secondary-action report-sample-button" type="button">Charger un exemple</button>
             <p id="saveTargetText" class="save-target-text" role="status" aria-live="polite">
-              Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.
+              Compte gratuit : historique unique. Pro : dossiers par chantier et usage sans coupure liée au quota.
             </p>
+            <div class="report-proof-note" aria-label="Ce que tu récupères">
+              <strong>Ce que tu récupères à la fin</strong>
+              <div class="report-proof-chips">
+                <span>Réponse directe</span>
+                <span>Niveau de danger</span>
+                <span>Vérifications sans risque</span>
+                <span>Rapport exportable</span>
+              </div>
+            </div>
           </div>
 
           <div id="messages" class="messages" aria-live="polite">
@@ -588,7 +620,7 @@
               <div class="message-stack">
                 <span class="message-label">Voltia</span>
                 <div class="bubble">
-                  Bonjour, je suis Voltia. Lance un diagnostic ou décris directement ton problème électrique.
+                  Bonjour, je suis Voltia. Décris ton problème électrique ou charge un exemple de rapport pour voir le rendu.
                 </div>
               </div>
             </article>

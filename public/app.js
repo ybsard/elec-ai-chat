@@ -51,6 +51,7 @@ const projectWorkspace = document.querySelector("#projectWorkspace");
 const projectWorkspaceTitle = document.querySelector("#projectWorkspaceTitle");
 const projectWorkspaceSubtitle = document.querySelector("#projectWorkspaceSubtitle");
 const activeProjectBadge = document.querySelector("#activeProjectBadge");
+const projectExportLink = document.querySelector("#projectExportLink");
 const projectUpsell = document.querySelector("#projectUpsell");
 const projectUpsellButton = document.querySelector("#projectUpsellButton");
 const projectManager = document.querySelector("#projectManager");
@@ -1013,8 +1014,15 @@ function showProfessionalReportExample() {
 
   const request = "Exemple: le disjoncteur saute quand le four démarre dans la cuisine.";
   const response = [
+    "Réponse directe",
+    "Le symptôme oriente d'abord vers un défaut lié au four, à son circuit dédié ou à une surcharge ponctuelle. Le bon réflexe avant toute intervention est d'identifier quel appareil de protection déclenche exactement et à quel moment.",
+    "",
     "Résumé rapide",
-    "- Le symptôme évoque un défaut lié au circuit du four, à l'appareil ou à une surcharge.",
+    "- Le défaut peut venir du four lui-même, du circuit spécialisé ou d'un échauffement sur la ligne.",
+    "- Voltia aide à trier les pistes et à préparer un rapport clair avant contrôle sur place.",
+    "",
+    "Niveau de danger",
+    "- Vigilance renforcée si odeur de brûlé, chaleur anormale ou déclenchement immédiat et répété.",
     "",
     "Sécurité",
     "- Ne pas ouvrir le tableau sous tension.",
@@ -1052,6 +1060,37 @@ function showProfessionalReportExample() {
     "Exemple indicatif: le circuit spécialisé four doit être vérifié selon l'installation réelle.",
     buildLineSchema("prise", { sockets: 1 })
   );
+
+  if (!currentUser) {
+    showConversionBanner({
+      title: "Le format de rapport te convient ?",
+      text: "Crée un compte gratuit pour sauvegarder un vrai cas, retrouver tes échanges et exporter ton prochain rapport.",
+      primaryLabel: "Créer un compte gratuit",
+      onPrimary: () => {
+        openSignupFlow();
+        setHint("Crée ton compte gratuit pour garder ce niveau de lisibilité sur tes vrais diagnostics.", true);
+      },
+      secondaryLabel: "Voir Pro",
+      onSecondary: () => {
+        window.location.href = "/pro.html";
+      }
+    });
+  } else if (currentUser.plan !== "pro") {
+    showConversionBanner({
+      title: "Tu peux déjà garder ce format dans ton compte",
+      text: "Le compte gratuit sauvegarde tes rapports. Passe Pro seulement si tu veux classer par chantier et travailler sans coupure.",
+      primaryLabel: "Sauvegarder un rapport",
+      onPrimary: () => {
+        saveConversationReport();
+      },
+      secondaryLabel: "Voir Pro",
+      onSecondary: () => {
+        window.location.href = "/pro.html";
+      }
+    });
+  } else {
+    hideConversionBanner();
+  }
 
   setHint("Exemple de rapport chargé. Tu peux exporter le PDF ou sauvegarder ce modèle dans ton compte.");
 }
@@ -1130,18 +1169,26 @@ function updateSaveTargetUi() {
   if (!saveTargetText) return;
 
   if (!currentUser) {
-    saveTargetText.textContent = "Compte gratuit : sauvegarde simple dans l'historique. Pro : tu peux ranger les rapports dans des dossiers.";
+    saveTargetText.textContent = "Crée un compte gratuit pour garder tes rapports après un vrai diagnostic. Passe Pro si tu veux les classer par chantier.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Tous les rapports";
+    }
+    if (projectExportLink) {
+      projectExportLink.hidden = true;
+      projectExportLink.href = "#";
     }
     return;
   }
 
   if (currentUser.plan !== "pro") {
     activeProjectId = "";
-    saveTargetText.textContent = "Compte gratuit : tes rapports sont sauvegardés dans un historique unique. Passe Pro pour les classer par chantier, client ou pièce.";
+    saveTargetText.textContent = "Compte gratuit : tes rapports restent dans un historique unique, pratique pour préparer un devis ou un rendez-vous. Passe Pro pour les classer par chantier, client ou pièce.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Compte gratuit";
+    }
+    if (projectExportLink) {
+      projectExportLink.hidden = true;
+      projectExportLink.href = "#";
     }
     return;
   }
@@ -1150,14 +1197,20 @@ function updateSaveTargetUi() {
   if (activeProjectBadge) {
     activeProjectBadge.textContent = activeProject ? activeProject.name : "Tous les rapports";
   }
+  if (projectExportLink) {
+    projectExportLink.hidden = !activeProject;
+    projectExportLink.href = activeProject
+      ? `/api/projects/${encodeURIComponent(activeProject.id)}/export.html`
+      : "#";
+  }
 
   if (activeProject) {
-    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera rangé dans le dossier "${activeProject.name}".`;
+    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera rangé dans le dossier "${activeProject.name}". Tu peux aussi exporter ce dossier complet pour l'imprimer ou le partager.`;
     return;
   }
 
   if (projectsCache.length) {
-    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde tous les rapports dans l'historique général.";
+    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde une vue générale de tous tes cas récents.";
     return;
   }
 
@@ -1519,7 +1572,7 @@ function updateAccountUi(user, meta = {}) {
   }
 
   if (!currentUser) {
-    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes. Crée un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.`;
+    accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes sans carte. Crée un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.`;
     accessCodeFields.hidden = false;
     authFields.hidden = false;
     signupFields.hidden = true;
@@ -1688,11 +1741,22 @@ function handleBarrierResponse(response, data, fallbackError) {
 
 function handleLandingState() {
   const shouldOpenAuth = pageParams.get("openAuth") === "1";
+  const shouldOpenSignup = pageParams.get("openSignup") === "1";
+  const shouldShowSampleReport = pageParams.get("sampleReport") === "1";
   const checkoutState = pageParams.get("checkout");
+  const intent = pageParams.get("intent");
 
-  if (shouldOpenAuth) {
+  if (shouldOpenSignup && !currentUser) {
+    openSignupFlow();
+    setHint("Compte gratuit : sauvegarde des rapports, reprise des échanges et 10 usages par jour.");
+  } else if (shouldOpenAuth) {
     openAccountPanel();
     setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe Pro si tu utilises Voltia plusieurs fois par semaine.");
+  }
+
+  if (intent === "pro") {
+    setAccountNotice("Crée ton compte gratuit, puis clique sur Passer Pro pour lever le quota quotidien et activer les dossiers chantier.");
+    setHint("Parcours recommandé : compte gratuit d'abord, puis activation Pro depuis l'espace compte.", true);
   }
 
   if (checkoutState === "success") {
@@ -1701,6 +1765,11 @@ function handleLandingState() {
   } else if (checkoutState === "cancel") {
     setAccountNotice("Paiement annulé. Ton compte gratuit reste actif.");
     setHint("Paiement annulé. Tu peux continuer avec le compte gratuit ou réessayer plus tard.");
+  }
+
+  if (shouldShowSampleReport) {
+    showProfessionalReportExample();
+    document.querySelector("#workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
@@ -1733,8 +1802,8 @@ async function submitAuth(mode) {
   const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
 
   if (mode === "signup" && !name) {
-    setAccountNotice("Entre ton nom ou prenom pour personnaliser ton compte.");
-    setHint("Entre ton nom ou prenom.");
+    setAccountNotice("Entre ton nom ou prénom pour personnaliser ton compte.");
+    setHint("Entre ton nom ou prénom.");
     authName.focus();
     return;
   }
@@ -1792,17 +1861,17 @@ async function logoutAccount() {
   updateAccountUi(null, { anonymousDailyLimit: 5 });
   renderReportHistory([]);
   hideConversionBanner();
-  setHint("Tu es deconnecte.");
+  setHint("Tu es déconnecté.");
 }
 
 async function exportAccountData() {
   if (!currentUser) {
-    setAccountNotice("Connecte-toi pour exporter tes donnees.");
+    setAccountNotice("Connecte-toi pour exporter tes données.");
     return;
   }
 
   exportAccountButton.disabled = true;
-  setHint("Export des donnees du compte...");
+  setHint("Export des données du compte...");
 
   try {
     const response = await fetch("/api/account/export");
@@ -1818,7 +1887,7 @@ async function exportAccountData() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    setHint("Export JSON genere. Conserve-le dans un emplacement sur.");
+    setHint("Export JSON généré. Conserve-le dans un emplacement sûr.");
   } catch (error) {
     setAccountNotice(error.message);
     setHint(error.message, true);
@@ -1831,7 +1900,7 @@ async function deleteAccount() {
   if (!currentUser) return;
 
   const confirmed = window.confirm(
-    "Supprimer ton compte Voltia, tes rapports et tes dossiers de cette application ? Cette action est definitive."
+    "Supprimer ton compte Voltia, tes rapports et tes dossiers de cette application ? Cette action est définitive."
   );
   if (!confirmed) return;
 
@@ -1847,7 +1916,7 @@ async function deleteAccount() {
     renderReportHistory([]);
     renderProjects([]);
     hideConversionBanner();
-    setHint(data.billingNotice || "Compte supprime. Les donnees locales Voltia ont ete effacees.");
+    setHint(data.billingNotice || "Compte supprimé. Les données locales Voltia ont été effacées.");
   } catch (error) {
     setAccountNotice(error.message);
     setHint(error.message, true);
