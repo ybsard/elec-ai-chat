@@ -41,8 +41,8 @@
               <span>Plus : version premium</span>
             </div>
             <div class="hero-cta-row">
-              <a class="primary-action hero-link-button" href="/?sampleReport=1#workspace">Voir un exemple de rapport</a>
-              <a class="secondary-action hero-link-button" href="/pro.html">Découvrir Voltia Plus</a>
+              <a class="primary-action hero-link-button" href="#workspace">Démarrer gratuitement</a>
+              <a class="secondary-action hero-link-button" href="/?sampleReport=1#workspace">Voir un exemple de rapport</a>
             </div>
             <div class="hero-flow" aria-label="Parcours Voltia">
               <article>
@@ -77,53 +77,60 @@
             </div>
 
             <details class="account-auth-details">
-              <summary>Créer un compte gratuit, se connecter ou entrer un code</summary>
+              <summary>Compte gratuit ou connexion</summary>
               <div class="auth-panel-intro">
                 <span>Accès sécurisé</span>
-                <strong>Le compte gratuit suffit pour sauvegarder tes rapports. Passe à Plus quand tu veux exploiter photo vers schéma, notices, dimensionnements et dossiers.</strong>
+                <strong>Crée ton compte sans carte pour garder tes rapports, ou connecte-toi pour reprendre ton historique.</strong>
               </div>
 
             <div id="authFields" class="auth-panel">
-              <span class="auth-section-title">Connexion</span>
-              <label class="field">
-                <span>Email</span>
-                <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
-              </label>
-              <label class="field">
-                <span>Mot de passe</span>
-                <input id="authPassword" type="password" placeholder="8 caractères minimum" autocomplete="current-password">
-              </label>
-              <div class="account-actions">
-                <button id="loginButton" class="primary-action" type="button">Connexion</button>
+              <div class="auth-mode-switch" role="tablist" aria-label="Choisir entre création de compte et connexion">
+                <button id="signupToggleButton" class="auth-mode-button is-active" type="button" role="tab" aria-selected="true" aria-controls="signupFields">Créer un compte</button>
+                <button id="loginModeButton" class="auth-mode-button" type="button" role="tab" aria-selected="false" aria-controls="loginFields">J'ai déjà un compte</button>
               </div>
-              <div class="signup-block">
-                <span class="auth-section-title">Nouveau compte</span>
-                <button id="signupToggleButton" class="secondary-action" type="button">Créer un compte</button>
-                <div id="signupFields" class="signup-fields" hidden>
-                  <label class="field">
-                    <span>Nom ou prénom</span>
-                    <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
-                  </label>
-                  <label class="field">
-                    <span>Email</span>
-                    <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email">
-                  </label>
-                  <label class="field">
-                    <span>Mot de passe</span>
-                    <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password">
-                  </label>
-                  <button id="signupButton" class="secondary-action" type="button">Valider la création du compte</button>
+
+              <div id="signupFields" class="signup-fields auth-mode-panel" role="tabpanel">
+                <label class="field">
+                  <span>Nom ou prénom</span>
+                  <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
+                </label>
+                <label class="field">
+                  <span>Email</span>
+                  <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+                </label>
+                <label class="field">
+                  <span>Mot de passe</span>
+                  <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password">
+                </label>
+                <button id="signupButton" class="primary-action" type="button">Créer mon compte gratuit</button>
+                <small>Aucune carte bancaire demandée.</small>
+              </div>
+
+              <div id="loginFields" class="auth-mode-panel login-fields" role="tabpanel" hidden>
+                <label class="field">
+                  <span>Email</span>
+                  <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+                </label>
+                <label class="field">
+                  <span>Mot de passe</span>
+                  <input id="authPassword" type="password" placeholder="8 caractères minimum" autocomplete="current-password">
+                </label>
+                <div class="account-actions">
+                  <button id="loginButton" class="primary-action" type="button">Se connecter</button>
                 </div>
               </div>
             </div>
 
-            <div id="accessCodeFields" class="access-code-panel">
-              <label class="field">
-                <span>Code créateur</span>
-                <input id="accessCodeInput" type="password" placeholder="Code créateur ou invité">
-              </label>
-              <button id="accessCodeButton" class="secondary-action" type="button">Débloquer</button>
-            </div>
+            <details id="accessCodeDisclosure" class="access-code-disclosure">
+              <summary>J'ai un code créateur</summary>
+              <div id="accessCodeFields" class="access-code-panel">
+                <label class="field">
+                  <span>Code créateur</span>
+                  <input id="accessCodeInput" type="password" placeholder="Code créateur ou invité">
+                </label>
+                <button id="accessCodeButton" class="secondary-action" type="button">Débloquer</button>
+              </div>
+            </details>
             </details>
 
             <div class="plan-preview">
@@ -131,7 +138,7 @@
                 <span class="plan-label">Voltia Plus</span>
                 <strong>9,99 € / mois</strong>
               </div>
-              <small>Crée d'abord un compte gratuit, puis active Plus quand tu veux utiliser les modules photo, notices, dimensionnements et dossiers. <a href="/pro.html">Voir l'offre</a></small>
+              <small>Essaie d'abord gratuitement, sans carte. Active Plus seulement quand tu veux les modules photo, notices, dimensionnements et l'export de dossier complet. <a href="/pro.html">Voir l'offre</a></small>
             </div>
 
             <ul class="plan-benefits" aria-label="Avantages Voltia Plus">
@@ -170,8 +177,8 @@
 
               <div id="projectUpsell" class="project-upsell" hidden>
                 <strong>Voltia Plus</strong>
-                <p>Voltia Plus ajoute les dossiers, l'export complet et les modules premium pour produire des livrables plus propres.</p>
-                <button id="projectUpsellButton" class="secondary-action" type="button">Débloquer Plus</button>
+                <p>Voltia Plus aide à classer plusieurs cas, préparer un dossier complet et l'exporter pour l'imprimer ou le partager.</p>
+                <button id="projectUpsellButton" class="secondary-action" type="button">Activer Plus</button>
               </div>
 
               <div id="projectManager" class="project-manager" hidden>
@@ -601,17 +608,18 @@
             </label>
             <button id="showSampleReport" class="secondary-action report-sample-button" type="button">Charger un exemple</button>
             <p id="saveTargetText" class="save-target-text" role="status" aria-live="polite">
-              Compte gratuit : historique unique. Plus : photo vers schéma, notices, dimensionnements et dossiers.
+              Compte gratuit : rapport sauvegardé et export individuel. Plus : modules photo, notices, dimensionnements, dossiers et export complet.
             </p>
             <div class="report-proof-note" aria-label="Ce que tu récupères">
               <strong>Ce que tu récupères à la fin</strong>
               <div class="report-proof-chips">
                 <span>Réponse directe</span>
-                <span>Photo vers schéma</span>
-                <span>Notices et références</span>
-                <span>Dimensionnement</span>
+                <span>Niveau de danger</span>
+                <span>Vérifications prioritaires</span>
+                <span>Prochaine action</span>
                 <span>Rapport exportable</span>
               </div>
+              <p>Le compte gratuit couvre déjà ce format de livrable. Voltia Plus ajoute surtout les modules visuels et l'organisation en dossiers.</p>
             </div>
           </div>
 

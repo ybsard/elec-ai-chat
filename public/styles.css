@@ -1263,6 +1263,13 @@ textarea:focus {
   font-size: 12px;
 }
 
+.report-proof-note p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .report-proof-chips {
   display: flex;
   flex-wrap: wrap;
@@ -3836,4 +3843,121 @@ body.chat-fullscreen-active {
     margin: 8px;
     padding: 16px;
   }
+}
+
+/* Conversion audit: clearer account flow and tighter first impression. */
+.intro-account-card {
+  align-self: start;
+}
+
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #e9f1f2;
+}
+
+.auth-mode-button {
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.auth-mode-button:hover {
+  border-color: rgba(20, 85, 109, 0.18);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.auth-mode-button.is-active {
+  border-color: rgba(20, 85, 109, 0.18);
+  background: #ffffff;
+  color: var(--accent);
+  box-shadow: 0 4px 12px rgba(16, 33, 43, 0.08);
+}
+
+.auth-mode-panel {
+  display: grid;
+  gap: 7px;
+  margin-top: 2px;
+  padding: 10px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.auth-mode-panel[hidden] {
+  display: none;
+}
+
+.intro-account-card .signup-fields.auth-mode-panel {
+  padding: 10px;
+  border-color: rgba(246, 191, 69, 0.28);
+  background: linear-gradient(180deg, #fffdf8, #ffffff);
+}
+
+.auth-mode-panel small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.access-code-disclosure {
+  margin: 6px 8px 0;
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.access-code-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.account-auth-details[open] .access-code-disclosure > summary::after {
+  content: "Ouvrir";
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.account-auth-details[open] .access-code-disclosure[open] > summary::after {
+  content: "Fermer";
+}
+
+.access-code-disclosure:not([open]) > .access-code-panel {
+  display: none;
+}
+
+.access-code-disclosure .access-code-panel {
+  margin: 6px 0 0;
+}
+
+@media (max-width: 760px) {
+  .hero-flow span {
+    display: none;
+  }
+
+  .hero-flow article {
+    min-height: 54px;
+    align-content: center;
+    padding: 8px;
+  }
+
+  .hero-flow strong {
+    font-size: 11px;
+  }
+
 }

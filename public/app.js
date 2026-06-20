@@ -35,10 +35,13 @@ const authEmail = document.querySelector("#authEmail");
 const authPassword = document.querySelector("#authPassword");
 const signupFields = document.querySelector("#signupFields");
 const signupToggleButton = document.querySelector("#signupToggleButton");
+const loginModeButton = document.querySelector("#loginModeButton");
+const loginFields = document.querySelector("#loginFields");
 const signupEmail = document.querySelector("#signupEmail");
 const signupPassword = document.querySelector("#signupPassword");
 const signupButton = document.querySelector("#signupButton");
 const loginButton = document.querySelector("#loginButton");
+const accessCodeDisclosure = document.querySelector("#accessCodeDisclosure");
 const memberActions = document.querySelector("#memberActions");
 const upgradeButton = document.querySelector("#upgradeButton");
 const exportAccountButton = document.querySelector("#exportAccountButton");
@@ -1063,10 +1066,12 @@ function showProfessionalReportExample() {
     buildLineSchema("prise", { sockets: 1 })
   );
 
+  messagesEl.scrollTop = 0;
+
   if (!currentUser) {
     showConversionBanner({
       title: "Le format de rapport te convient ?",
-      text: "Crée un compte gratuit pour sauvegarder un vrai cas, retrouver tes échanges et exporter ton prochain rapport.",
+      text: "Crée un compte gratuit sans carte pour sauvegarder un vrai cas, retrouver tes échanges et exporter ton prochain rapport.",
       primaryLabel: "Créer un compte gratuit",
       onPrimary: () => {
         openSignupFlow();
@@ -1080,7 +1085,7 @@ function showProfessionalReportExample() {
   } else if (currentUser.plan !== "pro") {
     showConversionBanner({
       title: "Tu peux déjà garder ce format dans ton compte",
-      text: "Le compte gratuit sauvegarde tes rapports. Active Plus si tu veux photo vers schéma, notices, dimensionnements et dossiers.",
+      text: "Le compte gratuit sauvegarde et exporte déjà tes rapports. Active Plus si tu veux les modules photo, notices, dimensionnements et les dossiers complets.",
       primaryLabel: "Sauvegarder un rapport",
       onPrimary: () => {
         saveConversationReport();
@@ -1171,7 +1176,7 @@ function updateSaveTargetUi() {
   if (!saveTargetText) return;
 
   if (!currentUser) {
-    saveTargetText.textContent = "Crée un compte gratuit pour garder tes rapports. Active Plus pour photo vers schéma, notices, dimensionnements et dossiers.";
+    saveTargetText.textContent = "Crée un compte gratuit pour sauvegarder et exporter tes rapports. Active Plus pour les modules photo, notices, dimensionnements et les dossiers complets.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Tous les rapports";
     }
@@ -1184,7 +1189,7 @@ function updateSaveTargetUi() {
 
   if (currentUser.plan !== "pro") {
     activeProjectId = "";
-    saveTargetText.textContent = "Compte gratuit : tes rapports restent dans un historique unique. Plus ajoute photo vers schéma, notices, dimensionnements et dossiers.";
+    saveTargetText.textContent = "Compte gratuit : rapport sauvegardé et export individuel. Plus ajoute les modules photo, notices, dimensionnements, dossiers et export complet.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Compte gratuit";
     }
@@ -1553,6 +1558,20 @@ async function readJsonResponse(response) {
   }
 }
 
+function setAuthMode(mode, { focus = false } = {}) {
+  const signupMode = mode !== "login";
+  signupFields.hidden = !signupMode;
+  loginFields.hidden = signupMode;
+  signupToggleButton.classList.toggle("is-active", signupMode);
+  loginModeButton.classList.toggle("is-active", !signupMode);
+  signupToggleButton.setAttribute("aria-selected", String(signupMode));
+  loginModeButton.setAttribute("aria-selected", String(!signupMode));
+
+  if (focus) {
+    (signupMode ? authName : authEmail)?.focus();
+  }
+}
+
 function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
   hasAccessPass = Boolean(meta.accessPass);
@@ -1562,8 +1581,9 @@ function updateAccountUi(user, meta = {}) {
   if (hasAccessPass) {
     accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet activé | Toutes les fonctionnalités sont débloquées.`;
     accessCodeFields.hidden = true;
+    accessCodeDisclosure.hidden = true;
+    accountAuthDetails.hidden = true;
     authFields.hidden = true;
-    signupFields.hidden = true;
     memberActions.hidden = false;
     upgradeButton.hidden = true;
     exportAccountButton.hidden = true;
@@ -1578,8 +1598,10 @@ function updateAccountUi(user, meta = {}) {
   if (!currentUser) {
     accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes sans carte. Crée un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.`;
     accessCodeFields.hidden = false;
+    accessCodeDisclosure.hidden = false;
+    accountAuthDetails.hidden = false;
     authFields.hidden = false;
-    signupFields.hidden = true;
+    setAuthMode("signup");
     memberActions.hidden = true;
     upgradeButton.hidden = true;
     exportAccountButton.hidden = true;
@@ -1602,8 +1624,9 @@ function updateAccountUi(user, meta = {}) {
 
   accountStatus.textContent = `Bonjour ${displayName} | Compte ${planLabel} | ${usage}${projectsLabel} | Rapports sauvegardés`;
   accessCodeFields.hidden = true;
+  accessCodeDisclosure.hidden = true;
+  accountAuthDetails.hidden = true;
   authFields.hidden = true;
-  signupFields.hidden = true;
   memberActions.hidden = false;
   upgradeButton.hidden = currentUser.plan === "pro";
   exportAccountButton.hidden = false;
@@ -1762,8 +1785,7 @@ function openAccountPanel() {
 
 function openSignupFlow() {
   openAccountPanel();
-  signupFields.hidden = false;
-  authName?.focus();
+  setAuthMode("signup", { focus: true });
 }
 
 function showAnonymousUpgradePrompt(message) {
@@ -1786,7 +1808,7 @@ function showProUpgradePrompt(message) {
   showConversionBanner({
     title: "Le quota du compte gratuit est atteint",
     text: message || "Passe à Voltia Plus pour lever le compteur quotidien et débloquer les modules premium.",
-    primaryLabel: "Passer à Plus",
+    primaryLabel: "Activer Plus",
     onPrimary: () => {
       startCheckout();
     },
@@ -1801,7 +1823,7 @@ function showProjectsUpgradePrompt(message) {
   showConversionBanner({
     title: "Dossiers réservés à Voltia Plus",
     text: message || "Voltia Plus ajoute des dossiers pour ranger tes rapports par projet, logement ou besoin.",
-    primaryLabel: "Passer à Plus",
+    primaryLabel: "Activer Plus",
     onPrimary: () => {
       startCheckout();
     },
@@ -1861,7 +1883,7 @@ function handleLandingState() {
   }
 
   if (intent === "pro") {
-    setAccountNotice("Crée ton compte gratuit, puis clique sur Passer à Plus pour lever le quota quotidien et activer les modules premium.");
+    setAccountNotice("Crée ton compte gratuit, puis clique sur Activer Plus pour lever le quota quotidien et activer les modules premium.");
     setHint("Parcours recommandé : compte gratuit d'abord, puis activation Plus depuis l'espace compte.", true);
   }
 
@@ -1943,9 +1965,8 @@ async function submitAuth(mode) {
     await loadReportHistory();
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
-      signupFields.hidden = true;
       setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
-      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou passer à Plus pour lever le compteur quotidien.`);
+      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou activer Plus pour lever le compteur quotidien.`);
       hideConversionBanner();
     } else {
       setAccountNotice(`Bonjour ${displayName}. Connexion réussie. Ton historique de rapports est disponible dans ton compte.`);
@@ -3276,13 +3297,12 @@ levelButtons.forEach((button) => {
 });
 
 signupToggleButton.addEventListener("click", () => {
-  signupFields.hidden = !signupFields.hidden;
-  if (!signupFields.hidden) {
-    authName.focus();
-    setHint("Remplis ton nom, ton email et ton mot de passe pour créer ton compte.");
-  } else {
-    setHint("Création de compte repliée. Tu peux te connecter si tu as déjà un compte.");
-  }
+  setAuthMode("signup", { focus: true });
+  setHint("Crée ton compte gratuit avec ton nom, ton email et un mot de passe.");
+});
+loginModeButton.addEventListener("click", () => {
+  setAuthMode("login", { focus: true });
+  setHint("Connecte-toi pour retrouver tes rapports et ton abonnement.");
 });
 signupButton.addEventListener("click", () => submitAuth("signup"));
 loginButton.addEventListener("click", () => submitAuth("login"));
