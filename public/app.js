@@ -2229,6 +2229,110 @@ function syncSchemaDefaults() {
   document.querySelector(".schema-board-fields")?.classList.toggle("hidden-field", type !== "tableau");
 }
 
+const supportedUploadImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function dataUrlSizeBytes(dataUrl = "") {
+  const payload = String(dataUrl || "").split(",", 2)[1] || "";
+  return Math.ceil((payload.length * 3) / 4);
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result || "")));
+    reader.addEventListener("error", () => reject(new Error("Le navigateur n'a pas pu lire cette image.")));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", () => reject(new Error("Image illisible. Utilise une photo JPG, PNG ou WebP.")));
+    image.src = dataUrl;
+  });
+}
+
+async function prepareImageUpload(file, { maxDimension = 2000, quality = 0.88 } = {}) {
+  if (!supportedUploadImageTypes.has(file.type)) {
+    throw new Error("Format non pris en charge. Convertis la photo en JPG, PNG ou WebP.");
+  }
+  if (file.size > 14 * 1024 * 1024) {
+    throw new Error("Image trop lourde. Choisis une photo de moins de 14 Mo.");
+  }
+
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImageFromDataUrl(originalDataUrl);
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  if (!width || !height) {
+    throw new Error("Dimensions de l'image introuvables.");
+  }
+
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+  if (scale === 1 && file.size <= 1_800_000) {
+    return { dataUrl: originalDataUrl, width, height, bytes: file.size, optimized: false };
+  }
+
+  const outputWidth = Math.max(1, Math.round(width * scale));
+  const outputHeight = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
+  const context = canvas.getContext("2d", { alpha: false }) || canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Optimisation de l'image indisponible dans ce navigateur.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, outputWidth, outputHeight);
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(image, 0, 0, outputWidth, outputHeight);
+
+  let outputQuality = quality;
+  let dataUrl = canvas.toDataURL("image/jpeg", outputQuality);
+  while (dataUrlSizeBytes(dataUrl) > 4_500_000 && outputQuality > 0.64) {
+    outputQuality -= 0.08;
+    dataUrl = canvas.toDataURL("image/jpeg", outputQuality);
+  }
+  if (dataUrlSizeBytes(dataUrl) > 5_500_000) {
+    throw new Error("La photo reste trop lourde après optimisation. Recadre-la autour de l'objet.");
+  }
+
+  return {
+    dataUrl,
+    width: outputWidth,
+    height: outputHeight,
+    bytes: dataUrlSizeBytes(dataUrl),
+    optimized: true
+  };
+}
+
+function uploadSummary(fileName, prepared) {
+  const sizeMb = Math.max(prepared.bytes / 1024 / 1024, 0.01).toFixed(1);
+  return `${fileName} · ${prepared.width} × ${prepared.height} px · ${sizeMb} Mo`;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 150000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("L'analyse a dépassé le délai prévu. Réessaie avec une photo recadrée autour de l'objet.");
+    }
+    if (/load failed|failed to fetch|networkerror|network request failed/i.test(String(error?.message || error))) {
+      throw new Error("Connexion interrompue pendant l'envoi. La photo est maintenant optimisée automatiquement : recharge-la puis réessaie.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function dedicatedLoadLabel(usage = "") {
   const text = normalizeText(usage);
   const loads = [
@@ -3035,14 +3139,14 @@ async function analyzePhotoToSchema() {
   hint.textContent = "Voltia analyse la photo et prépare un schéma...";
 
   try {
-    const response = await fetch("/api/photo-schema", {
+    const response = await fetchWithTimeout("/api/photo-schema", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         image: selectedPhotoDataUrl,
         context
       })
-    });
+    }, 150000);
 
     const data = await readJsonResponse(response);
     if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
@@ -3081,14 +3185,14 @@ async function searchManualNotice() {
   hint.textContent = "Voltia cherche la notice et les liens probables...";
 
   try {
-    const response = await fetch("/api/manual-search", {
+    const response = await fetchWithTimeout("/api/manual-search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         reference,
         image: selectedManualPhotoDataUrl
       })
-    });
+    }, 180000);
 
     const data = await readJsonResponse(response);
     if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
@@ -3143,7 +3247,7 @@ async function analyzeLightingPlan() {
   hint.textContent = "Voltia analyse le plan et calcule une implantation d'éclairage...";
 
   try {
-    const response = await fetch("/api/lighting-plan", {
+    const response = await fetchWithTimeout("/api/lighting-plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -3155,7 +3259,7 @@ async function analyzeLightingPlan() {
         source: selectedLightingPlanSource,
         level: selectedLevel
       })
-    });
+    }, 180000);
 
     const data = await readJsonResponse(response);
     if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
@@ -3443,80 +3547,83 @@ schemaType.addEventListener("change", () => {
   hint.textContent = "Type de schéma mis à jour. Ajuste les quantités puis crée le schéma.";
 });
 
-photoInput.addEventListener("change", () => {
+photoInput.addEventListener("change", async () => {
   const file = photoInput.files?.[0];
   if (!file) return;
 
-  if (!file.type.startsWith("image/")) {
-    hint.textContent = "Le fichier doit être une image.";
-    return;
-  }
-
-  if (file.size > 6 * 1024 * 1024) {
-    hint.textContent = "Image trop lourde. Choisis une photo de moins de 6 Mo.";
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    selectedPhotoDataUrl = String(reader.result || "");
-    photoLabel.textContent = file.name;
+  selectedPhotoDataUrl = "";
+  analyzePhoto.disabled = true;
+  hint.textContent = "Préparation et optimisation de la photo...";
+  try {
+    const prepared = await prepareImageUpload(file, { maxDimension: 2200, quality: 0.9 });
+    selectedPhotoDataUrl = prepared.dataUrl;
+    photoLabel.textContent = uploadSummary(file.name, prepared);
     photoPreview.hidden = false;
     photoPreview.innerHTML = `<img src="${selectedPhotoDataUrl}" alt="Aperçu de la photo">`;
-    hint.textContent = "Photo chargée. Ajoute un contexte si besoin puis lance l'analyse.";
-  });
-  reader.readAsDataURL(file);
+    hint.textContent = prepared.optimized
+      ? "Photo optimisée et prête. Ajoute un contexte si besoin puis lance l'analyse."
+      : "Photo prête. Ajoute un contexte si besoin puis lance l'analyse.";
+  } catch (error) {
+    photoPreview.hidden = true;
+    photoPreview.innerHTML = "";
+    photoLabel.textContent = "Choisir une photo";
+    hint.textContent = error.message;
+  } finally {
+    analyzePhoto.disabled = false;
+  }
 });
 
-manualPhotoInput.addEventListener("change", () => {
+manualPhotoInput.addEventListener("change", async () => {
   const file = manualPhotoInput.files?.[0];
   if (!file) return;
 
-  if (!file.type.startsWith("image/")) {
-    hint.textContent = "Le fichier doit être une image.";
-    return;
-  }
-
-  if (file.size > 6 * 1024 * 1024) {
-    hint.textContent = "Image trop lourde. Choisis une photo de moins de 6 Mo.";
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    selectedManualPhotoDataUrl = String(reader.result || "");
-    manualPhotoLabel.textContent = file.name;
+  selectedManualPhotoDataUrl = "";
+  searchManual.disabled = true;
+  hint.textContent = "Préparation de la photo de référence...";
+  try {
+    const prepared = await prepareImageUpload(file, { maxDimension: 2400, quality: 0.92 });
+    selectedManualPhotoDataUrl = prepared.dataUrl;
+    manualPhotoLabel.textContent = uploadSummary(file.name, prepared);
     manualPhotoPreview.hidden = false;
     manualPhotoPreview.innerHTML = `<img src="${selectedManualPhotoDataUrl}" alt="Aperçu de la référence">`;
-    hint.textContent = "Photo de référence chargée. Tu peux lancer la recherche de notice.";
-  });
-  reader.readAsDataURL(file);
+    hint.textContent = prepared.optimized
+      ? "Photo de référence optimisée. Tu peux lancer la recherche de notice."
+      : "Photo de référence prête. Tu peux lancer la recherche de notice.";
+  } catch (error) {
+    manualPhotoPreview.hidden = true;
+    manualPhotoPreview.innerHTML = "";
+    manualPhotoLabel.textContent = "Choisir une photo de référence";
+    hint.textContent = error.message;
+  } finally {
+    searchManual.disabled = false;
+  }
 });
 
-lightingPlanInput.addEventListener("change", () => {
+lightingPlanInput.addEventListener("change", async () => {
   const file = lightingPlanInput.files?.[0];
   if (!file) return;
 
-  if (!file.type.startsWith("image/")) {
-    hint.textContent = "Le fichier doit être une image.";
-    return;
-  }
-
-  if (file.size > 6 * 1024 * 1024) {
-    hint.textContent = "Image trop lourde. Choisis une photo de moins de 6 Mo.";
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    selectedLightingPlanDataUrl = String(reader.result || "");
+  selectedLightingPlanDataUrl = "";
+  analyzeLighting.disabled = true;
+  hint.textContent = "Préparation du plan...";
+  try {
+    const prepared = await prepareImageUpload(file, { maxDimension: 2400, quality: 0.92 });
+    selectedLightingPlanDataUrl = prepared.dataUrl;
     selectedLightingPlanSource = "upload";
-    lightingPlanLabel.textContent = file.name;
+    lightingPlanLabel.textContent = uploadSummary(file.name, prepared);
     lightingPlanPreview.hidden = false;
     lightingPlanPreview.innerHTML = `<img src="${selectedLightingPlanDataUrl}" alt="Aperçu du plan">`;
-    hint.textContent = "Plan chargé. Ajoute les dimensions connues puis lance le dimensionnement.";
-  });
-  reader.readAsDataURL(file);
+    hint.textContent = prepared.optimized
+      ? "Plan optimisé. Ajoute les dimensions connues puis lance le dimensionnement."
+      : "Plan prêt. Ajoute les dimensions connues puis lance le dimensionnement.";
+  } catch (error) {
+    lightingPlanPreview.hidden = true;
+    lightingPlanPreview.innerHTML = "";
+    lightingPlanLabel.textContent = "Choisir un plan";
+    hint.textContent = error.message;
+  } finally {
+    analyzeLighting.disabled = false;
+  }
 });
 
 lightingDrawModeButtons.forEach((button) => {
