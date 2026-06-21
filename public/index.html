@@ -321,21 +321,21 @@
             </div>
 
             <div class="schema-row schema-counts">
-              <label class="field">
+              <label class="field schema-socket-field">
                 <span>Nombre de prises</span>
                 <input id="socketCount" type="number" min="0" max="12" value="1">
               </label>
-              <label class="field">
+              <label class="field schema-light-field hidden-field">
                 <span>Nombre de lumières</span>
                 <input id="lightCount" type="number" min="0" max="8" value="1">
               </label>
-              <label class="field">
+              <label class="field schema-switch-field hidden-field">
                 <span>Nombre d'interrupteurs</span>
                 <input id="switchCount" type="number" min="0" max="6" value="1">
               </label>
             </div>
 
-            <div class="schema-row schema-board-fields">
+            <div class="schema-row schema-board-fields hidden-field">
               <label class="field">
                 <span>Nombre de disjoncteurs</span>
                 <input id="breakerCount" type="number" min="1" max="12" value="4">
@@ -370,6 +370,8 @@
               <span>Contexte optionnel</span>
               <input id="photoContext" type="text" placeholder="Ex: tableau électrique garage, prise cuisine">
             </label>
+
+            <div id="photoObjectResult" class="object-identity-card" hidden></div>
 
             <button id="analyzePhoto" class="secondary-action" type="button">Analyser la photo</button>
           </div>

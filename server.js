@@ -1586,6 +1586,27 @@ function latestUserMessage(messages = []) {
     .find((message) => message?.role !== "assistant")?.content || "";
 }
 
+function extractObjectIdentity(reply = "") {
+  const text = String(reply || "");
+  const readLabel = (...labels) => {
+    const labelPattern = labels
+      .map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|");
+    const match = new RegExp(`(?:^|\\n)\\s*(?:[-*]\\s*)?(?:${labelPattern})\\s*:\\s*([^\\n]+)`, "i").exec(text);
+    return String(match?.[1] || "").trim().replace(/[.;]+$/, "");
+  };
+
+  const identity = {
+    category: readLabel("Catégorie", "Categorie", "Type d'objet", "Type objet"),
+    brand: readLabel("Marque", "Fabricant"),
+    model: readLabel("Modèle", "Modele"),
+    reference: readLabel("Référence exacte", "Reference exacte", "Référence", "Reference"),
+    confidence: readLabel("Confiance")
+  };
+  const meaningful = Object.values(identity).some((value) => value && !/^(inconn|illisible|non visible|non identifi)/i.test(value));
+  return meaningful ? identity : null;
+}
+
 function isHighRiskOperationalRequest(messages = []) {
   const text = normalizePromptText(latestUserMessage(messages));
   const evChargingPlanning = textHasAny(text, [
@@ -1697,6 +1718,12 @@ function isHighRiskOperationalRequest(messages = []) {
   return executionIntent && electricalParts && (dangerousContext || nonCompliantIntent);
 }
 
+function safetyMessagesForRequest({ messages = [], requestKind = "chat", safetyContext = "" } = {}) {
+  return requestKind === "schema-explanation"
+    ? [{ role: "user", content: String(safetyContext || "").slice(0, 1200) }]
+    : messages;
+}
+
 function requestedDetailLevel(messages = []) {
   const text = normalizePromptText(messages.map((message) => message?.content || "").join("\n"));
   if (text.includes("niveau de reponse: expert") || text.includes("mode expert")) return "expert";
@@ -1755,14 +1782,22 @@ async function handleChat(req, res) {
     const usage = await consumeUsage(req, res, "chat");
     if (!usage.allowed) return;
 
-    const { messages = [], sourceOnly = false, sourceUrl = "", normsSearch = false } = await readRequestJson(req);
+    const {
+      messages = [],
+      sourceOnly = false,
+      sourceUrl = "",
+      normsSearch = false,
+      requestKind = "chat",
+      safetyContext = ""
+    } = await readRequestJson(req);
     const sourceContext = sourceOnly ? await readSourcePage(sourceUrl) : null;
     const shouldSearchNorms = Boolean(normsSearch && !sourceContext);
-    const highRiskOperational = isHighRiskOperationalRequest(messages);
+    const safetyMessages = safetyMessagesForRequest({ messages, requestKind, safetyContext });
+    const highRiskOperational = isHighRiskOperationalRequest(safetyMessages);
     const detailLevel = requestedDetailLevel(messages);
 
     if (highRiskOperational) {
-      sendJson(res, 200, { reply: highRiskOperationalReply(messages), safetyBlocked: true });
+      sendJson(res, 200, { reply: highRiskOperationalReply(safetyMessages), safetyBlocked: true });
       return;
     }
 
@@ -1819,6 +1854,9 @@ async function handleChat(req, res) {
           "Quand la demande vise un diagnostic ou un rapport, réponds comme un livrable professionnel non certifiant avec sections explicites et conclusions actionnables.",
           "Pour une demande de dimensionnement, borne de recharge, IRVE, puissance, protection ou section de câble, réponds de façon qualifiée avec les ordres de grandeur utiles, les facteurs de calcul (puissance, courant, monophasé/triphasé, longueur, chute de tension, mode de pose, température, protection, terre, différentiel, délestage), les limites et les points à faire valider. Tu peux donner des plages indicatives et expliquer le raisonnement, sans fournir un tutoriel de raccordement pas à pas.",
           "Pour toute réponse, garde la cohérence question/réponse: reprends le contexte utilisateur, signale les informations manquantes, et ne conclus jamais au-delà des données fournies.",
+          requestKind === "schema-explanation"
+            ? "La demande provient du générateur de schéma indicatif Voltia. Explique le schéma déjà affiché, son objet, ses composants, son chemin fonctionnel et ses limites. Ne réponds pas par un refus générique: la détection de danger a déjà été appliquée au contexte utilisateur séparément. Ne fournis toutefois aucune procédure de raccordement pas à pas."
+            : "",
           detailLevel === "expert"
             ? "Le niveau expert est actif: réponse substantielle attendue, avec vocabulaire technique expliqué, raisonnement nuancé et priorités. Ne sois pas superficiel."
             : "",
@@ -1880,8 +1918,11 @@ async function handlePhotoSchema(req, res) {
           ...clearAnswerInstructions("ce qui est visible sur la photo"),
           "Analyse la photo fournie pour retranscrire ce qui est visible en schéma électrique simple.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
-          "Réponds en français avec exactement ces sections: Réponse directe, Résumé rapide, Ce que je vois, Schéma en traits, Légende, Points à vérifier, Sécurité, Conclusion.",
+          "Commence par identifier l'objet lui-même avant d'interpréter ses connexions. Distingue strictement ce qui est lu sur l'étiquette, ce qui est reconnu visuellement et ce qui reste une hypothèse.",
+          "Dans la section Objet reconnu, écris exactement une ligne par champ sous la forme '- Catégorie:', '- Marque:', '- Modèle:', '- Référence exacte:' et '- Confiance:'. Utilise 'inconnue' ou 'non visible' quand l'information ne peut pas être lue.",
+          "Réponds en français avec exactement ces sections: Réponse directe, Objet reconnu, Indices visuels, Ce que je vois, Schéma fonctionnel en traits, Légende, Correspondance objet vers notice, Points à vérifier, Sécurité, Conclusion.",
           "Le schéma en traits doit utiliser des caractères simples avec L phase, N neutre, PE terre, protections, interrupteurs, lampes, prises ou borniers si visibles.",
+          "Dans Correspondance objet vers notice, donne la chaîne de recherche exacte à utiliser à partir de la marque, du modèle et de la référence réellement lus. N'invente aucune référence.",
           "Rappelle que le schéma est indicatif et qu'il faut couper le courant et faire valider par un électricien qualifié avant toute intervention."
         ].join(" "),
         input: [
@@ -1908,7 +1949,8 @@ async function handlePhotoSchema(req, res) {
       return;
     }
 
-    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu analyser cette photo." });
+    const reply = extractResponseText(data) || "Je n'ai pas pu analyser cette photo.";
+    sendJson(res, 200, { reply, objectIdentity: extractObjectIdentity(reply) });
   } catch (error) {
     sendError(res, error);
   }
@@ -1945,7 +1987,10 @@ async function handleManualSearch(req, res) {
           "Recherche une notice technique ou notice utilisateur fiable pour cet appareil électrique.",
           `Référence saisie: ${cleanReference || "aucune référence texte"}.`,
           "Si une photo est fournie, lis la marque, le modèle, la référence, les tensions/courants visibles, puis utilise ces éléments pour chercher.",
-          "Réponds en français avec ces sections: Réponse directe, Résumé rapide, Référence identifiée, Liens de notice probables, Infos utiles, Points de vigilance, Conclusion.",
+          "Commence par reconnaître l'objet lui-même et sépare marque, modèle, référence exacte, variante et caractéristiques lisibles.",
+          "Réponds en français avec ces sections: Réponse directe, Objet reconnu, Référence identifiée, Preuves de correspondance, Liens de notice vérifiés, Infos utiles, Points de vigilance, Conclusion.",
+          "Dans Objet reconnu, écris exactement une ligne par champ sous la forme '- Catégorie:', '- Marque:', '- Modèle:', '- Référence exacte:' et '- Confiance:'.",
+          "Dans Preuves de correspondance, compare la référence, la tension, le courant, la variante et l'apparence visibles avec chaque notice candidate. Rejette les notices d'une variante différente.",
           "Dans Liens de notice probables, donne uniquement des liens ou sources que tu juges plausibles, avec le nom du site et pourquoi c'est probablement la bonne notice.",
           "Si tu n'es pas certain, dis clairement que la notice doit être vérifiée par comparaison exacte de la référence."
         ].join(" ")
@@ -2000,6 +2045,55 @@ async function handleManualSearch(req, res) {
   }
 }
 
+function parseMetricRoomDimensions(value = "") {
+  const normalized = String(value || "").replace(/,/g, ".");
+  const match = /(\d+(?:\.\d+)?)\s*(?:m)?\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(?:m)?/i.exec(normalized);
+  if (!match) return null;
+  const length = Number(match[1]);
+  const width = Number(match[2]);
+  if (!Number.isFinite(length) || !Number.isFinite(width) || length <= 0 || width <= 0) return null;
+  return { length, width, area: Number((length * width).toFixed(2)) };
+}
+
+function estimateLightingSizing({ room = "", dimensions = "", type = "" } = {}) {
+  const parsed = parseMetricRoomDimensions(dimensions);
+  if (!parsed) return null;
+
+  const roomText = normalizePromptText(room);
+  const targetLux = roomText.includes("cuisine") || roomText.includes("bureau")
+    ? 400
+    : roomText.includes("salle de bain")
+      ? 250
+      : roomText.includes("couloir")
+        ? 125
+        : roomText.includes("chambre")
+          ? 150
+          : 225;
+  const typeText = normalizePromptText(type);
+  const lumensPerPoint = typeText.includes("spot") || typeText.includes("rail")
+    ? 650
+    : typeText.includes("applique")
+      ? 500
+      : typeText.includes("plafonnier")
+        ? 2200
+        : typeText.includes("suspension")
+          ? 1600
+          : 900;
+  const maintenanceFactor = 1.15;
+  const totalLumens = Math.round((parsed.area * targetLux * maintenanceFactor) / 50) * 50;
+  const pointCount = Math.min(Math.max(Math.ceil(totalLumens / lumensPerPoint), 1), 24);
+
+  return {
+    ...parsed,
+    targetLux,
+    maintenanceFactor,
+    totalLumens,
+    lumensPerPoint,
+    pointCount,
+    spacingGuidanceMeters: Number(Math.sqrt(parsed.area / pointCount).toFixed(2))
+  };
+}
+
 async function handleLightingPlan(req, res) {
   if (!process.env.OPENAI_API_KEY) {
     sendJson(res, 500, {
@@ -2023,6 +2117,7 @@ async function handleLightingPlan(req, res) {
     } = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
 
     assertSupportedImageDataUrl(image, "Plan");
+    const estimate = estimateLightingSizing({ room, dimensions, type });
 
     const model = getOpenAIModel();
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -2047,6 +2142,7 @@ async function handleLightingPlan(req, res) {
           "Si l'échelle ou les cotes ne sont pas lisibles, fais une estimation prudente et dis clairement ce qui manque.",
           "Utilise des objectifs de lux indicatifs: chambre 100 a 200 lux, salon 150 a 300 lux, cuisine 300 a 500 lux, plan de travail 500 lux, salle de bain 200 a 300 lux, couloir 100 a 150 lux, bureau 300 a 500 lux.",
           "Calcule une puissance indicative a partir des lumens, en rappelant qu'une LED courante donne environ 80 a 120 lm/W selon modele.",
+          "Quand une estimation déterministe est fournie, utilise-la comme base chiffrée, montre la formule surface × lux × coefficient de maintenance, puis adapte l'implantation aux obstacles réellement visibles. Ne change pas arbitrairement le nombre de points sans expliquer pourquoi.",
           "Propose le type de luminaire adapté: spot encastré, suspension, plafonnier, rail, applique, ruban LED ou éclairage de tâche.",
           "Ne présente pas le résultat comme une étude professionnelle. Rappelle de respecter les normes, volumes de salle d'eau, distances, IP, protections et validation par un électricien qualifié.",
           "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Lecture du plan, Hypothèses, Schéma propre coté, Calcul indicatif, Implantation des spots sur le schéma, Tableau des spots, Type et puissance des luminaires, Sécurité, Conclusion.",
@@ -2069,6 +2165,7 @@ async function handleLightingPlan(req, res) {
                   `Type de luminaire souhaité: ${String(type || "non précisé").slice(0, 80)}.`,
                   `Source du plan: ${String(source || "import").slice(0, 40)}.`,
                   `Niveau de détail demandé: ${String(level || "débutant").slice(0, 40)}.`,
+                  `Estimation déterministe: ${estimate ? JSON.stringify(estimate) : "dimensions insuffisantes pour calculer la surface"}.`,
                   "Donne une proposition claire, lisible et exploitable pour placer les points lumineux. Si la source est sketch, traite l'image comme un croquis quadrillé à nettoyer en plan coté. La réponse doit montrer le plan propre avec les cotes placées et les spots placés sur le schéma avec le symbole lumineux ⊗ au bon endroit, pas seulement dans une liste."
                 ].join(" ")
               },
@@ -2088,7 +2185,10 @@ async function handleLightingPlan(req, res) {
       return;
     }
 
-    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cet éclairage." });
+    sendJson(res, 200, {
+      reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cet éclairage.",
+      estimate
+    });
   } catch (error) {
     sendError(res, error);
   }
@@ -2432,9 +2532,12 @@ export {
   assertSupportedImageDataUrl,
   clearAnswerInstructions,
   estimateClimateSizing,
+  estimateLightingSizing,
+  extractObjectIdentity,
   highRiskOperationalReply,
   isHighRiskOperationalRequest,
   normalizeSourceUrl,
   requestListener,
-  requestedDetailLevel
+  requestedDetailLevel,
+  safetyMessagesForRequest
 };

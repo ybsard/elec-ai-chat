@@ -7,10 +7,13 @@ const {
   assertSupportedImageDataUrl,
   clearAnswerInstructions,
   estimateClimateSizing,
+  estimateLightingSizing,
+  extractObjectIdentity,
   highRiskOperationalReply,
   isHighRiskOperationalRequest,
   normalizeSourceUrl,
-  requestedDetailLevel
+  requestedDetailLevel,
+  safetyMessagesForRequest
 } = await import("../server.js");
 
 test("blocks dangerous operational wiring requests", () => {
@@ -35,6 +38,26 @@ test("does not block legitimate sizing questions", () => {
   ];
 
   assert.equal(isHighRiskOperationalRequest(messages), false);
+});
+
+test("does not confuse a generated schema explanation with a wiring request", () => {
+  const messages = safetyMessagesForRequest({
+    messages: [{ role: "user", content: "Explique ce schema avec ses calibres, bornes et protections." }],
+    requestKind: "schema-explanation",
+    safetyContext: "Cuisine, four 20 A, circuit dedie"
+  });
+
+  assert.equal(isHighRiskOperationalRequest(messages), false);
+  assert.equal(messages[0].content, "Cuisine, four 20 A, circuit dedie");
+});
+
+test("keeps dangerous schema context blocked", () => {
+  const messages = safetyMessagesForRequest({
+    requestKind: "schema-explanation",
+    safetyContext: "Comment brancher ce four sous tension avec phase neutre et terre ?"
+  });
+
+  assert.equal(isHighRiskOperationalRequest(messages), true);
 });
 
 test("uses the latest user message for danger detection", () => {
@@ -97,4 +120,36 @@ test("estimates climate sizing with bounded numeric output", () => {
   assert.equal(estimate.area, 30);
   assert.equal(estimate.recommendedKw > 0, true);
   assert.equal(estimate.recommendedBtu > estimate.recommendedWatts, true);
+});
+
+test("estimates lighting from metric room dimensions", () => {
+  const estimate = estimateLightingSizing({
+    room: "Cuisine",
+    dimensions: "4,2 x 3,1 m",
+    type: "Spots encastres"
+  });
+
+  assert.equal(estimate.area, 13.02);
+  assert.equal(estimate.targetLux, 400);
+  assert.equal(estimate.pointCount >= 8, true);
+  assert.equal(estimate.totalLumens > 5000, true);
+});
+
+test("extracts a recognized object for the notice workflow", () => {
+  const identity = extractObjectIdentity(`
+Objet reconnu
+- Categorie: contacteur
+- Marque: Schneider Electric
+- Modele: Acti9 iCT
+- Reference exacte: A9C20842
+- Confiance: 92 %
+  `);
+
+  assert.deepEqual(identity, {
+    category: "contacteur",
+    brand: "Schneider Electric",
+    model: "Acti9 iCT",
+    reference: "A9C20842",
+    confidence: "92 %"
+  });
 });

@@ -80,6 +80,7 @@ const photoInput = document.querySelector("#photoInput");
 const photoLabel = document.querySelector("#photoLabel");
 const photoPreview = document.querySelector("#photoPreview");
 const photoContext = document.querySelector("#photoContext");
+const photoObjectResult = document.querySelector("#photoObjectResult");
 const analyzePhoto = document.querySelector("#analyzePhoto");
 const manualReference = document.querySelector("#manualReference");
 const manualPhotoInput = document.querySelector("#manualPhotoInput");
@@ -442,6 +443,40 @@ function addManualSearchMessage(reference, dataUrl) {
   item.append(avatar, stack);
   messagesEl.append(item);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function cleanIdentityValue(value) {
+  const text = String(value || "").trim();
+  return /^(inconn|illisible|non visible|non identifi)/i.test(text) ? "" : text;
+}
+
+function renderRecognizedObject(identity) {
+  if (!photoObjectResult) return;
+
+  const category = cleanIdentityValue(identity?.category);
+  const brand = cleanIdentityValue(identity?.brand);
+  const model = cleanIdentityValue(identity?.model);
+  const reference = cleanIdentityValue(identity?.reference);
+  const confidence = cleanIdentityValue(identity?.confidence);
+  const values = [brand, model, reference].filter(Boolean);
+
+  if (!category && !values.length) {
+    photoObjectResult.hidden = true;
+    photoObjectResult.innerHTML = "";
+    return;
+  }
+
+  photoObjectResult.hidden = false;
+  photoObjectResult.innerHTML = `
+    <strong>Objet reconnu</strong>
+    <span>${escapeHtml([category, ...values].filter(Boolean).join(" · "))}</span>
+    ${confidence ? `<small>Confiance IA : ${escapeHtml(confidence)}</small>` : ""}
+    <small>La référence doit correspondre exactement à l'étiquette avant d'utiliser une notice.</small>
+  `;
+
+  if (!manualReference.value.trim() && values.length) {
+    manualReference.value = values.join(" ");
+  }
 }
 
 function addLightingPlanMessage(details, dataUrl) {
@@ -2158,10 +2193,15 @@ function clampCount(value, fallback, min, max) {
 }
 
 function getSchemaCounts() {
+  const type = schemaType.value;
   return {
-    sockets: clampCount(socketCount.value, 1, 0, 12),
-    lights: clampCount(lightCount.value, 1, 0, 8),
-    switches: clampCount(switchCount.value, 1, 0, 6),
+    sockets: type === "prise" ? clampCount(socketCount.value, 1, 1, 12) : 0,
+    lights: type === "eclairage" || type === "va-et-vient" ? clampCount(lightCount.value, 1, 1, 8) : 0,
+    switches: type === "eclairage"
+      ? clampCount(switchCount.value, 1, 1, 6)
+      : type === "va-et-vient"
+        ? clampCount(switchCount.value, 2, 2, 6)
+        : 0,
     breakers: clampCount(breakerCount.value, 4, 1, 12),
     breakerRatings: breakerRatings.value.trim(),
     symbolMode: schemaSymbolMode?.value || "standard"
@@ -2169,6 +2209,7 @@ function getSchemaCounts() {
 }
 
 function syncSchemaDefaults() {
+  const type = schemaType.value;
   if (schemaType.value === "prise" && Number(socketCount.value) === 0) {
     socketCount.value = "1";
   }
@@ -2182,7 +2223,27 @@ function syncSchemaDefaults() {
   if (schemaType.value === "tableau" && Number(breakerCount.value) < 1) {
     breakerCount.value = "4";
   }
-  document.querySelector(".schema-board-fields")?.classList.toggle("hidden-field", schemaType.value !== "tableau");
+  document.querySelector(".schema-socket-field")?.classList.toggle("hidden-field", type !== "prise");
+  document.querySelector(".schema-light-field")?.classList.toggle("hidden-field", !["eclairage", "va-et-vient"].includes(type));
+  document.querySelector(".schema-switch-field")?.classList.toggle("hidden-field", !["eclairage", "va-et-vient"].includes(type));
+  document.querySelector(".schema-board-fields")?.classList.toggle("hidden-field", type !== "tableau");
+}
+
+function dedicatedLoadLabel(usage = "") {
+  const text = normalizeText(usage);
+  const loads = [
+    ["plaque", "Plaque de cuisson"],
+    ["four", "Four"],
+    ["chauffe-eau", "Chauffe-eau"],
+    ["chauffe eau", "Chauffe-eau"],
+    ["lave-linge", "Lave-linge"],
+    ["lave linge", "Lave-linge"],
+    ["lave-vaisselle", "Lave-vaisselle"],
+    ["lave vaisselle", "Lave-vaisselle"],
+    ["borne", "Borne de recharge"],
+    ["irve", "Borne de recharge"]
+  ];
+  return loads.find(([keyword]) => text.includes(keyword))?.[1] || "";
 }
 
 function getBreakerItems(counts = {}) {
@@ -2204,13 +2265,18 @@ function buildSchema(type, room, usage, counts = {}) {
   const switchTotal = clampCount(counts.switches, type === "va-et-vient" ? 2 : 1, 0, 6);
   const breakerItems = getBreakerItems(counts);
   const breakerTotal = breakerItems.length;
+  const dedicatedLoad = type === "prise" ? dedicatedLoadLabel(usage) : "";
   const quantityLine = type === "tableau"
     ? `Disjoncteurs: ${breakerTotal} | Circuits: ${escapeHtml(breakerItems.join(", "))}`
-    : `Prises: ${socketTotal} | Lumieres: ${lightTotal} | Interrupteurs: ${switchTotal}`;
+    : type === "prise"
+      ? dedicatedLoad
+        ? `Circuit spécialisé: ${escapeHtml(dedicatedLoad)} | Départ dédié indicatif`
+        : `Prises: ${socketTotal}`
+      : `Lumières: ${lightTotal} | Commandes: ${switchTotal}`;
   const normalizedLegend = normalizedSymbols ? `
     <g class="standard-symbol-legend">
       <rect x="24" y="222" width="252" height="34" rx="8" />
-      <text x="38" y="243" text-anchor="start">Symboles: QF disjoncteur | ID différentiel | X point lumineux | PC prise 2P+T | S interrupteur</text>
+      <text x="38" y="243" text-anchor="start">${dedicatedLoad ? "Repères: QF protection | L phase | N neutre | PE terre | appareil dédié" : "Symboles: QF disjoncteur | ID différentiel | X point lumineux | PC prise 2P+T | S interrupteur"}</text>
     </g>
   ` : "";
   const header = `
@@ -2238,7 +2304,13 @@ function buildSchema(type, room, usage, counts = {}) {
   const socketSymbols = Array.from({ length: Math.max(socketTotal, 1) }, (_, index) => {
     const y = 86 + index * 42;
     const branchX = 448 + index * 5;
-    const symbolMarkup = normalizedSymbols ? `
+    const symbolMarkup = dedicatedLoad ? `
+      <g class="symbol dedicated-load">
+        <rect x="476" y="${y - 20}" width="102" height="42" rx="8" />
+        <text x="527" y="${y - 2}">${escapeHtml(dedicatedLoad)}</text>
+        <text x="527" y="${y + 14}">point dédié</text>
+      </g>
+    ` : normalizedSymbols ? `
       <g class="symbol socket standard-symbol">
         <circle cx="522" cy="${y}" r="18" />
         <line x1="515" y1="${y - 5}" x2="515" y2="${y + 5}" />
@@ -2366,13 +2438,13 @@ function buildSchema(type, room, usage, counts = {}) {
           <rect x="28" y="88" width="118" height="126" rx="8" />
           <text x="87" y="112">Tableau</text>
           <rect x="48" y="130" width="78" height="38" rx="5" />
-          <text x="87" y="153">${normalizedSymbols ? "QF 16/20A" : "DJ 16/20A"}</text>
+          <text x="87" y="153">${dedicatedLoad ? (normalizedSymbols ? "QF dédié" : "DJ dédié") : (normalizedSymbols ? "QF 16/20A" : "DJ 16/20A")}</text>
         </g>
         <path class="wire phase wire-bus" d="M 126 92 H 462" />
         <path class="wire neutral wire-bus" d="M 126 112 H 474" />
         <path class="wire earth wire-bus" d="M 126 132 H 486" />
         ${socketSymbols}
-        <text class="wire-label" x="258" y="82">L / N / PE séparés vers prise(s) en parallèle</text>
+        <text class="wire-label" x="258" y="82">${dedicatedLoad ? "Départ spécialisé à confirmer selon la notice" : "L / N / PE séparés vers prise(s) en parallèle"}</text>
         ${note}
       </svg>
     `;
@@ -2607,20 +2679,25 @@ function numberedRows(label, count, prefix = "") {
   return Array.from({ length: total }, (_, index) => `${prefix}${label} ${index + 1}`).join("\n");
 }
 
-function buildLineSchema(type, counts = {}) {
+function buildLineSchema(type, counts = {}, usage = "") {
   const socketTotal = clampCount(counts.sockets, 1, 0, 12);
   const lightTotal = clampCount(counts.lights, 1, 0, 8);
   const switchTotal = clampCount(counts.switches, type === "va-et-vient" ? 2 : 1, 0, 6);
-  const socketBranches = numberedRows("[ PRISE 2P+T ]", socketTotal, "             ├──────────────> ");
+  const dedicatedLoad = type === "prise" ? dedicatedLoadLabel(usage) : "";
+  const socketBranchLabel = dedicatedLoad ? `[ ${dedicatedLoad.toUpperCase()} / POINT DEDIE ]` : "[ PRISE 2P+T ]";
+  const socketBranches = numberedRows(socketBranchLabel, socketTotal, "             ├──────────────> ");
   const lightBranches = numberedRows("[ LAMPE ]", lightTotal, "             ├──────────────> ");
   const switchChain = Array.from({ length: Math.max(switchTotal, 1) }, (_, index) => `[INT ${index + 1}]`).join(" ---- ");
   const vaSwitches = Math.max(switchTotal, 2);
   const vaChain = Array.from({ length: vaSwitches }, (_, index) => `[VA ${index + 1}]`).join(" == navettes == ");
+  const receiverTitle = dedicatedLoad ? "APPAREIL / POINT DEDIE" : "BOITE / PRISE 2P+T";
+  const receiverLabel = dedicatedLoad ? dedicatedLoad.toUpperCase() : "PRISE";
+  const protectionLabel = dedicatedLoad ? "Protection dediee" : "Disjoncteur 16/20A";
   const schemas = {
     prise: `
-TABLEAU ELECTRIQUE                      BOITE / PRISE 2P+T
+TABLEAU ELECTRIQUE                      ${receiverTitle}
 ┌────────────────────┐                  ┌────────────────────┐
-│ Disjoncteur 16/20A │                  │        PRISE       │
+│ ${protectionLabel.padEnd(18, " ")} │                  │ ${receiverLabel.slice(0, 18).padStart(18, " ")} │
 │                    │                  │                    │
 │ borne L   o────────┼──── phase L ─────┼──> borne L         │
 │ borne N   o────────┼──── neutre N ────┼──> borne N         │
@@ -2713,17 +2790,24 @@ function buildSchemaPrompt() {
   const room = schemaRoom.value.trim() || "pièce non précisée";
   const usage = schemaUse.value.trim() || "usage non précisé";
   const counts = getSchemaCounts();
+  const quantityDetails = schemaType.value === "prise"
+    ? [`Nombre de prises ou départs: ${counts.sockets}.`]
+    : schemaType.value === "tableau"
+      ? [
+          `Nombre de disjoncteurs tableau: ${counts.breakers}.`,
+          `Calibres ou circuits demandés: ${counts.breakerRatings || "non précisé"}.`
+        ]
+      : [
+          `Nombre de lumières: ${counts.lights}.`,
+          `Nombre de commandes: ${counts.switches}.`
+        ];
   return [
     "Explique ce schéma électrique indicatif.",
     `Type: ${typeLabel}.`,
     `Style demandé: ${symbolStyle}`,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
-    `Nombre de prises: ${counts.sockets}.`,
-    `Nombre de lumieres: ${counts.lights}.`,
-    `Nombre d'interrupteurs: ${counts.switches}.`,
-    `Nombre de disjoncteurs tableau: ${counts.breakers}.`,
-    `Calibres ou circuits demandes: ${counts.breakerRatings || "non precise"}.`,
+    ...quantityDetails,
     schemaType.value === "va-et-vient" && counts.switches > 2
       ? "Important: pour plus de 2 points de commande, explique le principe avec deux va-et-vient aux extremites et un ou plusieurs permutateurs intermediaires."
       : "",
@@ -2862,7 +2946,7 @@ function addAutomaticSchema(content) {
     schemaTitle(type),
     buildSchema(type, "demande du chat", content.slice(0, 90), counts),
     "Schéma généré automatiquement depuis ta demande. Il reste indicatif et doit être validé avant travaux.",
-    buildLineSchema(type, counts)
+    buildLineSchema(type, counts, content)
   );
 }
 
@@ -2896,7 +2980,9 @@ async function askAssistant(content, options = {}) {
         messages,
         sourceOnly: sourceSettings.enabled,
         sourceUrl: sourceSettings.url,
-        normsSearch: sourceSettings.normsSearch
+        normsSearch: sourceSettings.normsSearch,
+        requestKind: options.requestKind || "chat",
+        safetyContext: options.safetyContext || ""
       })
     });
 
@@ -2952,6 +3038,7 @@ async function analyzePhotoToSchema() {
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu analyser cette photo.";
     setAssistantMessage(pending, reply);
+    renderRecognizedObject(data.objectIdentity);
     messages.push({
       role: "assistant",
       content: `Analyse photo vers schéma:\n${reply}`
@@ -3324,14 +3411,20 @@ createSchema.addEventListener("click", async () => {
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
   const schemaPrompt = buildSchemaPrompt();
+  const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
   addMessage("user", `Crée un schéma : ${typeLabel}, style : ${styleLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);
   addDiagramMessage(
-    typeLabel,
+    dedicatedLoad ? `Circuit spécialisé - ${dedicatedLoad}` : typeLabel,
     buildSchema(schemaType.value, room, usage, counts),
     "Schéma indicatif généré par Voltia. Ne pas intervenir sous tension.",
-    buildLineSchema(schemaType.value, counts)
+    buildLineSchema(schemaType.value, counts, usage)
   );
-  await askAssistant(schemaPrompt, { skipAutoSchema: true, skipUserMessage: true });
+  await askAssistant(schemaPrompt, {
+    skipAutoSchema: true,
+    skipUserMessage: true,
+    requestKind: "schema-explanation",
+    safetyContext: `${room} ${usage}`.trim()
+  });
 });
 
 schemaType.addEventListener("change", () => {
