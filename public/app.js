@@ -2784,12 +2784,22 @@ La terre PE est distribuee vers tous les circuits concernes.
 
 function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
-  const symbolStyle = schemaSymbolMode?.value === "normalized"
-    ? "Symboles électriques normalisés: utilise les repères QF pour disjoncteur, ID pour différentiel, PC pour prise, X pour point lumineux, S pour interrupteur."
-    : "Style de lecture claire: privilégie les libellés explicites.";
   const room = schemaRoom.value.trim() || "pièce non précisée";
   const usage = schemaUse.value.trim() || "usage non précisé";
   const counts = getSchemaCounts();
+  const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
+  const symbolStyle = schemaSymbolMode?.value === "normalized"
+    ? "Style normalisé: explique uniquement les repères réellement dessinés et n'ajoute aucun organe absent du schéma."
+    : "Style de lecture claire: privilégie les libellés explicites et reste strictement fidèle aux éléments dessinés.";
+  const diagramInventory = schemaType.value === "prise"
+    ? dedicatedLoad
+      ? `Composants réellement dessinés: un bloc Tableau avec QF dédié, un point dédié ${dedicatedLoad}, et trois liaisons de principe L, N et PE. Aucun ID ni symbole PC n'est dessiné: ne prétends pas le contraire.`
+      : "Composants réellement dessinés: un bloc Tableau avec QF 16/20 A, une ou plusieurs prises PC, et les liaisons de principe L, N et PE."
+    : schemaType.value === "eclairage"
+      ? "Composants réellement dessinés: tableau avec QF, commandes S, points lumineux X, phase commandée, neutre et terre."
+      : schemaType.value === "va-et-vient"
+        ? "Composants réellement dessinés: tableau avec QF, deux commandes va-et-vient aux extrémités, éventuels permutateurs, navettes, points lumineux, neutre et terre."
+        : "Composants réellement dessinés: arrivée/AGCP, ID 30 mA, QF divisionnaires, peigne de phase, retours neutres et barrette PE.";
   const quantityDetails = schemaType.value === "prise"
     ? [`Nombre de prises ou départs: ${counts.sockets}.`]
     : schemaType.value === "tableau"
@@ -2805,6 +2815,7 @@ function buildSchemaPrompt() {
     "Explique ce schéma électrique indicatif.",
     `Type: ${typeLabel}.`,
     `Style demandé: ${symbolStyle}`,
+    diagramInventory,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
     ...quantityDetails,
