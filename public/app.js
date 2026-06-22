@@ -39,6 +39,7 @@ const loginModeButton = document.querySelector("#loginModeButton");
 const loginFields = document.querySelector("#loginFields");
 const signupEmail = document.querySelector("#signupEmail");
 const signupPassword = document.querySelector("#signupPassword");
+const signupAccountRole = document.querySelector("#signupAccountRole");
 const signupButton = document.querySelector("#signupButton");
 const loginButton = document.querySelector("#loginButton");
 const accessCodeDisclosure = document.querySelector("#accessCodeDisclosure");
@@ -47,6 +48,30 @@ const upgradeButton = document.querySelector("#upgradeButton");
 const exportAccountButton = document.querySelector("#exportAccountButton");
 const deleteAccountButton = document.querySelector("#deleteAccountButton");
 const logoutButton = document.querySelector("#logoutButton");
+const pedagogyPanel = document.querySelector("#pedagogyPanel");
+const pedagogyBadge = document.querySelector("#pedagogyBadge");
+const teacherPedagogyPanel = document.querySelector("#teacherPedagogyPanel");
+const studentPedagogyPanel = document.querySelector("#studentPedagogyPanel");
+const pedagogyClassName = document.querySelector("#pedagogyClassName");
+const pedagogyResponseMode = document.querySelector("#pedagogyResponseMode");
+const pedagogyCategoryInputs = document.querySelectorAll("[name='pedagogyCategory']");
+const pedagogyCustomRules = document.querySelector("#pedagogyCustomRules");
+const pedagogyTeacherMessage = document.querySelector("#pedagogyTeacherMessage");
+const pedagogyActive = document.querySelector("#pedagogyActive");
+const savePedagogyButton = document.querySelector("#savePedagogyButton");
+const regeneratePedagogyCodeButton = document.querySelector("#regeneratePedagogyCodeButton");
+const deletePedagogyButton = document.querySelector("#deletePedagogyButton");
+const pedagogyCodeCard = document.querySelector("#pedagogyCodeCard");
+const pedagogyClassCode = document.querySelector("#pedagogyClassCode");
+const copyPedagogyCodeButton = document.querySelector("#copyPedagogyCodeButton");
+const pedagogyStudentCount = document.querySelector("#pedagogyStudentCount");
+const pedagogyStudentRoster = document.querySelector("#pedagogyStudentRoster");
+const pedagogyStudentList = document.querySelector("#pedagogyStudentList");
+const studentClassroomStatus = document.querySelector("#studentClassroomStatus");
+const studentJoinClassroom = document.querySelector("#studentJoinClassroom");
+const studentClassCode = document.querySelector("#studentClassCode");
+const joinClassroomButton = document.querySelector("#joinClassroomButton");
+const pedagogyNotice = document.querySelector("#pedagogyNotice");
 const reportHistory = document.querySelector("#reportHistory");
 const reportHistoryTitle = document.querySelector("#reportHistoryTitle");
 const reportHistorySubtitle = document.querySelector("#reportHistorySubtitle");
@@ -121,6 +146,7 @@ let selectedLightingPlanDataUrl = "";
 let selectedLightingPlanSource = "";
 let selectedLevel = "debutant";
 let currentUser = null;
+let pedagogyContext = { role: "anonymous", classroom: null };
 let hasAccessPass = false;
 const pageParams = new URLSearchParams(window.location.search);
 let conversionPrimaryAction = () => {};
@@ -1570,6 +1596,284 @@ function setAuthMode(mode, { focus = false } = {}) {
   }
 }
 
+function setPedagogyNotice(message, important = false) {
+  if (!pedagogyNotice) return;
+  pedagogyNotice.textContent = message || "";
+  pedagogyNotice.classList.toggle("is-important", important);
+}
+
+function pedagogyBlocksCategory(category) {
+  const classroom = pedagogyContext?.role === "student" ? pedagogyContext.classroom : null;
+  return Boolean(classroom?.active && classroom.blockedCategories?.includes(category));
+}
+
+function normalizePedagogyText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, " ")
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pedagogyCustomRuleMatches(content) {
+  const classroom = pedagogyContext?.role === "student" ? pedagogyContext.classroom : null;
+  if (!classroom?.active) return false;
+  const text = normalizePedagogyText(content);
+  const stopWords = new Set(["avec", "dans", "pour", "sans", "sous", "question", "questions", "reponse", "reponses", "type"]);
+  return (classroom.customRules || []).some((rule) => {
+    const normalizedRule = normalizePedagogyText(rule);
+    if (!normalizedRule) return false;
+    if (text.includes(normalizedRule)) return true;
+    const tokens = normalizedRule.split(" ").filter((token) => token.length >= 4 && !stopWords.has(token));
+    return tokens.length > 0 && tokens.every((token) => text.includes(token));
+  });
+}
+
+function pedagogyBlocksRequest(category, content = "") {
+  return pedagogyBlocksCategory(category) || pedagogyCustomRuleMatches(content);
+}
+
+function guardPedagogicalFeature(category, content = "") {
+  if (!pedagogyBlocksRequest(category, content)) return false;
+  const classroom = pedagogyContext.classroom;
+  const message = [
+    `Cette fonctionnalité est limitée par le cadre pédagogique de la classe « ${classroom.name} ».`,
+    classroom.responseMode === "guided"
+      ? "Demande plutôt une méthode, un indice ou une vérification de ta propre démarche."
+      : "Consulte ton cours puis demande à ton enseignant de vérifier ton raisonnement.",
+    classroom.teacherMessage || ""
+  ].filter(Boolean).join(" ");
+  addMessage("assistant", message);
+  setHint("Cadre pédagogique actif : cette catégorie est bridée par l'enseignant.", true);
+  return true;
+}
+
+function renderPedagogicalStudents(students = []) {
+  if (!pedagogyStudentRoster || !pedagogyStudentList) return;
+  const safeStudents = Array.isArray(students) ? students : [];
+  pedagogyStudentRoster.hidden = safeStudents.length === 0;
+  pedagogyStudentList.replaceChildren();
+  for (const student of safeStudents) {
+    const row = document.createElement("div");
+    row.className = "pedagogy-student-row";
+    const identity = document.createElement("span");
+    const name = document.createElement("strong");
+    name.textContent = student.name || "Élève";
+    const joined = document.createElement("small");
+    joined.textContent = student.joinedAt
+      ? `Rattaché le ${new Date(student.joinedAt).toLocaleDateString("fr-FR")}`
+      : "Élève rattaché";
+    identity.append(name, joined);
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "secondary-action danger-action";
+    removeButton.dataset.studentId = String(student.id || "");
+    removeButton.dataset.studentName = String(student.name || "cet élève");
+    removeButton.textContent = "Détacher";
+    row.append(identity, removeButton);
+    pedagogyStudentList.append(row);
+  }
+}
+
+function renderPedagogy(context = { role: "anonymous", classroom: null }) {
+  pedagogyContext = context && typeof context === "object" ? context : { role: "anonymous", classroom: null };
+  if (!pedagogyPanel) return;
+  if (!currentUser) {
+    pedagogyPanel.hidden = true;
+    teacherPedagogyPanel.hidden = true;
+    studentPedagogyPanel.hidden = true;
+    return;
+  }
+
+  const role = currentUser.accountRole === "teacher" ? "teacher" : "student";
+  const classroom = pedagogyContext.classroom || null;
+  pedagogyPanel.hidden = false;
+  teacherPedagogyPanel.hidden = role !== "teacher";
+  studentPedagogyPanel.hidden = role !== "student";
+  pedagogyPanel.classList.toggle("is-teacher", role === "teacher");
+  pedagogyPanel.classList.toggle("is-student", role === "student");
+  pedagogyPanel.classList.toggle("has-classroom", Boolean(classroom));
+
+  if (role === "teacher") {
+    pedagogyBadge.textContent = classroom
+      ? classroom.active ? "Classe active" : "Cadre suspendu"
+      : "À configurer";
+    pedagogyClassName.value = classroom?.name || "";
+    pedagogyResponseMode.value = classroom?.responseMode === "guided" ? "guided" : "block";
+    pedagogyCustomRules.value = (classroom?.customRules || []).join("\n");
+    pedagogyTeacherMessage.value = classroom?.teacherMessage || "";
+    pedagogyActive.checked = classroom?.active !== false;
+    const selectedCategories = new Set(classroom?.blockedCategories || []);
+    pedagogyCategoryInputs.forEach((input) => {
+      input.checked = selectedCategories.has(input.value);
+    });
+    savePedagogyButton.textContent = classroom ? "Enregistrer les règles" : "Créer le code classe";
+    regeneratePedagogyCodeButton.hidden = !classroom;
+    deletePedagogyButton.hidden = !classroom;
+    pedagogyCodeCard.hidden = !classroom;
+    pedagogyClassCode.textContent = classroom?.code || "VLT-••••";
+    const studentCount = Number(classroom?.studentCount || 0);
+    pedagogyStudentCount.textContent = `${studentCount} élève${studentCount > 1 ? "s" : ""} rattaché${studentCount > 1 ? "s" : ""}`;
+    renderPedagogicalStudents(classroom?.students || []);
+    return;
+  }
+
+  pedagogyBadge.textContent = classroom
+    ? classroom.active ? "Classe active" : "Cadre suspendu"
+    : "Aucune classe";
+  studentJoinClassroom.hidden = Boolean(classroom);
+  if (!classroom) {
+    studentClassroomStatus.innerHTML = `
+      <strong>Aucune classe rattachée</strong>
+      <p>Entre le code transmis par ton enseignant. Une fois rattaché, seul l'enseignant peut retirer le cadre.</p>
+    `;
+    return;
+  }
+  const categoryCount = classroom.blockedCategories?.length || 0;
+  const customCount = classroom.customRules?.length || 0;
+  studentClassroomStatus.innerHTML = `
+    <strong>${escapeHtml(classroom.name)}</strong>
+    <p>Enseignant : ${escapeHtml(classroom.teacherName || "Enseignant")} · ${categoryCount} catégorie${categoryCount > 1 ? "s" : ""} et ${customCount} règle${customCount > 1 ? "s" : ""} personnalisée${customCount > 1 ? "s" : ""}.</p>
+    <p><b>État :</b> ${classroom.active ? "actif" : "suspendu par l'enseignant"} · <b>Mode :</b> ${classroom.responseMode === "guided" ? "méthode ou indice uniquement" : "blocage total"}. ${escapeHtml(classroom.teacherMessage || "")}</p>
+  `;
+}
+
+async function loadPedagogyContext() {
+  if (!currentUser) {
+    renderPedagogy({ role: "anonymous", classroom: null });
+    return;
+  }
+  try {
+    const response = await fetch("/api/pedagogy");
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Cadre pédagogique indisponible.");
+    renderPedagogy(data);
+  } catch (error) {
+    setPedagogyNotice(error.message, true);
+  }
+}
+
+async function savePedagogicalClassroom() {
+  const blockedCategories = Array.from(pedagogyCategoryInputs).filter((input) => input.checked).map((input) => input.value);
+  savePedagogyButton.disabled = true;
+  setPedagogyNotice("Enregistrement du cadre pédagogique...");
+  try {
+    const response = await fetch("/api/pedagogy/classroom", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: pedagogyClassName.value.trim(),
+        responseMode: pedagogyResponseMode.value,
+        blockedCategories,
+        customRules: pedagogyCustomRules.value.split(/\r?\n/),
+        teacherMessage: pedagogyTeacherMessage.value.trim(),
+        active: pedagogyActive.checked
+      })
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Enregistrement impossible.");
+    renderPedagogy(data);
+    setPedagogyNotice("Cadre enregistré. Le code peut maintenant être transmis aux élèves.");
+  } catch (error) {
+    setPedagogyNotice(error.message, true);
+  } finally {
+    savePedagogyButton.disabled = false;
+  }
+}
+
+async function regeneratePedagogicalCode() {
+  regeneratePedagogyCodeButton.disabled = true;
+  setPedagogyNotice("Remplacement du code en cours...");
+  try {
+    const response = await fetch("/api/pedagogy/classroom/code", { method: "POST" });
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Impossible de remplacer le code.");
+    renderPedagogy(data);
+    setPedagogyNotice("Nouveau code généré. L'ancien code ne permet plus de rejoindre la classe.");
+  } catch (error) {
+    setPedagogyNotice(error.message, true);
+  } finally {
+    regeneratePedagogyCodeButton.disabled = false;
+  }
+}
+
+async function deletePedagogicalClassroom() {
+  if (!window.confirm("Supprimer ce cadre et détacher tous les élèves ?")) return;
+  deletePedagogyButton.disabled = true;
+  try {
+    const response = await fetch("/api/pedagogy/classroom", { method: "DELETE" });
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Suppression impossible.");
+    renderPedagogy(data);
+    setPedagogyNotice("Cadre supprimé. Tous les élèves ont été détachés.");
+  } catch (error) {
+    setPedagogyNotice(error.message, true);
+  } finally {
+    deletePedagogyButton.disabled = false;
+  }
+}
+
+async function joinPedagogicalClassroom() {
+  const code = studentClassCode.value.trim();
+  if (!code) {
+    setPedagogyNotice("Entre le code transmis par ton enseignant.", true);
+    studentClassCode.focus();
+    return;
+  }
+  joinClassroomButton.disabled = true;
+  setPedagogyNotice("Vérification du code classe...");
+  try {
+    const response = await fetch("/api/pedagogy/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Code classe invalide.");
+    if (data.user) updateAccountUi(data.user, { pedagogy: data });
+    else renderPedagogy(data);
+    studentClassCode.value = "";
+    setPedagogyNotice("Classe rejointe. Les règles de l'enseignant sont maintenant appliquées côté serveur.");
+    setHint("Cadre pédagogique actif sur ce compte.");
+  } catch (error) {
+    setPedagogyNotice(error.message, true);
+  } finally {
+    joinClassroomButton.disabled = false;
+  }
+}
+
+async function copyPedagogicalCode() {
+  const code = pedagogyClassCode.textContent.trim();
+  if (!code || code.includes("•")) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    setPedagogyNotice(`Code ${code} copié.`);
+  } catch {
+    setPedagogyNotice(`Code à transmettre : ${code}`);
+  }
+}
+
+async function removePedagogicalStudent(studentId, studentName) {
+  if (!studentId || !window.confirm(`Détacher ${studentName || "cet élève"} de la classe ?`)) return;
+  setPedagogyNotice("Détachement de l'élève...");
+  try {
+    const response = await fetch("/api/pedagogy/classroom/student/remove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId })
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "Détachement impossible.");
+    renderPedagogy(data);
+    setPedagogyNotice(`${studentName || "L'élève"} n'est plus rattaché à la classe.`);
+  } catch (error) {
+    setPedagogyNotice(error.message, true);
+  }
+}
+
 function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
   hasAccessPass = Boolean(meta.accessPass);
@@ -1589,6 +1893,7 @@ function updateAccountUi(user, meta = {}) {
     logoutButton.hidden = false;
     renderReportHistory([]);
     renderProjects([]);
+    renderPedagogy({ role: "anonymous", classroom: null });
     updatePlusToolCards();
     return;
   }
@@ -1607,11 +1912,13 @@ function updateAccountUi(user, meta = {}) {
     logoutButton.hidden = true;
     renderReportHistory([]);
     renderProjects([]);
+    renderPedagogy({ role: "anonymous", classroom: null });
     updatePlusToolCards();
     return;
   }
 
   const planLabel = currentUser.plan === "pro" ? "Plus" : "Gratuit";
+  const roleLabel = currentUser.accountRole === "teacher" ? "Enseignant" : "Élève / utilisateur";
   const displayName = currentUser.name || currentUser.email;
   const usage = currentUser.plan === "pro"
     ? "compteur quotidien levé"
@@ -1619,8 +1926,11 @@ function updateAccountUi(user, meta = {}) {
   const projectsLabel = currentUser.plan === "pro"
     ? ` | ${currentUser.projectCount || 0} dossier${currentUser.projectCount > 1 ? "s" : ""}`
     : "";
+  const classroomLabel = meta.pedagogy?.classroom?.name
+    ? ` | Classe ${meta.pedagogy.classroom.name}`
+    : "";
 
-  accountStatus.textContent = `Bonjour ${displayName} | Compte ${planLabel} | ${usage}${projectsLabel} | Rapports sauvegardés`;
+  accountStatus.textContent = `Bonjour ${displayName} | ${roleLabel} | Compte ${planLabel} | ${usage}${projectsLabel}${classroomLabel} | Rapports sauvegardés`;
   accessCodeFields.hidden = true;
   accessCodeDisclosure.hidden = true;
   accountAuthDetails.hidden = true;
@@ -1631,6 +1941,7 @@ function updateAccountUi(user, meta = {}) {
   deleteAccountButton.hidden = false;
   logoutButton.hidden = false;
   reportHistory.hidden = false;
+  renderPedagogy(meta.pedagogy || { role: currentUser.accountRole || "student", classroom: null });
   updateSaveTargetUi();
   updatePlusToolCards();
 }
@@ -1865,6 +2176,14 @@ function handleBarrierResponse(response, data, fallbackError) {
   throw new Error(errorMessage);
 }
 
+function handlePedagogicalBlockedResponse(data) {
+  if (!data?.pedagogicalBlocked) return false;
+  const className = data.pedagogy?.className || pedagogyContext?.classroom?.name || "la classe";
+  setHint(`Cadre pédagogique « ${className} » appliqué : aucune réponse interdite n'a été générée.`, true);
+  setPedagogyNotice(`Une règle pédagogique a bloqué cette demande (${data.pedagogy?.reason || "catégorie interdite"}).`);
+  return true;
+}
+
 function handleLandingState() {
   const shouldOpenAuth = pageParams.get("openAuth") === "1";
   const shouldOpenSignup = pageParams.get("openSignup") === "1";
@@ -1923,6 +2242,7 @@ async function refreshAccount() {
 
 async function submitAuth(mode) {
   const name = authName.value.trim();
+  const accountRole = mode === "signup" ? signupAccountRole?.value || "student" : "student";
   const email = mode === "signup" ? signupEmail.value.trim() : authEmail.value.trim();
   const password = mode === "signup" ? signupPassword.value : authPassword.value;
   const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
@@ -1951,7 +2271,7 @@ async function submitAuth(mode) {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ name, email, password, accountRole })
     });
     const data = await readJsonResponse(response);
     if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
@@ -1959,11 +2279,13 @@ async function submitAuth(mode) {
     authPassword.value = "";
     signupPassword.value = "";
     updateAccountUi(data.user);
+    await loadPedagogyContext();
     await loadProjects();
     await loadReportHistory();
     const displayName = data.user.name || data.user.email;
     if (mode === "signup") {
-      setAccountNotice(`Bienvenue ${displayName}. Ton compte gratuit est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
+      const roleLabel = data.user.accountRole === "teacher" ? "enseignant" : "élève / utilisateur";
+      setAccountNotice(`Bienvenue ${displayName}. Ton compte ${roleLabel} est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
       setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou activer Plus pour lever le compteur quotidien.`);
       hideConversionBanner();
     } else {
@@ -3611,7 +3933,7 @@ async function askAssistant(content, options = {}) {
     addMessage("user", content);
   }
 
-  if (!options.skipAutoSchema && isSchemaRequest(content)) {
+  if (!options.skipAutoSchema && isSchemaRequest(content) && !pedagogyBlocksRequest("schematics", content)) {
     addAutomaticSchema(content);
   }
 
@@ -3648,6 +3970,7 @@ async function askAssistant(content, options = {}) {
     messages.push({ role: "assistant", content: reply });
     await refreshAccount();
     hideConversionBanner();
+    if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = sourceSettings.enabled
       ? "Réponse générée uniquement avec la source indiquée."
       : sourceSettings.normsSearch
@@ -3664,6 +3987,7 @@ async function askAssistant(content, options = {}) {
 }
 
 async function analyzePhotoToSchema() {
+  if (guardPedagogicalFeature("schematics")) return;
   if (!selectedPhotoDataUrl) {
     hint.textContent = "Ajoute une photo avant de lancer l'analyse.";
     photoInput.focus();
@@ -3699,6 +4023,7 @@ async function analyzePhotoToSchema() {
     });
     await refreshAccount();
     hideConversionBanner();
+    if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Photo analysée. Vérifie toujours avec un électricien avant intervention.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas analyser cette photo pour l'instant: ${error.message}`);
@@ -3744,6 +4069,7 @@ async function searchManualNotice() {
     });
     await refreshAccount();
     hideConversionBanner();
+    if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Recherche terminée. Vérifie toujours que la référence correspond exactement à ton appareil.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas rechercher la notice pour l'instant: ${error.message}`);
@@ -3754,6 +4080,7 @@ async function searchManualNotice() {
 }
 
 async function analyzeLightingPlan() {
+  if (guardPedagogicalFeature("calculations")) return;
   if (!selectedLightingPlanDataUrl) {
     const sketchReady = useLightingSketchAsPlan({ silent: true });
     if (!sketchReady) {
@@ -3811,6 +4138,7 @@ async function analyzeLightingPlan() {
     });
     await refreshAccount();
     hideConversionBanner();
+    if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Dimensionnement généré. Vérifie les cotes et fais valider avant travaux.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner l'éclairage pour l'instant: ${error.message}`);
@@ -3821,6 +4149,7 @@ async function analyzeLightingPlan() {
 }
 
 async function sizeClimateSystem() {
+  if (guardPedagogicalFeature("calculations")) return;
   const area = Number(climateArea.value);
   const height = Number(climateHeight.value || 2.5);
 
@@ -3877,6 +4206,7 @@ async function sizeClimateSystem() {
     });
     await refreshAccount();
     hideConversionBanner();
+    if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
   } catch (error) {
     setAssistantMessage(pending, `Je ne peux pas dimensionner la clim pour l'instant: ${error.message}`);
@@ -4052,6 +4382,16 @@ logoutButton.addEventListener("click", logoutAccount);
 exportAccountButton?.addEventListener("click", exportAccountData);
 deleteAccountButton?.addEventListener("click", deleteAccount);
 upgradeButton.addEventListener("click", startCheckout);
+savePedagogyButton?.addEventListener("click", savePedagogicalClassroom);
+regeneratePedagogyCodeButton?.addEventListener("click", regeneratePedagogicalCode);
+deletePedagogyButton?.addEventListener("click", deletePedagogicalClassroom);
+copyPedagogyCodeButton?.addEventListener("click", copyPedagogicalCode);
+joinClassroomButton?.addEventListener("click", joinPedagogicalClassroom);
+pedagogyStudentList?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-student-id]");
+  if (!button) return;
+  removePedagogicalStudent(button.dataset.studentId, button.dataset.studentName);
+});
 
 startDiagnostic.addEventListener("click", async () => {
   await askAssistant(buildDiagnosticPrompt());
@@ -4065,6 +4405,7 @@ createSchema.addEventListener("click", async () => {
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
   const schemaPrompt = buildSchemaPrompt();
+  if (guardPedagogicalFeature("schematics", schemaPrompt)) return;
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
   const circuitTitle = dedicatedLoad ? `Circuit spécialisé - ${dedicatedLoad}` : typeLabel;
   addMessage("user", `Crée un schéma : ${typeLabel}, style : ${styleLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);

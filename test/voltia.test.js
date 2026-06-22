@@ -8,10 +8,13 @@ const {
   clearAnswerInstructions,
   estimateClimateSizing,
   estimateLightingSizing,
+  evaluatePedagogicalRestriction,
   extractObjectIdentity,
   highRiskOperationalReply,
   isHighRiskOperationalRequest,
   normalizeSourceUrl,
+  normalizePedagogicalCode,
+  pedagogicalBlockedReply,
   requestedDetailLevel,
   safetyMessagesForRequest
 } = await import("../server.js");
@@ -152,4 +155,63 @@ Objet reconnu
     reference: "A9C20842",
     confidence: "92 %"
   });
+});
+
+test("normalizes classroom invite codes", () => {
+  assert.equal(normalizePedagogicalCode("vlt abcd"), "VLT-ABCD");
+  assert.equal(normalizePedagogicalCode("VLT-2K9M"), "VLT-2K9M");
+});
+
+test("blocks teacher-selected pedagogical categories before AI", () => {
+  const classroom = {
+    name: "BTS ELEC 1",
+    active: true,
+    responseMode: "block",
+    blockedCategories: ["assessments", "calculations"],
+    customRules: ["transformateur triphasé"]
+  };
+
+  assert.equal(
+    evaluatePedagogicalRestriction(classroom, {
+      feature: "chat",
+      text: "Donne-moi les réponses de ce contrôle de fin de module"
+    }).blocked,
+    true
+  );
+  assert.equal(
+    evaluatePedagogicalRestriction(classroom, {
+      feature: "climate-sizing",
+      text: "dimensionnement d'une salle"
+    }).category,
+    "calculations"
+  );
+  assert.equal(
+    evaluatePedagogicalRestriction(classroom, {
+      feature: "chat",
+      text: "Explique le fonctionnement du transformateur triphase"
+    }).category,
+    "custom"
+  );
+  assert.equal(
+    evaluatePedagogicalRestriction(classroom, {
+      feature: "chat",
+      text: "Pourquoi un différentiel déclenche-t-il ?"
+    }).blocked,
+    false
+  );
+});
+
+test("returns a pedagogical refusal without leaking an answer", () => {
+  const reply = pedagogicalBlockedReply(
+    {
+      name: "CAP Électricité",
+      responseMode: "guided",
+      teacherMessage: "Montre d'abord ton raisonnement."
+    },
+    { reason: "contrôles, examens et évaluations" }
+  );
+
+  assert.match(reply, /cadre pédagogique/i);
+  assert.match(reply, /Montre d'abord ton raisonnement/i);
+  assert.match(reply, /méthode|indice/i);
 });

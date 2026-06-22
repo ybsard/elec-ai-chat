@@ -4598,3 +4598,331 @@ body.chat-fullscreen-active {
   }
 
 }
+
+.intro-account-card.is-connected > .pedagogy-panel {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.intro-account-card.is-connected > .report-history {
+  grid-row: 4;
+}
+
+.intro-account-card.is-connected > .project-workspace {
+  grid-column: 1 / -1;
+  grid-row: 5;
+}
+
+.pedagogy-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 14px;
+  border: 1px solid rgba(29, 111, 143, 0.26);
+  border-left: 5px solid #287ea0;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(245, 251, 253, 0.98), rgba(255, 255, 255, 0.98)),
+    radial-gradient(circle at 92% 0%, rgba(40, 126, 160, 0.12), transparent 38%);
+  box-shadow: 0 10px 28px rgba(16, 33, 43, 0.08);
+}
+
+.pedagogy-panel[hidden],
+.teacher-pedagogy[hidden],
+.student-pedagogy[hidden],
+.pedagogy-code-card[hidden],
+.student-join-classroom[hidden] {
+  display: none;
+}
+
+.pedagogy-panel.is-teacher {
+  border-left-color: #6a4fb3;
+}
+
+.pedagogy-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pedagogy-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.pedagogy-kicker {
+  color: #287ea0;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.pedagogy-heading strong {
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.pedagogy-badge {
+  padding: 6px 9px;
+  border: 1px solid rgba(40, 126, 160, 0.26);
+  border-radius: 999px;
+  background: #fff;
+  color: #1d6f8f;
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.teacher-pedagogy,
+.student-pedagogy {
+  display: grid;
+  gap: 11px;
+}
+
+.pedagogy-intro,
+.student-classroom-status p,
+.pedagogy-code-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.45;
+}
+
+.pedagogy-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pedagogy-panel .field {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.pedagogy-panel .field span,
+.pedagogy-categories legend {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.pedagogy-panel input,
+.pedagogy-panel select,
+.pedagogy-panel textarea {
+  width: 100%;
+  border: 1px solid rgba(84, 121, 139, 0.32);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pedagogy-panel textarea {
+  min-height: 92px;
+  padding: 10px 12px;
+  resize: vertical;
+  color: var(--ink);
+  font: inherit;
+}
+
+.pedagogy-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 11px;
+  border: 1px solid rgba(84, 121, 139, 0.22);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.pedagogy-categories legend {
+  padding: 0 5px;
+}
+
+.pedagogy-categories label,
+.pedagogy-active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pedagogy-categories input,
+.pedagogy-active-toggle input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #287ea0;
+}
+
+.pedagogy-active-toggle {
+  width: fit-content;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(40, 126, 160, 0.08);
+}
+
+.pedagogy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pedagogy-actions button {
+  min-height: 40px;
+}
+
+.pedagogy-code-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid rgba(106, 79, 179, 0.24);
+  border-radius: 10px;
+  background: #faf8ff;
+}
+
+.pedagogy-code-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.pedagogy-code-card span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.pedagogy-code-card code {
+  color: #513b91;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 950;
+  letter-spacing: 2px;
+}
+
+.pedagogy-code-card p {
+  grid-column: 1 / -1;
+}
+
+.pedagogy-student-roster {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 7px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(106, 79, 179, 0.18);
+}
+
+.pedagogy-student-roster[hidden] {
+  display: none;
+}
+
+.pedagogy-student-list {
+  display: grid;
+  gap: 6px;
+}
+
+.pedagogy-student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid rgba(84, 121, 139, 0.18);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pedagogy-student-row > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pedagogy-student-row strong,
+.pedagogy-student-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pedagogy-student-row small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.pedagogy-student-row button {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.student-classroom-status {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(40, 126, 160, 0.22);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.student-classroom-status strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.student-join-classroom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 9px;
+}
+
+.student-join-classroom button {
+  min-height: 42px;
+}
+
+.pedagogy-notice {
+  min-height: 20px;
+  color: #1d6f8f;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.pedagogy-notice.is-important {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .intro-account-card.is-connected > .pedagogy-panel,
+  .intro-account-card.is-connected > .report-history,
+  .intro-account-card.is-connected > .project-workspace {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .pedagogy-form-grid,
+  .pedagogy-categories,
+  .student-join-classroom {
+    grid-template-columns: 1fr;
+  }
+
+  .pedagogy-code-card {
+    grid-template-columns: 1fr;
+  }
+
+  .pedagogy-code-card .secondary-action {
+    width: 100%;
+  }
+
+  .pedagogy-student-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

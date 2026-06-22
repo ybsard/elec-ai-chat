@@ -102,6 +102,13 @@
                   <span>Mot de passe</span>
                   <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password">
                 </label>
+                <label class="field">
+                  <span>Type de compte</span>
+                  <select id="signupAccountRole">
+                    <option value="student">Élève / utilisateur</option>
+                    <option value="teacher">Enseignant</option>
+                  </select>
+                </label>
                 <button id="signupButton" class="primary-action" type="button">Créer mon compte gratuit</button>
                 <small>Aucune carte bancaire demandée.</small>
               </div>
@@ -154,6 +161,90 @@
               <button id="deleteAccountButton" class="secondary-action danger-action" type="button">Supprimer mon compte</button>
               <button id="logoutButton" class="secondary-action" type="button">Déconnexion</button>
             </div>
+
+            <section id="pedagogyPanel" class="pedagogy-panel" aria-labelledby="pedagogyTitle" hidden>
+              <div class="pedagogy-heading">
+                <div>
+                  <span class="pedagogy-kicker">Cadre pédagogique</span>
+                  <strong id="pedagogyTitle">Classe et bridage de l'IA</strong>
+                </div>
+                <span id="pedagogyBadge" class="pedagogy-badge">Non configuré</span>
+              </div>
+
+              <div id="teacherPedagogyPanel" class="teacher-pedagogy" hidden>
+                <p class="pedagogy-intro">Définis les catégories auxquelles Voltia ne doit pas répondre. Le filtrage est appliqué côté serveur avant tout appel à l'IA.</p>
+                <div class="pedagogy-form-grid">
+                  <label class="field">
+                    <span>Nom de la classe</span>
+                    <input id="pedagogyClassName" type="text" maxlength="80" placeholder="Ex: BTS Électrotechnique 1A">
+                  </label>
+                  <label class="field">
+                    <span>Comportement de Voltia</span>
+                    <select id="pedagogyResponseMode">
+                      <option value="block">Blocage total de la réponse</option>
+                      <option value="guided">Méthode ou indice uniquement</option>
+                    </select>
+                  </label>
+                </div>
+
+                <fieldset class="pedagogy-categories">
+                  <legend>Catégories interdites</legend>
+                  <label><input type="checkbox" name="pedagogyCategory" value="direct_answers"> Réponses finales sans démarche</label>
+                  <label><input type="checkbox" name="pedagogyCategory" value="assessments"> Contrôles, examens et évaluations</label>
+                  <label><input type="checkbox" name="pedagogyCategory" value="homework_writing"> Devoirs entièrement rédigés</label>
+                  <label><input type="checkbox" name="pedagogyCategory" value="calculations"> Calculs et dimensionnements</label>
+                  <label><input type="checkbox" name="pedagogyCategory" value="schematics"> Schémas et plans électriques</label>
+                </fieldset>
+
+                <label class="field">
+                  <span>Règles personnalisées — une par ligne</span>
+                  <textarea id="pedagogyCustomRules" rows="4" maxlength="1200" placeholder="Ex: transformateur triphasé&#10;corrigé du devoir chapitre 4"></textarea>
+                </label>
+                <label class="field">
+                  <span>Message affiché aux élèves</span>
+                  <input id="pedagogyTeacherMessage" type="text" maxlength="240" placeholder="Ex: Montre d'abord ta démarche dans le cahier.">
+                </label>
+                <label class="pedagogy-active-toggle">
+                  <input id="pedagogyActive" type="checkbox" checked>
+                  <span>Cadre pédagogique actif</span>
+                </label>
+
+                <div class="pedagogy-actions">
+                  <button id="savePedagogyButton" class="primary-action" type="button">Créer le code classe</button>
+                  <button id="regeneratePedagogyCodeButton" class="secondary-action" type="button" hidden>Remplacer le code</button>
+                  <button id="deletePedagogyButton" class="secondary-action danger-action" type="button" hidden>Supprimer le cadre</button>
+                </div>
+
+                <div id="pedagogyCodeCard" class="pedagogy-code-card" hidden>
+                  <div>
+                    <span>Code à transmettre aux élèves</span>
+                    <code id="pedagogyClassCode">VLT-••••</code>
+                  </div>
+                  <button id="copyPedagogyCodeButton" class="secondary-action" type="button">Copier</button>
+                  <p><strong id="pedagogyStudentCount">0 élève rattaché</strong> · Remplacer le code n'enlève pas les élèves déjà rattachés.</p>
+                  <div id="pedagogyStudentRoster" class="pedagogy-student-roster" hidden>
+                    <strong>Élèves rattachés</strong>
+                    <div id="pedagogyStudentList" class="pedagogy-student-list"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="studentPedagogyPanel" class="student-pedagogy" hidden>
+                <div id="studentClassroomStatus" class="student-classroom-status">
+                  <strong>Aucune classe rattachée</strong>
+                  <p>Entre le code transmis par ton enseignant. Une fois rattaché, seul l'enseignant peut retirer le cadre.</p>
+                </div>
+                <div id="studentJoinClassroom" class="student-join-classroom">
+                  <label class="field">
+                    <span>Code classe</span>
+                    <input id="studentClassCode" type="text" maxlength="12" autocomplete="off" placeholder="VLT-ABCD">
+                  </label>
+                  <button id="joinClassroomButton" class="primary-action" type="button">Rejoindre la classe</button>
+                </div>
+              </div>
+
+              <div id="pedagogyNotice" class="pedagogy-notice" role="status" aria-live="polite"></div>
+            </section>
 
             <div id="reportHistory" class="report-history" hidden>
               <div class="report-history-heading">
