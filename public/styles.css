@@ -1780,6 +1780,20 @@ textarea:focus {
   box-shadow: inset 0 0 0 2px rgba(242, 165, 26, 0.08);
 }
 
+.electrical-plan-code {
+  border: 2px solid rgba(20, 85, 109, 0.34);
+  background:
+    linear-gradient(90deg, rgba(20, 85, 109, 0.075) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(20, 85, 109, 0.075) 1px, transparent 1px),
+    #fbfdfd;
+  background-size: 20px 20px;
+  color: #10212b;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.55;
+  box-shadow: inset 0 0 0 3px rgba(20, 85, 109, 0.05);
+}
+
 .diagram-bubble {
   min-width: min(100%, 620px);
 }
@@ -1847,7 +1861,8 @@ textarea:focus {
 }
 
 .diagram-frame {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 2px solid rgba(20, 85, 109, 0.22);
   border-radius: 12px;
   background: #f8fbfb;
@@ -1860,6 +1875,364 @@ textarea:focus {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.diagram-frame .professional-schema {
+  min-width: 760px;
+  background: #e8edf0;
+}
+
+.professional-schema .schema-sheet-background {
+  fill: #dfe6e9;
+}
+
+.professional-schema .schema-sheet-frame,
+.professional-schema .schema-drawing-zone,
+.professional-schema .schema-title-block rect,
+.professional-schema .schema-title-block line {
+  fill: #fff;
+  stroke: #142a34;
+  stroke-width: 1.3;
+}
+
+.professional-schema .schema-drawing-zone {
+  stroke: #8298a3;
+  stroke-width: 0.9;
+}
+
+.professional-schema .professional-grid-line {
+  fill: none;
+  stroke: rgba(20, 42, 52, 0.075);
+  stroke-width: 0.7;
+}
+
+.professional-schema text {
+  fill: #10212b;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  text-anchor: start;
+}
+
+.professional-schema .sheet-kicker {
+  fill: #1d6f8f;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 1.4px;
+}
+
+.professional-schema .sheet-title {
+  fill: #0d2029;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.professional-schema .sheet-subtitle {
+  fill: #516873;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.professional-schema .document-status {
+  fill: #fff7df;
+  stroke: #d99614;
+  stroke-width: 1.2;
+}
+
+.professional-schema .document-status-title,
+.professional-schema .document-status-detail {
+  fill: #815500;
+  text-anchor: middle;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.professional-schema .document-status-detail {
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+.professional-schema .conductor-legend rect {
+  fill: rgba(255, 255, 255, 0.96);
+  stroke: #8da3ae;
+  stroke-width: 0.9;
+}
+
+.professional-schema .conductor-legend text {
+  font-size: 8.5px;
+  font-weight: 850;
+}
+
+.professional-schema .conductor-legend .legend-title {
+  fill: #3f5966;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
+}
+
+.professional-schema .schema-equipment .equipment-box {
+  fill: #fff;
+  stroke: #1f3945;
+  stroke-width: 1.6;
+  filter: drop-shadow(0 2px 2px rgba(16, 33, 43, 0.12));
+}
+
+.professional-schema .schema-equipment .equipment-tag-box {
+  fill: #e9f3f6;
+  stroke: #1f3945;
+  stroke-width: 1.2;
+}
+
+.professional-schema .protection-equipment .equipment-tag-box {
+  fill: #dcecf3;
+}
+
+.professional-schema .load-equipment .equipment-tag-box {
+  fill: #fff0ce;
+}
+
+.professional-schema .source-equipment .equipment-tag-box {
+  fill: #e0f2e9;
+}
+
+.professional-schema .equipment-tag,
+.professional-schema .equipment-title,
+.professional-schema .equipment-detail {
+  text-anchor: middle;
+}
+
+.professional-schema .equipment-tag {
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.professional-schema .equipment-title {
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.professional-schema .equipment-detail {
+  fill: #4c626d;
+  font-size: 8.7px;
+  font-weight: 800;
+}
+
+.professional-schema .terminal-dot,
+.professional-schema .junction-dot {
+  fill: #10212b;
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.professional-schema .schema-single-line,
+.professional-schema .phase-line,
+.professional-schema .neutral-line,
+.professional-schema .earth-line,
+.professional-schema .return-line,
+.professional-schema .traveler-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.professional-schema .schema-single-line {
+  stroke: #172a33;
+  stroke-width: 3.4;
+}
+
+.professional-schema .phase-line {
+  stroke: #d12f2f;
+  stroke-width: 3.2;
+}
+
+.professional-schema .neutral-line {
+  stroke: #1177b5;
+  stroke-width: 3;
+}
+
+.professional-schema .earth-line {
+  stroke: #15965f;
+  stroke-width: 3;
+  stroke-dasharray: 11 5;
+}
+
+.professional-schema .return-line {
+  stroke: #e58318;
+  stroke-width: 3.2;
+}
+
+.professional-schema .traveler-line {
+  stroke: #7748b5;
+  stroke-width: 2.9;
+  stroke-dasharray: 10 5;
+}
+
+.professional-schema .traveler-two {
+  stroke-dashoffset: 5;
+}
+
+.professional-schema .cable-callout,
+.professional-schema .wire-callout {
+  fill: #405964;
+  font-size: 8px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.professional-schema .schema-device circle,
+.professional-schema .schema-device line,
+.professional-schema .schema-device path,
+.professional-schema .schema-device rect {
+  fill: none;
+  stroke: #10212b;
+  stroke-width: 2;
+}
+
+.professional-schema .schema-device .terminal-dot {
+  fill: #10212b;
+  stroke: #fff;
+}
+
+.professional-schema .schema-device .permutator-symbol {
+  fill: #fff;
+  stroke: #10212b;
+}
+
+.professional-schema .device-tag,
+.professional-schema .device-description {
+  text-anchor: middle;
+}
+
+.professional-schema .device-tag {
+  font-size: 9.5px;
+  font-weight: 950;
+}
+
+.professional-schema .device-description {
+  fill: #516873;
+  font-size: 7.5px;
+  font-weight: 800;
+}
+
+.professional-schema .cable-label rect {
+  fill: #fff;
+  stroke: #9bafb8;
+  stroke-width: 0.8;
+}
+
+.professional-schema .cable-label text {
+  fill: #314b57;
+  font-size: 8px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.professional-schema .overflow-note {
+  fill: #7a4f00;
+  font-size: 8px;
+  font-weight: 900;
+  text-anchor: end;
+}
+
+.professional-schema .board-breaker rect {
+  fill: #fff;
+  stroke: #1f3945;
+  stroke-width: 1.2;
+}
+
+.professional-schema .board-breaker .breaker-tag-box {
+  fill: #dcecf3;
+}
+
+.professional-schema .breaker-tag,
+.professional-schema .breaker-rating,
+.professional-schema .breaker-label {
+  text-anchor: middle;
+}
+
+.professional-schema .breaker-tag {
+  font-size: 8.5px;
+  font-weight: 950;
+}
+
+.professional-schema .breaker-rating {
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.professional-schema .breaker-label {
+  fill: #4c626d;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.professional-schema .busbar-line {
+  stroke-width: 4.3;
+}
+
+.professional-schema .neutral-bus-line {
+  stroke-width: 3.8;
+}
+
+.professional-schema .terminal-bar rect {
+  stroke: #1f3945;
+  stroke-width: 0.9;
+}
+
+.professional-schema .terminal-bar text {
+  fill: #405964;
+  font-size: 7.5px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.professional-schema .neutral-bar rect {
+  fill: #d8effb;
+}
+
+.professional-schema .earth-bar rect {
+  fill: #dff4e9;
+}
+
+.professional-schema .schema-title-block text {
+  text-anchor: start;
+}
+
+.professional-schema .title-block-label {
+  fill: #536a75;
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
+}
+
+.professional-schema .title-block-value {
+  fill: #10212b;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.professional-schema .warning-value {
+  fill: #a36000;
+}
+
+.professional-schema.schema-style-normalized .equipment-tag-box,
+.professional-schema.schema-style-normalized .breaker-tag-box {
+  fill: #ffffff;
+}
+
+.professional-schema.schema-style-normalized .equipment-tag,
+.professional-schema.schema-style-normalized .breaker-tag,
+.professional-schema.schema-style-normalized .device-tag {
+  fill: #000;
+  letter-spacing: 0.4px;
+}
+
+.professional-schema.schema-style-normalized .device-description {
+  fill: #6b7d85;
+  font-size: 6.8px;
+}
+
+.professional-schema.schema-style-annotated .equipment-tag-box,
+.professional-schema.schema-style-annotated .breaker-tag-box {
+  fill: #dcecf3;
 }
 
 .diagram-frame .symbol rect {

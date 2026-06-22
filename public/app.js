@@ -114,6 +114,7 @@ const saveTargetText = document.querySelector("#saveTargetText");
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
 let selectedIssue = "Disjoncteur qui saute";
+let schemaRenderSequence = 0;
 let selectedPhotoDataUrl = "";
 let selectedManualPhotoDataUrl = "";
 let selectedLightingPlanDataUrl = "";
@@ -297,7 +298,12 @@ function renderAssistantContent(content) {
   function flushCode() {
     if (!codeLines.length) return;
     const codeText = codeLines.join("\n");
-    const extraClass = /⊗\s*S\d+|S\d+/.test(codeText) ? " lighting-plan-code" : "";
+    const codeClasses = [];
+    if (/⊗\s*S\d+|S\d+/.test(codeText)) codeClasses.push("lighting-plan-code");
+    if (/(?:QF|ID|PC|XTB)\s*\d+|L\s*[\/|]\s*N\s*[\/|]\s*PE|SCH[ÉE]MA\s+UNIFILAIRE/i.test(codeText)) {
+      codeClasses.push("electrical-plan-code");
+    }
+    const extraClass = codeClasses.length ? ` ${codeClasses.join(" ")}` : "";
     html.push(`<pre class="response-code${extraClass}">${escapeHtml(codeText)}</pre>`);
     codeLines = [];
   }
@@ -370,10 +376,10 @@ function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
     <strong>${escapeHtml(title)}</strong>
     <div class="diagram-frame">${svgMarkup}</div>
     ${lineSchema ? `
-      <section class="line-schema-card" aria-label="Plan en traits simplifié">
+      <section class="line-schema-card" aria-label="Schéma unifilaire textuel">
         <div class="line-schema-heading">
-          <span>Plan en traits</span>
-          <small>Vue lisible des liaisons principales</small>
+          <span>Schéma unifilaire textuel</span>
+          <small>Contrôle des repères et liaisons principales</small>
         </div>
         <pre class="line-schema">${escapeHtml(lineSchema)}</pre>
       </section>
@@ -2360,7 +2366,7 @@ function getBreakerItems(counts = {}) {
   return Array.from({ length: total }, (_, index) => raw[index] || fallback[index] || `Circuit ${index + 1}`);
 }
 
-function buildSchema(type, room, usage, counts = {}) {
+function buildLegacySchema(type, room, usage, counts = {}) {
   const normalizedSymbols = counts.symbolMode === "normalized";
   const safeRoom = escapeHtml(room || "pièce à définir");
   const safeUsage = escapeHtml(usage || "usage a definir");
@@ -2778,6 +2784,406 @@ function buildSchema(type, room, usage, counts = {}) {
   return templates[type] || templates.prise;
 }
 
+function professionalEquipmentBlock({ x, y, width = 112, height = 116, tag, title, lines = [], kind = "" }) {
+  const safeLines = lines.slice(0, 3);
+  return `
+    <g class="schema-equipment ${kind}" transform="translate(${x} ${y})">
+      <rect class="equipment-box" width="${width}" height="${height}" rx="5" />
+      <rect class="equipment-tag-box" x="0" y="0" width="${width}" height="24" rx="5" />
+      <text class="equipment-tag" x="${width / 2}" y="16">${escapeHtml(tag)}</text>
+      <text class="equipment-title" x="${width / 2}" y="47">${escapeHtml(title)}</text>
+      ${safeLines.map((line, index) => `<text class="equipment-detail" x="${width / 2}" y="${68 + index * 17}">${escapeHtml(line)}</text>`).join("")}
+      <circle class="terminal-dot" cx="0" cy="${height / 2}" r="3.5" />
+      <circle class="terminal-dot" cx="${width}" cy="${height / 2}" r="3.5" />
+    </g>
+  `;
+}
+
+function professionalSupplyChain({ rating = "à définir", purpose = "circuit", includeAgcp = false } = {}) {
+  if (includeAgcp) {
+    return `
+      ${professionalEquipmentBlock({ x: 38, y: 154, width: 104, tag: "X0", title: "ARRIVÉE", lines: ["230 V~", "L + N + PE"], kind: "source-equipment" })}
+      ${professionalEquipmentBlock({ x: 174, y: 154, width: 104, tag: "AGCP", title: "COUPURE", lines: ["générale", "calibre à lire"], kind: "protection-equipment" })}
+      ${professionalEquipmentBlock({ x: 310, y: 154, width: 104, tag: "ID1", title: "DIFFÉRENTIEL", lines: ["IΔn 30 mA", "type à confirmer"], kind: "protection-equipment" })}
+      <path class="schema-single-line" d="M 142 212 H 174 M 278 212 H 310" />
+      <text class="cable-callout" x="158" y="199">L/N</text>
+      <text class="cable-callout" x="294" y="199">L/N</text>
+    `;
+  }
+
+  return `
+    ${professionalEquipmentBlock({ x: 38, y: 154, width: 104, tag: "X0", title: "ARRIVÉE", lines: ["230 V~", "L + N + PE"], kind: "source-equipment" })}
+    ${professionalEquipmentBlock({ x: 174, y: 154, width: 104, tag: "ID1", title: "DIFFÉRENTIEL", lines: ["IΔn 30 mA", "type à confirmer"], kind: "protection-equipment" })}
+    ${professionalEquipmentBlock({ x: 310, y: 154, width: 112, tag: "QF1", title: "DISJONCTEUR", lines: [rating, purpose], kind: "protection-equipment" })}
+    <path class="schema-single-line" d="M 142 212 H 174 M 278 212 H 310" />
+    <text class="cable-callout" x="158" y="199">L/N</text>
+    <text class="cable-callout" x="294" y="199">L/N</text>
+  `;
+}
+
+function professionalSocketSymbol(x, y, index) {
+  return `
+    <g class="schema-device socket-device" transform="translate(${x} ${y})">
+      <circle class="device-symbol" cx="0" cy="0" r="23" />
+      <line x1="-8" y1="-7" x2="-8" y2="7" />
+      <line x1="8" y1="-7" x2="8" y2="7" />
+      <path d="M 0 7 V 17 M -8 17 H 8" />
+      <text class="device-tag" x="0" y="41">PC${index + 1}</text>
+      <text class="device-description" x="0" y="56">prise 2P+T</text>
+    </g>
+  `;
+}
+
+function professionalLampSymbol(x, y, index) {
+  return `
+    <g class="schema-device lamp-device" transform="translate(${x} ${y})">
+      <circle class="device-symbol" cx="0" cy="0" r="22" />
+      <line x1="-14" y1="-14" x2="14" y2="14" />
+      <line x1="14" y1="-14" x2="-14" y2="14" />
+      <circle class="terminal-dot lamp-terminal lamp-terminal-return" cx="-22" cy="-10" r="3" />
+      <circle class="terminal-dot lamp-terminal lamp-terminal-neutral" cx="-22" cy="0" r="3" />
+      <circle class="terminal-dot lamp-terminal lamp-terminal-earth" cx="-22" cy="10" r="3" />
+      <text class="device-tag" x="0" y="40">X${index + 1}</text>
+      <text class="device-description" x="0" y="55">point lumineux</text>
+    </g>
+  `;
+}
+
+function professionalSwitchSymbol(x, y, index, label = "interrupteur") {
+  return `
+    <g class="schema-device switch-device" transform="translate(${x} ${y})">
+      <circle class="terminal-dot" cx="-16" cy="0" r="4" />
+      <circle class="terminal-dot" cx="16" cy="0" r="4" />
+      <line x1="-12" y1="-2" x2="12" y2="-17" />
+      <text class="device-tag" x="0" y="34">S${index + 1}</text>
+      <text class="device-description" x="0" y="49">${escapeHtml(label)}</text>
+    </g>
+  `;
+}
+
+function professionalVaSymbol(x, y, tag, label, permutator = false, reverse = false) {
+  if (permutator) {
+    return `
+      <g class="schema-device va-device" transform="translate(${x} ${y})">
+        <rect class="permutator-symbol" x="-23" y="-24" width="46" height="48" rx="4" />
+        <circle class="terminal-dot" cx="-14" cy="-13" r="3" /><circle class="terminal-dot" cx="14" cy="-13" r="3" />
+        <circle class="terminal-dot" cx="-14" cy="13" r="3" /><circle class="terminal-dot" cx="14" cy="13" r="3" />
+        <line x1="-11" y1="-11" x2="11" y2="11" /><line x1="-11" y1="11" x2="11" y2="-11" />
+        <text class="device-tag" x="0" y="43">${escapeHtml(tag)}</text>
+        <text class="device-description" x="0" y="58">${escapeHtml(label)}</text>
+      </g>
+    `;
+  }
+  const commonX = reverse ? 18 : -18;
+  const travelerX = reverse ? -18 : 18;
+  return `
+    <g class="schema-device va-device" transform="translate(${x} ${y})">
+      <circle class="terminal-dot" cx="${commonX}" cy="0" r="4" />
+      <circle class="terminal-dot" cx="${travelerX}" cy="-15" r="4" />
+      <circle class="terminal-dot" cx="${travelerX}" cy="15" r="4" />
+      <line x1="${commonX + (reverse ? -4 : 4)}" y1="-2" x2="${travelerX + (reverse ? 4 : -4)}" y2="-15" />
+      <text class="device-tag" x="0" y="43">${escapeHtml(tag)}</text>
+      <text class="device-description" x="0" y="58">${escapeHtml(label)}</text>
+    </g>
+  `;
+}
+
+function professionalCableLabel(x, y, text) {
+  const width = Math.min(Math.max(String(text).length * 6.1 + 18, 100), 250);
+  return `
+    <g class="cable-label" transform="translate(${x} ${y})">
+      <rect x="${-width / 2}" y="-13" width="${width}" height="22" rx="4" />
+      <text x="0" y="3">${escapeHtml(text)}</text>
+    </g>
+  `;
+}
+
+function professionalSchemaSheet({ type, title, room, usage, summary, body, documentCode, symbolMode = "standard" }) {
+  const instanceId = `${type}-${++schemaRenderSequence}`;
+  const gridId = `professional-grid-${instanceId}`;
+  const shadowId = `professional-shadow-${instanceId}`;
+  const safeTitle = escapeHtml(title);
+  const safeRoom = escapeHtml(room || "Pièce à confirmer");
+  const safeUsage = escapeHtml(usage || "Usage à confirmer");
+  const safeSummary = escapeHtml(String(summary || "").slice(0, 68));
+  return `
+    <svg class="professional-schema schema-style-${symbolMode === "normalized" ? "normalized" : "annotated"}" viewBox="0 0 900 560" role="img" aria-labelledby="title-${instanceId} desc-${instanceId}" data-schema-type="${escapeHtml(type)}">
+      <title id="title-${instanceId}">${safeTitle}</title>
+      <desc id="desc-${instanceId}">${safeSummary}. Schéma électrique de principe indicatif avec appareils repérés et cartouche.</desc>
+      <defs>
+        <pattern id="${gridId}" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 H 0 V 16" class="professional-grid-line" />
+        </pattern>
+        <filter id="${shadowId}" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#10212b" flood-opacity="0.12" />
+        </filter>
+      </defs>
+      <rect class="schema-sheet-background" x="8" y="8" width="884" height="544" rx="3" />
+      <rect class="schema-sheet-frame" x="16" y="16" width="868" height="528" />
+      <rect class="schema-drawing-zone" x="24" y="96" width="852" height="354" fill="url(#${gridId})" />
+      <g class="schema-sheet-header">
+        <text class="sheet-kicker" x="38" y="42">SCHÉMA ÉLECTRIQUE DE PRINCIPE</text>
+        <text class="sheet-title" x="38" y="70">${safeTitle}</text>
+        <text class="sheet-subtitle" x="38" y="88">${safeSummary}</text>
+        <rect class="document-status" x="690" y="32" width="170" height="44" rx="4" />
+        <text class="document-status-title" x="775" y="50">DOCUMENT INDICATIF</text>
+        <text class="document-status-detail" x="775" y="66">à confirmer sur site</text>
+      </g>
+      <g class="conductor-legend" transform="translate(488 78)">
+        <rect width="372" height="16" rx="3" />
+        <text class="legend-title" x="8" y="11">LÉGENDE</text>
+        <line class="phase-line" x1="72" y1="8" x2="96" y2="8" /><text x="102" y="11">L</text>
+        <line class="neutral-line" x1="130" y1="8" x2="154" y2="8" /><text x="160" y="11">N</text>
+        <line class="earth-line" x1="188" y1="8" x2="212" y2="8" /><text x="218" y="11">PE</text>
+        <line class="return-line" x1="254" y1="8" x2="278" y2="8" /><text x="284" y="11">retour commandé</text>
+      </g>
+      ${body}
+      <g class="schema-title-block">
+        <rect x="16" y="466" width="868" height="78" />
+        <line x1="520" y1="466" x2="520" y2="544" />
+        <line x1="716" y1="466" x2="716" y2="544" />
+        <line x1="16" y1="505" x2="884" y2="505" />
+        <text class="title-block-label" x="30" y="483">LOCAL / ZONE</text>
+        <text class="title-block-value" x="30" y="499">${safeRoom}</text>
+        <text class="title-block-label" x="30" y="522">USAGE / HYPOTHÈSE</text>
+        <text class="title-block-value" x="30" y="538">${safeUsage}</text>
+        <text class="title-block-label" x="534" y="483">DOCUMENT</text>
+        <text class="title-block-value" x="534" y="499">${escapeHtml(documentCode)}</text>
+        <text class="title-block-label" x="534" y="522">RÉFÉRENCES</text>
+        <text class="title-block-value" x="534" y="538">QF / ID / X / S / PC</text>
+        <text class="title-block-label" x="730" y="483">RÉVISION</text>
+        <text class="title-block-value" x="730" y="499">R00 — VOLTIA</text>
+        <text class="title-block-label" x="730" y="522">STATUT</text>
+        <text class="title-block-value warning-value" x="730" y="538">NON EXÉCUTOIRE</text>
+      </g>
+    </svg>
+  `;
+}
+
+function buildProfessionalOutletSchema(room, usage, counts = {}) {
+  const socketTotal = clampCount(counts.sockets, 1, 1, 12);
+  const dedicatedLoad = dedicatedLoadLabel(usage);
+  const displayCount = dedicatedLoad ? 1 : Math.min(socketTotal, 6);
+  const rating = /(?:^|\s)(\d{1,2})\s*a\b/i.exec(String(usage || ""))?.[1];
+  const ratingLabel = rating ? `${rating} A indicatif` : dedicatedLoad ? "calibre à confirmer" : "16/20 A indicatif";
+  const purpose = dedicatedLoad ? dedicatedLoad : "circuit prises";
+  const supply = professionalSupplyChain({ rating: ratingLabel, purpose });
+  let devices = "";
+  let branches = "";
+
+  if (dedicatedLoad) {
+    devices = professionalEquipmentBlock({ x: 650, y: 174, width: 164, height: 96, tag: "E1", title: dedicatedLoad.toUpperCase(), lines: ["point dédié", "notice à vérifier"], kind: "load-equipment" });
+    branches = `
+      <path class="schema-single-line" d="M 422 212 H 650" />
+      <path class="earth-line" d="M 422 250 H 620 V 250 H 650" />
+      ${professionalCableLabel(535, 196, "3 conducteurs — section à confirmer")}
+    `;
+  } else {
+    const positions = Array.from({ length: displayCount }, (_, index) => ({
+      x: 560 + (index % 3) * 120,
+      y: index < 3 ? 218 : 354
+    }));
+    devices = positions.map((position, index) => professionalSocketSymbol(position.x, position.y, index)).join("");
+    branches = `
+      <path class="schema-single-line" d="M 422 212 H 500 V 354" />
+      ${positions.map((position) => `<path class="schema-single-line branch-line" d="M 500 ${position.y} H ${position.x - 23}" /><circle class="junction-dot" cx="500" cy="${position.y}" r="4" />`).join("")}
+      ${professionalCableLabel(498, 196, "3G2,5 mm² indicatif — à confirmer")}
+      ${socketTotal > displayCount ? `<text class="overflow-note" x="815" y="424">+ ${socketTotal - displayCount} prise(s) non représentée(s)</text>` : ""}
+    `;
+  }
+
+  return professionalSchemaSheet({
+    type: "prise",
+    title: dedicatedLoad ? `Circuit spécialisé — ${dedicatedLoad}` : "Circuit prises 2P+T",
+    room,
+    usage,
+    summary: dedicatedLoad ? "Départ dédié avec protection et récepteur repérés" : `${socketTotal} prise(s) distribuée(s) depuis un départ protégé`,
+    documentCode: "SCH-PRISE-01",
+    symbolMode: counts.symbolMode,
+    body: `${supply}${branches}${devices}`
+  });
+}
+
+function buildProfessionalLightingSchema(room, usage, counts = {}) {
+  const lightTotal = clampCount(counts.lights, 1, 1, 8);
+  const switchTotal = clampCount(counts.switches, 1, 1, 6);
+  const displayLights = Math.min(lightTotal, 4);
+  const displaySwitches = Math.min(switchTotal, 4);
+  const supply = professionalSupplyChain({ rating: "10/16 A indicatif", purpose: "éclairage" });
+  const switchPositions = Array.from({ length: displaySwitches }, (_, index) => ({
+    x: 555,
+    y: displaySwitches === 1 ? 242 : 166 + index * (186 / Math.max(displaySwitches - 1, 1))
+  }));
+  const lightPositions = Array.from({ length: displayLights }, (_, index) => ({ x: 790, y: 154 + index * 78 }));
+  const devices = [
+    ...switchPositions.map((position, index) => professionalSwitchSymbol(position.x, position.y, index)),
+    ...lightPositions.map((position, index) => professionalLampSymbol(position.x, position.y, index))
+  ].join("");
+  const phaseWiring = switchPositions.map((position) => `
+    <path class="phase-line" d="M 478 ${position.y} H ${position.x - 16}" />
+    <circle class="junction-dot" cx="478" cy="${position.y}" r="4" />
+  `).join("");
+  const lightingWiring = lightPositions.map((position, index) => {
+    const commandIndex = Math.min(index % displaySwitches, switchPositions.length - 1);
+    const command = switchPositions[commandIndex];
+    const routeX = 622 + commandIndex * 18;
+    return `
+      <path class="return-line" d="M ${command.x + 16} ${command.y} H ${routeX} V ${position.y - 10} H ${position.x - 22}" />
+      <path class="neutral-line" d="M 478 ${position.y} H ${position.x - 22}" />
+      <path class="earth-line" d="M 478 ${position.y + 10} H ${position.x - 22}" />
+    `;
+  }).join("");
+  return professionalSchemaSheet({
+    type: "eclairage",
+    title: "Circuit éclairage — simple allumage",
+    room,
+    usage,
+    summary: `${lightTotal} point(s) lumineux — ${switchTotal} commande(s)`,
+    documentCode: "SCH-ECL-01",
+    symbolMode: counts.symbolMode,
+    body: `
+      ${supply}
+      <path class="schema-single-line" d="M 422 212 H 478 M 478 146 V 398" />
+      ${professionalCableLabel(468, 196, "3G1,5 mm² indicatif — à confirmer")}
+      ${phaseWiring}${lightingWiring}${devices}
+      ${lightTotal > displayLights || switchTotal > displaySwitches ? `<text class="overflow-note" x="810" y="430">+ éléments supplémentaires non représentés</text>` : ""}
+    `
+  });
+}
+
+function buildProfessionalVaEtVientSchema(room, usage, counts = {}) {
+  const commandTotal = Math.max(clampCount(counts.switches, 2, 2, 6), 2);
+  const lightTotal = clampCount(counts.lights, 1, 1, 8);
+  const displayLights = Math.min(lightTotal, 4);
+  const intermediateCount = Math.max(commandTotal - 2, 0);
+  const deviceCount = intermediateCount + 2;
+  const startX = 500;
+  const endX = 720;
+  const spacing = deviceCount > 1 ? (endX - startX) / (deviceCount - 1) : 0;
+  const positions = Array.from({ length: deviceCount }, (_, index) => startX + index * spacing);
+  const devices = positions.map((x, index) => {
+    const isIntermediate = index > 0 && index < positions.length - 1;
+    return professionalVaSymbol(
+      x,
+      220,
+      isIntermediate ? `P${index}` : `S${index === 0 ? 1 : 2}`,
+      isIntermediate ? "permutateur" : "va-et-vient",
+      isIntermediate,
+      index === positions.length - 1
+    );
+  }).join("");
+  const firstX = positions[0];
+  const lastX = positions[positions.length - 1];
+  const lampX = 820;
+  const lightPositions = Array.from({ length: displayLights }, (_, index) => ({
+    x: lampX,
+    y: displayLights === 1 ? 220 : 142 + index * (210 / Math.max(displayLights - 1, 1))
+  }));
+  const returnBusX = 766;
+  const neutralBusX = 780;
+  const earthBusX = 794;
+  const firstLightY = lightPositions[0].y;
+  const lastLightY = lightPositions[lightPositions.length - 1].y;
+  const lightingBranches = lightPositions.map((position) => `
+    <path class="return-line" d="M ${returnBusX} ${position.y - 10} H ${position.x - 22}" />
+    <path class="neutral-line" d="M ${neutralBusX} ${position.y} H ${position.x - 22}" />
+    <path class="earth-line" d="M ${earthBusX} ${position.y + 10} H ${position.x - 22}" />
+  `).join("");
+  const lights = lightPositions.map((position, index) => professionalLampSymbol(position.x, position.y, index)).join("");
+  return professionalSchemaSheet({
+    type: "va-et-vient",
+    title: intermediateCount ? "Commande multipoints — va-et-vient et permutateur(s)" : "Circuit éclairage — va-et-vient",
+    room,
+    usage,
+    summary: `${commandTotal} commande(s) — ${lightTotal} point(s) lumineux — navettes repérées`,
+    documentCode: "SCH-VV-01",
+    symbolMode: counts.symbolMode,
+    body: `
+      ${professionalSupplyChain({ rating: "10/16 A indicatif", purpose: "éclairage" })}
+      <path class="phase-line" d="M 422 212 H 462 V 220 H ${firstX - 18}" />
+      <path class="traveler-line" d="M ${firstX + 18} 205 H ${lastX - 18}" />
+      <path class="traveler-line traveler-two" d="M ${firstX + 18} 235 H ${lastX - 18}" />
+      <path class="return-line" d="M ${lastX + 18} 220 H ${returnBusX} V ${firstLightY - 10} M ${returnBusX} ${firstLightY - 10} V ${lastLightY - 10}" />
+      <path class="neutral-line" d="M 422 300 H ${neutralBusX} V ${firstLightY} M ${neutralBusX} ${firstLightY} V ${lastLightY}" />
+      <path class="earth-line" d="M 422 324 H ${earthBusX} V ${firstLightY + 10} M ${earthBusX} ${firstLightY + 10} V ${lastLightY + 10}" />
+      ${professionalCableLabel(468, 196, "3G1,5 mm² indicatif")}
+      <text class="wire-callout" x="610" y="194">navette 1</text>
+      <text class="wire-callout" x="610" y="255">navette 2</text>
+      ${devices}
+      ${lightingBranches}
+      ${lights}
+      ${lightTotal > displayLights ? `<text class="overflow-note" x="810" y="424">+ ${lightTotal - displayLights} point(s) non représenté(s)</text>` : ""}
+    `
+  });
+}
+
+function parseBreakerItem(item, index) {
+  const safeItem = String(item || "").trim();
+  const match = /^(\d{1,2}\s*A)\s*(.*)$/i.exec(safeItem);
+  return {
+    tag: `QF${index + 1}`,
+    rating: match?.[1] || "? A",
+    label: (match?.[2] || safeItem || `Circuit ${index + 1}`).slice(0, 16)
+  };
+}
+
+function buildProfessionalBoardSchema(room, usage, counts = {}) {
+  const breakers = getBreakerItems(counts).slice(0, 12).map(parseBreakerItem);
+  const breakerWidth = 58;
+  const columnGap = 8;
+  const startX = 454;
+  const devices = breakers.map((breaker, index) => {
+    const column = index % 6;
+    const row = Math.floor(index / 6);
+    const x = startX + column * (breakerWidth + columnGap);
+    const y = row === 0 ? 154 : 304;
+    return `
+      <g class="board-breaker" transform="translate(${x} ${y})">
+        <rect width="${breakerWidth}" height="96" rx="4" />
+        <rect class="breaker-tag-box" width="${breakerWidth}" height="22" rx="4" />
+        <text class="breaker-tag" x="${breakerWidth / 2}" y="15">${escapeHtml(breaker.tag)}</text>
+        <text class="breaker-rating" x="${breakerWidth / 2}" y="47">${escapeHtml(breaker.rating)}</text>
+        <text class="breaker-label" x="${breakerWidth / 2}" y="70">${escapeHtml(breaker.label.slice(0, 9))}</text>
+        <text class="breaker-label" x="${breakerWidth / 2}" y="84">${escapeHtml(breaker.label.slice(9, 16))}</text>
+      </g>
+      <path class="phase-line board-feed" d="M ${x + breakerWidth / 2} ${y - 12} V ${y}" />
+      <path class="neutral-line board-return" d="M ${x + breakerWidth / 2} ${y + 96} V ${row === 0 ? 276 : 428}" />
+    `;
+  }).join("");
+  return professionalSchemaSheet({
+    type: "tableau",
+    title: "Tableau électrique — schéma unifilaire",
+    room,
+    usage,
+    summary: `${breakers.length} départ(s) divisionnaire(s) repéré(s)`,
+    documentCode: "SCH-TAB-01",
+    symbolMode: counts.symbolMode,
+    body: `
+      ${professionalSupplyChain({ includeAgcp: true })}
+      <path class="phase-line busbar-line" d="M 414 212 V 142 H 850 M 438 142 V 292 H 850" />
+      <path class="neutral-line neutral-bus-line" d="M 438 276 H 850 M 438 276 V 430" />
+      <text class="wire-callout" x="620" y="132">peigne phase — répartition indicative</text>
+      ${devices}
+      <g class="terminal-bar neutral-bar">
+        <rect x="454" y="430" width="394" height="12" rx="3" />
+        <text x="651" y="426">XTB-N — BORNIER N — retours neutres par circuit</text>
+      </g>
+      <g class="terminal-bar earth-bar">
+        <rect x="454" y="449" width="394" height="12" rx="3" />
+        <text x="651" y="446">XTB-PE — BARRETTE PE — conducteurs de protection</text>
+      </g>
+      <path class="earth-line board-earth-feed" d="M 438 324 H 446 V 455 H 454" />
+    `
+  });
+}
+
+function buildSchema(type, room, usage, counts = {}) {
+  if (type === "eclairage") return buildProfessionalLightingSchema(room, usage, counts);
+  if (type === "va-et-vient") return buildProfessionalVaEtVientSchema(room, usage, counts);
+  if (type === "tableau") return buildProfessionalBoardSchema(room, usage, counts);
+  return buildProfessionalOutletSchema(room, usage, counts);
+}
+
 function numberedRows(label, count, prefix = "") {
   const total = Math.max(count, 1);
   return Array.from({ length: total }, (_, index) => `${prefix}${label} ${index + 1}`).join("\n");
@@ -2883,7 +3289,23 @@ La terre PE est distribuee vers tous les circuits concernes.
     `
   };
 
-  return (schemas[type] || schemas.prise).trim();
+  const documentCodes = {
+    prise: "SCH-PRISE-01",
+    eclairage: "SCH-ECL-01",
+    "va-et-vient": "SCH-VV-01",
+    tableau: "SCH-TAB-01"
+  };
+  return [
+    "┌──────────────────────────────────────────────────────────────────────────────┐",
+    `│ SCHÉMA UNIFILAIRE DE CONTRÔLE · ${documentCodes[type] || documentCodes.prise} · RÉV. R00`,
+    "│ STATUT : INDICATIF / NON EXÉCUTOIRE",
+    "└──────────────────────────────────────────────────────────────────────────────┘",
+    "",
+    (schemas[type] || schemas.prise).trim(),
+    "",
+    "REPÈRES : ID différentiel · QF disjoncteur · PC prise · X lumière · S commande",
+    "À CONFIRMER : calibres, sections, mode de pose, terre, sélectivité et conformité."
+  ].join("\n");
 }
 
 function buildSchemaPrompt() {
@@ -2897,13 +3319,13 @@ function buildSchemaPrompt() {
     : "Style de lecture claire: privilégie les libellés explicites et reste strictement fidèle aux éléments dessinés.";
   const diagramInventory = schemaType.value === "prise"
     ? dedicatedLoad
-      ? `Composants réellement dessinés: un bloc Tableau avec QF dédié, un point dédié ${dedicatedLoad}, et trois liaisons de principe L, N et PE. Aucun ID ni symbole PC n'est dessiné: ne prétends pas le contraire.`
-      : "Composants réellement dessinés: un bloc Tableau avec QF 16/20 A, une ou plusieurs prises PC, et les liaisons de principe L, N et PE."
+      ? `Composants réellement dessinés et repérés: arrivée X0, interrupteur différentiel ID1, disjoncteur QF1, point dédié E1 ${dedicatedLoad}, liaison unifilaire et conducteur PE. Aucun symbole PC n'est dessiné: ne prétends pas le contraire.`
+      : "Composants réellement dessinés et repérés: arrivée X0, interrupteur différentiel ID1, disjoncteur QF1, prises PC1 à PCn et dérivations unifilaires."
     : schemaType.value === "eclairage"
-      ? "Composants réellement dessinés: tableau avec QF, commandes S, points lumineux X, phase commandée, neutre et terre."
+      ? "Composants réellement dessinés et repérés: arrivée X0, différentiel ID1, disjoncteur QF1, commandes S, points lumineux X, phase, retours lampe, neutre et terre."
       : schemaType.value === "va-et-vient"
-        ? "Composants réellement dessinés: tableau avec QF, deux commandes va-et-vient aux extrémités, éventuels permutateurs, navettes, points lumineux, neutre et terre."
-        : "Composants réellement dessinés: arrivée/AGCP, ID 30 mA, QF divisionnaires, peigne de phase, retours neutres et barrette PE.";
+        ? "Composants réellement dessinés et repérés: arrivée X0, différentiel ID1, disjoncteur QF1, deux commandes va-et-vient S1/S2, éventuels permutateurs P, deux navettes, retour lampe, point lumineux X1, neutre et terre."
+        : "Composants réellement dessinés et repérés: arrivée X0, AGCP, ID1 30 mA, QF divisionnaires, peigne de phase, retours neutres, bornier N et barrette PE.";
   const quantityDetails = schemaType.value === "prise"
     ? [`Nombre de prises ou départs: ${counts.sockets}.`]
     : schemaType.value === "tableau"
@@ -2931,7 +3353,8 @@ function buildSchemaPrompt() {
       : "",
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
-    "Donne une explication simple, les points de sécurité, les limites du schéma, puis rappelle qu'un schéma réel doit respecter la norme applicable et être validé par un électricien."
+    "Donne une explication simple, les points de sécurité, les limites du schéma, puis rappelle qu'un schéma réel doit respecter la norme applicable et être validé par un électricien.",
+    "Lis le document comme un schéma unifilaire professionnel: cite les repères exacts du dessin, explique le cartouche et distingue clairement ce qui est représenté de ce qui reste à confirmer."
   ].join("\n");
 }
 
@@ -3046,10 +3469,10 @@ function inferSchemaCounts(content, type) {
 
 function schemaTitle(type) {
   const titles = {
-    prise: "Circuit prise simple",
-    eclairage: "Éclairage simple allumage",
-    "va-et-vient": "Va-et-vient simplifie",
-    tableau: "Tableau électrique simplifié"
+    prise: "Plan unifilaire — circuit prises",
+    eclairage: "Plan unifilaire — éclairage simple allumage",
+    "va-et-vient": "Plan unifilaire — commande va-et-vient",
+    tableau: "Plan unifilaire — tableau électrique"
   };
   return titles[type] || titles.prise;
 }
