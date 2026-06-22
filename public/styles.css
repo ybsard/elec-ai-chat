@@ -1803,57 +1803,6 @@ textarea:focus {
   margin-bottom: 10px;
 }
 
-.line-schema-card {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-  padding: 12px;
-  border: 2px solid rgba(20, 85, 109, 0.2);
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 250, 0.98));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-.line-schema-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: baseline;
-}
-
-.line-schema-heading span {
-  color: #10212b;
-  font-size: 13px;
-  font-weight: 950;
-}
-
-.line-schema-heading small {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-  text-align: right;
-}
-
-.line-schema {
-  overflow-x: auto;
-  margin: 0;
-  padding: 18px;
-  border: 1px solid rgba(84, 121, 139, 0.42);
-  border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(20, 85, 109, 0.075) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(20, 85, 109, 0.075) 1px, transparent 1px),
-    #ffffff;
-  background-size: 24px 24px;
-  color: #0f2b36;
-  font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1.6;
-  white-space: pre;
-}
-
 .diagram-bubble p {
   margin: 10px 0 0;
   color: var(--muted);
@@ -1968,29 +1917,59 @@ textarea:focus {
   letter-spacing: 0.5px;
 }
 
-.professional-schema .schema-equipment .equipment-box {
-  fill: #fff;
-  stroke: #1f3945;
-  stroke-width: 1.6;
-  filter: drop-shadow(0 2px 2px rgba(16, 33, 43, 0.12));
+.professional-schema .iec-equipment-symbol .equipment-symbol line,
+.professional-schema .iec-equipment-symbol .equipment-symbol path,
+.professional-schema .iec-equipment-symbol .equipment-symbol circle,
+.professional-schema .iec-equipment-symbol .equipment-symbol ellipse,
+.professional-schema .iec-equipment-symbol .equipment-symbol rect {
+  fill: none;
+  stroke: #10212b;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.professional-schema .schema-equipment .equipment-tag-box {
-  fill: #e9f3f6;
-  stroke: #1f3945;
-  stroke-width: 1.2;
+.professional-schema .iec-equipment-symbol .source-symbol,
+.professional-schema .iec-equipment-symbol .receiver-symbol,
+.professional-schema .iec-equipment-symbol .differential-toroid {
+  fill: rgba(255, 255, 255, 0.94);
 }
 
-.professional-schema .protection-equipment .equipment-tag-box {
-  fill: #dcecf3;
+.professional-schema .iec-equipment-symbol .source-wave {
+  stroke-width: 2.4;
 }
 
-.professional-schema .load-equipment .equipment-tag-box {
-  fill: #fff0ce;
+.professional-schema .iec-equipment-symbol .source-earth-mark {
+  stroke: #15965f;
+  stroke-width: 1.8;
 }
 
-.professional-schema .source-equipment .equipment-tag-box {
-  fill: #e0f2e9;
+.professional-schema .iec-equipment-symbol .switch-contact,
+.professional-schema .iec-equipment-symbol .breaker-contact {
+  stroke-width: 2.8;
+}
+
+.professional-schema .iec-equipment-symbol .breaker-trip {
+  stroke: #d12f2f;
+  stroke-width: 1.8;
+}
+
+.professional-schema .iec-equipment-symbol .test-button {
+  fill: #fff7df;
+  stroke: #d99614;
+  stroke-width: 1.4;
+}
+
+.professional-schema .iec-equipment-symbol .differential-mark,
+.professional-schema .iec-equipment-symbol .test-mark {
+  fill: #10212b;
+  text-anchor: middle;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.professional-schema .iec-equipment-symbol .test-mark {
+  font-size: 7px;
 }
 
 .professional-schema .equipment-tag,
@@ -2000,18 +1979,20 @@ textarea:focus {
 }
 
 .professional-schema .equipment-tag {
-  font-size: 10px;
+  fill: #1d6f8f;
+  font-size: 11px;
   font-weight: 950;
+  letter-spacing: 0.5px;
 }
 
 .professional-schema .equipment-title {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 950;
 }
 
 .professional-schema .equipment-detail {
   fill: #4c626d;
-  font-size: 8.7px;
+  font-size: 7.8px;
   font-weight: 800;
 }
 
@@ -2132,14 +2113,30 @@ textarea:focus {
   text-anchor: end;
 }
 
-.professional-schema .board-breaker rect {
-  fill: #fff;
-  stroke: #1f3945;
-  stroke-width: 1.2;
+.professional-schema .iec-board-breaker .breaker-wire,
+.professional-schema .iec-board-breaker .breaker-contact,
+.professional-schema .iec-board-breaker .breaker-trip,
+.professional-schema .iec-board-breaker .breaker-terminal {
+  fill: none;
+  stroke: #10212b;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.professional-schema .board-breaker .breaker-tag-box {
-  fill: #dcecf3;
+.professional-schema .iec-board-breaker .breaker-contact {
+  stroke-width: 2.5;
+}
+
+.professional-schema .iec-board-breaker .breaker-trip {
+  stroke: #d12f2f;
+  stroke-width: 1.5;
+}
+
+.professional-schema .iec-board-breaker .breaker-terminal {
+  fill: #10212b;
+  stroke: #fff;
+  stroke-width: 0.8;
 }
 
 .professional-schema .breaker-tag,
@@ -2149,18 +2146,19 @@ textarea:focus {
 }
 
 .professional-schema .breaker-tag {
-  font-size: 8.5px;
+  fill: #1d6f8f;
+  font-size: 8px;
   font-weight: 950;
 }
 
 .professional-schema .breaker-rating {
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 950;
 }
 
 .professional-schema .breaker-label {
   fill: #4c626d;
-  font-size: 7px;
+  font-size: 6.4px;
   font-weight: 850;
 }
 
@@ -2213,11 +2211,6 @@ textarea:focus {
   fill: #a36000;
 }
 
-.professional-schema.schema-style-normalized .equipment-tag-box,
-.professional-schema.schema-style-normalized .breaker-tag-box {
-  fill: #ffffff;
-}
-
 .professional-schema.schema-style-normalized .equipment-tag,
 .professional-schema.schema-style-normalized .breaker-tag,
 .professional-schema.schema-style-normalized .device-tag {
@@ -2230,9 +2223,12 @@ textarea:focus {
   font-size: 6.8px;
 }
 
-.professional-schema.schema-style-annotated .equipment-tag-box,
-.professional-schema.schema-style-annotated .breaker-tag-box {
-  fill: #dcecf3;
+.professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol line,
+.professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol path,
+.professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol circle,
+.professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol ellipse,
+.professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol rect {
+  stroke: #000;
 }
 
 .diagram-frame .symbol rect {

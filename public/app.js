@@ -355,7 +355,7 @@ function renderAssistantContent(content) {
   return html.join("") || "<p>Je n'ai pas pu générer de réponse.</p>";
 }
 
-function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
+function addDiagramMessage(title, svgMarkup, note) {
   const item = document.createElement("article");
   item.className = "message assistant";
 
@@ -375,15 +375,6 @@ function addDiagramMessage(title, svgMarkup, note, lineSchema = "") {
   bubble.innerHTML = `
     <strong>${escapeHtml(title)}</strong>
     <div class="diagram-frame">${svgMarkup}</div>
-    ${lineSchema ? `
-      <section class="line-schema-card" aria-label="Schéma unifilaire textuel">
-        <div class="line-schema-heading">
-          <span>Schéma unifilaire textuel</span>
-          <small>Contrôle des repères et liaisons principales</small>
-        </div>
-        <pre class="line-schema">${escapeHtml(lineSchema)}</pre>
-      </section>
-    ` : ""}
     <p>${escapeHtml(note)}</p>
   `;
 
@@ -885,39 +876,6 @@ function buildReportDocument() {
           .formatted-response p,
           .formatted-response ul,
           .formatted-response ol { margin: 0 0 10px; }
-          .line-schema-card {
-            margin: 12px 0;
-            padding: 12px;
-            border: 1px solid rgba(20, 85, 109, 0.16);
-            border-radius: 10px;
-            background: #f8fbfb;
-          }
-          .line-schema-heading {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 8px;
-            color: #10212b;
-            font-weight: 900;
-          }
-          .line-schema-heading small { color: #637280; font-size: 11px; }
-          .line-schema {
-            overflow: visible;
-            white-space: pre-wrap;
-            margin: 0;
-            padding: 14px;
-            border: 1px solid rgba(159, 180, 193, 0.45);
-            border-radius: 8px;
-            background:
-              linear-gradient(90deg, rgba(20, 85, 109, 0.045) 1px, transparent 1px),
-              linear-gradient(180deg, rgba(20, 85, 109, 0.045) 1px, transparent 1px),
-              #ffffff;
-            background-size: 18px 18px;
-            color: #16303b;
-            font-family: "Cascadia Mono", Consolas, monospace;
-            font-size: 11px;
-            font-weight: 800;
-          }
           .diagram-frame {
             overflow: hidden;
             margin: 10px 0;
@@ -1103,8 +1061,7 @@ function showProfessionalReportExample() {
       breakerRatings: "20A four",
       symbolMode: "normalized"
     }),
-    "Exemple indicatif: le circuit spécialisé four doit être vérifié selon l'installation réelle.",
-    buildLineSchema("prise", { sockets: 1 })
+    "Exemple indicatif: le circuit spécialisé four doit être vérifié selon l'installation réelle."
   );
 
   messagesEl.scrollTop = 0;
@@ -2786,15 +2743,58 @@ function buildLegacySchema(type, room, usage, counts = {}) {
 
 function professionalEquipmentBlock({ x, y, width = 112, height = 116, tag, title, lines = [], kind = "" }) {
   const safeLines = lines.slice(0, 3);
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const isSource = tag === "X0";
+  const isDifferential = /^ID/i.test(tag);
+  const isBreaker = tag === "AGCP" || /^QF/i.test(tag);
+  let symbolMarkup = "";
+
+  if (isSource) {
+    symbolMarkup = `
+      <line class="symbol-conductor" x1="0" y1="${centerY}" x2="${centerX - 24}" y2="${centerY}" />
+      <circle class="source-symbol" cx="${centerX}" cy="${centerY}" r="23" />
+      <path class="source-wave" d="M ${centerX - 14} ${centerY} C ${centerX - 9} ${centerY - 10}, ${centerX - 3} ${centerY - 10}, ${centerX + 2} ${centerY} S ${centerX + 11} ${centerY + 10}, ${centerX + 15} ${centerY}" />
+      <line class="symbol-conductor" x1="${centerX + 23}" y1="${centerY}" x2="${width}" y2="${centerY}" />
+      <path class="source-earth-mark" d="M ${centerX} ${centerY + 23} V ${centerY + 34} M ${centerX - 10} ${centerY + 34} H ${centerX + 10} M ${centerX - 7} ${centerY + 39} H ${centerX + 7} M ${centerX - 4} ${centerY + 44} H ${centerX + 4}" />
+    `;
+  } else if (isDifferential) {
+    symbolMarkup = `
+      <line class="symbol-conductor" x1="0" y1="${centerY}" x2="${centerX - 27}" y2="${centerY}" />
+      <circle class="terminal-dot" cx="${centerX - 25}" cy="${centerY}" r="4" />
+      <circle class="terminal-dot" cx="${centerX + 25}" cy="${centerY}" r="4" />
+      <line class="switch-contact" x1="${centerX - 21}" y1="${centerY - 2}" x2="${centerX + 17}" y2="${centerY - 24}" />
+      <line class="symbol-conductor" x1="${centerX + 25}" y1="${centerY}" x2="${width}" y2="${centerY}" />
+      <ellipse class="differential-toroid" cx="${centerX}" cy="${centerY}" rx="19" ry="27" />
+      <text class="differential-mark" x="${centerX}" y="${centerY + 7}">Δ</text>
+      <circle class="test-button" cx="${centerX + 30}" cy="${centerY - 31}" r="7" />
+      <text class="test-mark" x="${centerX + 30}" y="${centerY - 28}">T</text>
+    `;
+  } else if (isBreaker) {
+    symbolMarkup = `
+      <line class="symbol-conductor" x1="0" y1="${centerY}" x2="${centerX - 25}" y2="${centerY}" />
+      <circle class="terminal-dot" cx="${centerX - 23}" cy="${centerY}" r="4" />
+      <circle class="terminal-dot" cx="${centerX + 23}" cy="${centerY}" r="4" />
+      <line class="breaker-contact" x1="${centerX - 19}" y1="${centerY - 2}" x2="${centerX + 15}" y2="${centerY - 23}" />
+      <path class="breaker-trip" d="M ${centerX + 3} ${centerY - 15} q 9 8 0 16 q -9 8 0 16" />
+      <line class="symbol-conductor" x1="${centerX + 23}" y1="${centerY}" x2="${width}" y2="${centerY}" />
+    `;
+  } else {
+    symbolMarkup = `
+      <line class="symbol-conductor" x1="0" y1="${centerY}" x2="${centerX - 25}" y2="${centerY}" />
+      <rect class="receiver-symbol" x="${centerX - 25}" y="${centerY - 25}" width="50" height="50" />
+      <line class="receiver-diagonal" x1="${centerX - 18}" y1="${centerY + 18}" x2="${centerX + 18}" y2="${centerY - 18}" />
+      <line class="receiver-diagonal" x1="${centerX - 18}" y1="${centerY - 18}" x2="${centerX + 18}" y2="${centerY + 18}" />
+      <line class="symbol-conductor" x1="${centerX + 25}" y1="${centerY}" x2="${width}" y2="${centerY}" />
+    `;
+  }
+
   return `
-    <g class="schema-equipment ${kind}" transform="translate(${x} ${y})">
-      <rect class="equipment-box" width="${width}" height="${height}" rx="5" />
-      <rect class="equipment-tag-box" x="0" y="0" width="${width}" height="24" rx="5" />
-      <text class="equipment-tag" x="${width / 2}" y="16">${escapeHtml(tag)}</text>
-      <text class="equipment-title" x="${width / 2}" y="47">${escapeHtml(title)}</text>
-      ${safeLines.map((line, index) => `<text class="equipment-detail" x="${width / 2}" y="${68 + index * 17}">${escapeHtml(line)}</text>`).join("")}
-      <circle class="terminal-dot" cx="0" cy="${height / 2}" r="3.5" />
-      <circle class="terminal-dot" cx="${width}" cy="${height / 2}" r="3.5" />
+    <g class="schema-equipment iec-equipment-symbol ${kind}" transform="translate(${x} ${y})" data-symbol="${escapeHtml(tag)}">
+      <text class="equipment-tag" x="${centerX}" y="10">${escapeHtml(tag)}</text>
+      <g class="equipment-symbol">${symbolMarkup}</g>
+      <text class="equipment-title" x="${centerX}" y="${height + 5}">${escapeHtml(title)}</text>
+      ${safeLines.map((line, index) => `<text class="equipment-detail" x="${centerX}" y="${height + 20 + index * 14}">${escapeHtml(line)}</text>`).join("")}
     </g>
   `;
 }
@@ -2823,7 +2823,7 @@ function professionalSupplyChain({ rating = "à définir", purpose = "circuit", 
 
 function professionalSocketSymbol(x, y, index) {
   return `
-    <g class="schema-device socket-device" transform="translate(${x} ${y})">
+    <g class="schema-device iec-symbol socket-device" transform="translate(${x} ${y})">
       <circle class="device-symbol" cx="0" cy="0" r="23" />
       <line x1="-8" y1="-7" x2="-8" y2="7" />
       <line x1="8" y1="-7" x2="8" y2="7" />
@@ -2836,7 +2836,7 @@ function professionalSocketSymbol(x, y, index) {
 
 function professionalLampSymbol(x, y, index) {
   return `
-    <g class="schema-device lamp-device" transform="translate(${x} ${y})">
+    <g class="schema-device iec-symbol lamp-device" transform="translate(${x} ${y})">
       <circle class="device-symbol" cx="0" cy="0" r="22" />
       <line x1="-14" y1="-14" x2="14" y2="14" />
       <line x1="14" y1="-14" x2="-14" y2="14" />
@@ -2851,7 +2851,7 @@ function professionalLampSymbol(x, y, index) {
 
 function professionalSwitchSymbol(x, y, index, label = "interrupteur") {
   return `
-    <g class="schema-device switch-device" transform="translate(${x} ${y})">
+    <g class="schema-device iec-symbol switch-device" transform="translate(${x} ${y})">
       <circle class="terminal-dot" cx="-16" cy="0" r="4" />
       <circle class="terminal-dot" cx="16" cy="0" r="4" />
       <line x1="-12" y1="-2" x2="12" y2="-17" />
@@ -2864,7 +2864,7 @@ function professionalSwitchSymbol(x, y, index, label = "interrupteur") {
 function professionalVaSymbol(x, y, tag, label, permutator = false, reverse = false) {
   if (permutator) {
     return `
-      <g class="schema-device va-device" transform="translate(${x} ${y})">
+      <g class="schema-device iec-symbol va-device" transform="translate(${x} ${y})">
         <rect class="permutator-symbol" x="-23" y="-24" width="46" height="48" rx="4" />
         <circle class="terminal-dot" cx="-14" cy="-13" r="3" /><circle class="terminal-dot" cx="14" cy="-13" r="3" />
         <circle class="terminal-dot" cx="-14" cy="13" r="3" /><circle class="terminal-dot" cx="14" cy="13" r="3" />
@@ -2877,7 +2877,7 @@ function professionalVaSymbol(x, y, tag, label, permutator = false, reverse = fa
   const commonX = reverse ? 18 : -18;
   const travelerX = reverse ? -18 : 18;
   return `
-    <g class="schema-device va-device" transform="translate(${x} ${y})">
+    <g class="schema-device iec-symbol va-device" transform="translate(${x} ${y})">
       <circle class="terminal-dot" cx="${commonX}" cy="0" r="4" />
       <circle class="terminal-dot" cx="${travelerX}" cy="-15" r="4" />
       <circle class="terminal-dot" cx="${travelerX}" cy="15" r="4" />
@@ -2909,7 +2909,7 @@ function professionalSchemaSheet({ type, title, room, usage, summary, body, docu
   return `
     <svg class="professional-schema schema-style-${symbolMode === "normalized" ? "normalized" : "annotated"}" viewBox="0 0 900 560" role="img" aria-labelledby="title-${instanceId} desc-${instanceId}" data-schema-type="${escapeHtml(type)}">
       <title id="title-${instanceId}">${safeTitle}</title>
-      <desc id="desc-${instanceId}">${safeSummary}. Schéma électrique de principe indicatif avec appareils repérés et cartouche.</desc>
+      <desc id="desc-${instanceId}">${safeSummary}. Schéma électrique de principe indicatif avec symboles électriques, appareils repérés et cartouche.</desc>
       <defs>
         <pattern id="${gridId}" width="16" height="16" patternUnits="userSpaceOnUse">
           <path d="M 16 0 H 0 V 16" class="professional-grid-line" />
@@ -3138,13 +3138,17 @@ function buildProfessionalBoardSchema(room, usage, counts = {}) {
     const x = startX + column * (breakerWidth + columnGap);
     const y = row === 0 ? 154 : 304;
     return `
-      <g class="board-breaker" transform="translate(${x} ${y})">
-        <rect width="${breakerWidth}" height="96" rx="4" />
-        <rect class="breaker-tag-box" width="${breakerWidth}" height="22" rx="4" />
-        <text class="breaker-tag" x="${breakerWidth / 2}" y="15">${escapeHtml(breaker.tag)}</text>
-        <text class="breaker-rating" x="${breakerWidth / 2}" y="47">${escapeHtml(breaker.rating)}</text>
-        <text class="breaker-label" x="${breakerWidth / 2}" y="70">${escapeHtml(breaker.label.slice(0, 9))}</text>
-        <text class="breaker-label" x="${breakerWidth / 2}" y="84">${escapeHtml(breaker.label.slice(9, 16))}</text>
+      <g class="board-breaker iec-board-breaker" transform="translate(${x} ${y})" data-symbol="${escapeHtml(breaker.tag)}">
+        <text class="breaker-tag" x="${breakerWidth / 2}" y="8">${escapeHtml(breaker.tag)}</text>
+        <line class="breaker-wire" x1="${breakerWidth / 2}" y1="-12" x2="${breakerWidth / 2}" y2="18" />
+        <circle class="breaker-terminal" cx="${breakerWidth / 2}" cy="20" r="3.5" />
+        <circle class="breaker-terminal" cx="${breakerWidth / 2}" cy="58" r="3.5" />
+        <line class="breaker-contact" x1="${breakerWidth / 2 + 3}" y1="18" x2="${breakerWidth / 2 + 17}" y2="47" />
+        <path class="breaker-trip" d="M ${breakerWidth / 2 + 12} 37 q 8 6 0 12 q -8 6 0 12" />
+        <line class="breaker-wire" x1="${breakerWidth / 2}" y1="58" x2="${breakerWidth / 2}" y2="96" />
+        <text class="breaker-rating" x="${breakerWidth / 2}" y="74">${escapeHtml(breaker.rating)}</text>
+        <text class="breaker-label" x="${breakerWidth / 2}" y="86">${escapeHtml(breaker.label.slice(0, 9))}</text>
+        <text class="breaker-label" x="${breakerWidth / 2}" y="96">${escapeHtml(breaker.label.slice(9, 16))}</text>
       </g>
       <path class="phase-line board-feed" d="M ${x + breakerWidth / 2} ${y - 12} V ${y}" />
       <path class="neutral-line board-return" d="M ${x + breakerWidth / 2} ${y + 96} V ${row === 0 ? 276 : 428}" />
@@ -3354,7 +3358,8 @@ function buildSchemaPrompt() {
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
     "Donne une explication simple, les points de sécurité, les limites du schéma, puis rappelle qu'un schéma réel doit respecter la norme applicable et être validé par un électricien.",
-    "Lis le document comme un schéma unifilaire professionnel: cite les repères exacts du dessin, explique le cartouche et distingue clairement ce qui est représenté de ce qui reste à confirmer."
+    "Lis le document comme un schéma unifilaire professionnel réalisé avec des symboles électriques: cite les repères exacts du dessin, explique le cartouche et distingue clairement ce qui est représenté de ce qui reste à confirmer.",
+    "Le schéma symbolique est déjà affiché dans l'interface. Ne génère aucun second schéma ASCII, aucun dessin en caractères et aucun quadrillage textuel."
   ].join("\n");
 }
 
@@ -3469,10 +3474,10 @@ function inferSchemaCounts(content, type) {
 
 function schemaTitle(type) {
   const titles = {
-    prise: "Plan unifilaire — circuit prises",
-    eclairage: "Plan unifilaire — éclairage simple allumage",
-    "va-et-vient": "Plan unifilaire — commande va-et-vient",
-    tableau: "Plan unifilaire — tableau électrique"
+    prise: "Schéma symbolique — circuit prises",
+    eclairage: "Schéma symbolique — éclairage simple allumage",
+    "va-et-vient": "Schéma symbolique — commande va-et-vient",
+    tableau: "Schéma symbolique — tableau électrique"
   };
   return titles[type] || titles.prise;
 }
@@ -3483,13 +3488,15 @@ function addAutomaticSchema(content) {
   addDiagramMessage(
     schemaTitle(type),
     buildSchema(type, "demande du chat", content.slice(0, 90), counts),
-    "Schéma généré automatiquement depuis ta demande. Il reste indicatif et doit être validé avant travaux.",
-    buildLineSchema(type, counts, content)
+    "Schéma généré automatiquement depuis ta demande avec des symboles électriques. Il reste indicatif et doit être validé avant travaux."
   );
 }
 
 async function askAssistant(content, options = {}) {
-  const contentForModel = `${content}\n\n${buildLevelInstruction()}\n${buildResponseFormatInstruction()}`;
+  const schemaOutputInstruction = isSchemaRequest(content)
+    ? "\nUn schéma SVG avec de vrais symboles électriques est déjà affiché dans l'interface. Explique-le sans produire de schéma ASCII, de dessin en traits ou de quadrillage textuel."
+    : "";
+  const contentForModel = `${content}${schemaOutputInstruction}\n\n${buildLevelInstruction()}\n${buildResponseFormatInstruction()}`;
   messages.push({ role: "user", content: contentForModel });
   if (!options.skipUserMessage) {
     addMessage("user", content);
@@ -3954,8 +3961,7 @@ createSchema.addEventListener("click", async () => {
   addDiagramMessage(
     dedicatedLoad ? `Circuit spécialisé - ${dedicatedLoad}` : typeLabel,
     buildSchema(schemaType.value, room, usage, counts),
-    "Schéma indicatif généré par Voltia. Ne pas intervenir sous tension.",
-    buildLineSchema(schemaType.value, counts, usage)
+    "Schéma symbolique indicatif généré par Voltia. Ne pas intervenir sous tension."
   );
   await askAssistant(schemaPrompt, {
     skipAutoSchema: true,
