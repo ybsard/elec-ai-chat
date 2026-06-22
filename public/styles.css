@@ -1831,6 +1831,20 @@ textarea:focus {
   background: #e8edf0;
 }
 
+.schema-format-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.diagram-frame .schema-style-engineering {
+  min-width: 1000px;
+  background: #d9dcde;
+}
+
 .professional-schema .schema-sheet-background {
   fill: #dfe6e9;
 }
@@ -1853,6 +1867,11 @@ textarea:focus {
   fill: none;
   stroke: rgba(20, 42, 52, 0.075);
   stroke-width: 0.7;
+}
+
+.professional-schema .schema-grid-fill,
+.professional-schema .engineering-grid {
+  pointer-events: none;
 }
 
 .professional-schema text {
@@ -2229,6 +2248,223 @@ textarea:focus {
 .professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol ellipse,
 .professional-schema.schema-style-normalized .iec-equipment-symbol .equipment-symbol rect {
   stroke: #000;
+}
+
+.professional-schema.schema-style-engineering {
+  background: #d9dcde;
+}
+
+.professional-schema.schema-style-engineering .schema-sheet-background {
+  fill: #d9dcde;
+}
+
+.professional-schema.schema-style-engineering .schema-sheet-frame,
+.professional-schema.schema-style-engineering .schema-drawing-zone,
+.professional-schema.schema-style-engineering .engineering-side-panel rect,
+.professional-schema.schema-style-engineering .engineering-side-panel line,
+.professional-schema.schema-style-engineering .engineering-title-block rect,
+.professional-schema.schema-style-engineering .engineering-title-block line {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 1.05;
+  shape-rendering: crispEdges;
+}
+
+.professional-schema.schema-style-engineering .engineering-side-panel line,
+.professional-schema.schema-style-engineering .engineering-title-block line {
+  fill: none;
+}
+
+.professional-schema.schema-style-engineering .engineering-drawing-zone {
+  stroke-width: 1.2;
+}
+
+.professional-schema.schema-style-engineering .professional-grid-line {
+  stroke: rgba(0, 0, 0, 0.055);
+  stroke-width: 0.55;
+}
+
+.professional-schema.schema-style-engineering .engineering-grid {
+  opacity: 0.62;
+}
+
+.professional-schema.schema-style-engineering text {
+  fill: #111;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+}
+
+.professional-schema .engineering-brand {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+}
+
+.professional-schema .engineering-title {
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.professional-schema .engineering-header-label,
+.professional-schema .engineering-panel-title,
+.professional-schema .engineering-nomenclature-tag {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.45px;
+}
+
+.professional-schema .engineering-header-value {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.professional-schema .engineering-summary {
+  font-size: 7.5px;
+  font-weight: 700;
+}
+
+.professional-schema .engineering-panel-title {
+  letter-spacing: 0.65px;
+}
+
+.professional-schema .engineering-panel-value {
+  font-size: 7.4px;
+  font-weight: 900;
+}
+
+.professional-schema .engineering-status {
+  fill: #a12620;
+}
+
+.professional-schema .engineering-small {
+  font-size: 6.7px;
+  font-weight: 700;
+}
+
+.professional-schema .engineering-nomenclature-tag {
+  fill: #000;
+}
+
+.professional-schema .engineering-zone-references text {
+  font-size: 7px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.professional-schema .engineering-cartouche-main {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.professional-schema .engineering-revision {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.professional-schema.schema-style-engineering .schema-single-line,
+.professional-schema.schema-style-engineering .phase-line,
+.professional-schema.schema-style-engineering .neutral-line,
+.professional-schema.schema-style-engineering .earth-line,
+.professional-schema.schema-style-engineering .return-line,
+.professional-schema.schema-style-engineering .traveler-line {
+  stroke: #111;
+  stroke-width: 1.75;
+  filter: none;
+}
+
+.professional-schema.schema-style-engineering .neutral-line {
+  stroke-width: 1.35;
+  stroke-dasharray: 8 3;
+}
+
+.professional-schema.schema-style-engineering .earth-line {
+  stroke-width: 1.35;
+  stroke-dasharray: 10 3 2 3;
+}
+
+.professional-schema.schema-style-engineering .return-line {
+  stroke-width: 1.5;
+  stroke-dasharray: 5 2;
+}
+
+.professional-schema.schema-style-engineering .traveler-line {
+  stroke-width: 1.35;
+  stroke-dasharray: 3 3;
+}
+
+.professional-schema.schema-style-engineering .iec-equipment-symbol .equipment-symbol line,
+.professional-schema.schema-style-engineering .iec-equipment-symbol .equipment-symbol path,
+.professional-schema.schema-style-engineering .iec-equipment-symbol .equipment-symbol circle,
+.professional-schema.schema-style-engineering .iec-equipment-symbol .equipment-symbol ellipse,
+.professional-schema.schema-style-engineering .iec-equipment-symbol .equipment-symbol rect,
+.professional-schema.schema-style-engineering .schema-device line,
+.professional-schema.schema-style-engineering .schema-device path,
+.professional-schema.schema-style-engineering .schema-device circle,
+.professional-schema.schema-style-engineering .schema-device rect,
+.professional-schema.schema-style-engineering .iec-board-breaker line,
+.professional-schema.schema-style-engineering .iec-board-breaker path,
+.professional-schema.schema-style-engineering .iec-board-breaker circle {
+  stroke: #111;
+  filter: none;
+}
+
+.professional-schema.schema-style-engineering .iec-equipment-symbol .breaker-trip,
+.professional-schema.schema-style-engineering .iec-board-breaker .breaker-trip,
+.professional-schema.schema-style-engineering .iec-equipment-symbol .source-earth-mark {
+  stroke: #111;
+}
+
+.professional-schema.schema-style-engineering .equipment-tag,
+.professional-schema.schema-style-engineering .breaker-tag,
+.professional-schema.schema-style-engineering .device-tag {
+  fill: #000;
+  letter-spacing: 0.45px;
+}
+
+.professional-schema.schema-style-engineering .equipment-detail,
+.professional-schema.schema-style-engineering .device-description,
+.professional-schema.schema-style-engineering .breaker-label,
+.professional-schema.schema-style-engineering .cable-callout,
+.professional-schema.schema-style-engineering .wire-callout {
+  fill: #222;
+}
+
+.professional-schema.schema-style-engineering .cable-label rect,
+.professional-schema.schema-style-engineering .terminal-bar rect {
+  fill: #fff;
+  stroke: #111;
+}
+
+.professional-schema.schema-style-engineering .terminal-dot,
+.professional-schema.schema-style-engineering .junction-dot,
+.professional-schema.schema-style-engineering .iec-board-breaker .breaker-terminal {
+  fill: #111;
+  stroke: #fff;
+}
+
+.professional-schema.schema-style-engineering .warning-value {
+  fill: #a12620;
+}
+
+.diagram-frame .professional-schema text {
+  text-anchor: start;
+}
+
+.diagram-frame .professional-schema .document-status-title,
+.diagram-frame .professional-schema .document-status-detail,
+.diagram-frame .professional-schema .equipment-tag,
+.diagram-frame .professional-schema .equipment-title,
+.diagram-frame .professional-schema .equipment-detail,
+.diagram-frame .professional-schema .differential-mark,
+.diagram-frame .professional-schema .test-mark,
+.diagram-frame .professional-schema .device-tag,
+.diagram-frame .professional-schema .device-description,
+.diagram-frame .professional-schema .cable-label text,
+.diagram-frame .professional-schema .breaker-tag,
+.diagram-frame .professional-schema .breaker-rating,
+.diagram-frame .professional-schema .breaker-label,
+.diagram-frame .professional-schema .terminal-bar text,
+.diagram-frame .professional-schema .engineering-zone-references text {
+  text-anchor: middle;
 }
 
 .diagram-frame .symbol rect {

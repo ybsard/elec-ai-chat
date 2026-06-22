@@ -1014,7 +1014,7 @@ function showProfessionalReportExample() {
   if (reportType) {
     reportType.value = "diagnostic";
   }
-  schemaSymbolMode.value = "normalized";
+  schemaSymbolMode.value = "engineering";
 
   const request = "Exemple: le disjoncteur saute quand le four démarre dans la cuisine.";
   const response = [
@@ -1052,14 +1052,14 @@ function showProfessionalReportExample() {
   messages.push({ role: "assistant", content: response });
 
   addDiagramMessage(
-    "Schéma indicatif normalisé - circuit four",
+    "Dossier bureau d'études - circuit four",
     buildSchema("prise", "cuisine", "four 20A", {
       sockets: 1,
       lights: 0,
       switches: 0,
       breakers: 1,
       breakerRatings: "20A four",
-      symbolMode: "normalized"
+      symbolMode: "engineering"
     }),
     "Exemple indicatif: le circuit spécialisé four doit être vérifié selon l'installation réelle."
   );
@@ -2898,16 +2898,119 @@ function professionalCableLabel(x, y, text) {
   `;
 }
 
+function engineeringSchemaSheet({ type, safeTitle, safeRoom, safeUsage, safeSummary, body, safeDocumentCode, instanceId, gridId }) {
+  const issueDate = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
+  const nomenclature = [
+    ["X0", "Alimentation"],
+    ["ID", "Différentiel"],
+    ["QF", "Protection circuit"],
+    ["S / P", "Commande"],
+    ["X", "Point lumineux"],
+    ["PC", "Prise 2P+T"],
+    ["XTB", "Bornier"]
+  ];
+  return `
+    <svg class="professional-schema schema-style-engineering" viewBox="0 0 1120 680" role="img" aria-labelledby="title-${instanceId} desc-${instanceId}" data-schema-type="${escapeHtml(type)}" data-schema-form="engineering">
+      <title id="title-${instanceId}">${safeTitle} — dossier bureau d'études</title>
+      <desc id="desc-${instanceId}">${safeSummary}. Folio technique de principe avec symboles électriques, nomenclature, table de révision et cartouche bureau d'études.</desc>
+      <defs>
+        <pattern id="${gridId}" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M 10 0 H 0 V 10" class="professional-grid-line" />
+        </pattern>
+      </defs>
+      <rect class="schema-sheet-background" x="5" y="5" width="1110" height="670" />
+      <rect class="schema-sheet-frame" x="16" y="16" width="1088" height="648" />
+      <g class="engineering-header">
+        <text class="engineering-brand" x="30" y="37">VOLTIA · ÉTUDE ÉLECTRIQUE DE PRINCIPE</text>
+        <text class="engineering-title" x="30" y="65">${safeTitle}</text>
+        <text class="engineering-header-label" x="826" y="34">DOCUMENT</text>
+        <text class="engineering-header-value" x="826" y="50">${safeDocumentCode}</text>
+        <text class="engineering-header-label" x="958" y="34">FOLIO</text>
+        <text class="engineering-header-value" x="958" y="50">01 / 01</text>
+        <text class="engineering-header-label" x="1034" y="34">INDICE</text>
+        <text class="engineering-header-value" x="1034" y="50">R00</text>
+        <text class="engineering-summary" x="826" y="69">${safeSummary}</text>
+      </g>
+      <rect class="schema-drawing-zone engineering-drawing-zone" x="24" y="96" width="868" height="430" />
+      <rect class="engineering-grid" x="24" y="96" width="868" height="430" fill="url(#${gridId})" />
+      <g class="engineering-zone-references">
+        <text x="132" y="91">A</text><text x="350" y="91">B</text><text x="568" y="91">C</text><text x="786" y="91">D</text>
+        <text x="18" y="160">1</text><text x="18" y="270">2</text><text x="18" y="380">3</text><text x="18" y="490">4</text>
+      </g>
+      ${body}
+      <g class="engineering-side-panel">
+        <rect x="912" y="96" width="184" height="430" />
+        <line x1="912" y1="137" x2="1096" y2="137" />
+        <line x1="912" y1="207" x2="1096" y2="207" />
+        <line x1="912" y1="371" x2="1096" y2="371" />
+        <line x1="912" y1="452" x2="1096" y2="452" />
+        <text class="engineering-panel-title" x="924" y="116">ÉTAT DU DOCUMENT</text>
+        <text class="engineering-panel-value engineering-status" x="924" y="130">POUR ÉTUDE · NON EXÉCUTOIRE</text>
+        <text class="engineering-panel-title" x="924" y="157">TABLE DES RÉVISIONS</text>
+        <text class="engineering-small" x="924" y="176">IND.   DATE         OBJET</text>
+        <text class="engineering-small" x="924" y="193">R00    ${issueDate}   ÉMISSION INITIALE</text>
+        <text class="engineering-panel-title" x="924" y="227">NOMENCLATURE</text>
+        ${nomenclature.map(([tag, label], index) => `<text class="engineering-nomenclature-tag" x="924" y="${247 + index * 17}">${tag}</text><text class="engineering-small" x="964" y="${247 + index * 17}">${label}</text>`).join("")}
+        <text class="engineering-panel-title" x="924" y="391">CONVENTIONS CONDUCTEURS</text>
+        <line class="phase-line" x1="924" y1="407" x2="950" y2="407" /><text class="engineering-small" x="960" y="410">L · phase</text>
+        <line class="neutral-line" x1="924" y1="424" x2="950" y2="424" /><text class="engineering-small" x="960" y="427">N · neutre</text>
+        <line class="earth-line" x1="924" y1="441" x2="950" y2="441" /><text class="engineering-small" x="960" y="444">PE · protection</text>
+        <text class="engineering-panel-title" x="924" y="473">NOTES D'ÉTUDE</text>
+        <text class="engineering-small" x="924" y="491">• Relevé sur site requis</text>
+        <text class="engineering-small" x="924" y="506">• Calibres et sections à confirmer</text>
+        <text class="engineering-small" x="924" y="521">• Coordination à valider</text>
+      </g>
+      <g class="schema-title-block engineering-title-block">
+        <rect x="16" y="542" width="1088" height="122" />
+        <line x1="560" y1="542" x2="560" y2="664" />
+        <line x1="758" y1="542" x2="758" y2="664" />
+        <line x1="920" y1="542" x2="920" y2="664" />
+        <line x1="16" y1="584" x2="1104" y2="584" />
+        <line x1="16" y1="624" x2="1104" y2="624" />
+        <text class="title-block-label" x="30" y="558">AFFAIRE / LOCAL</text>
+        <text class="engineering-cartouche-main" x="30" y="578">${safeRoom}</text>
+        <text class="title-block-label" x="30" y="600">TITRE DU DOCUMENT</text>
+        <text class="engineering-cartouche-main" x="30" y="620">${safeTitle}</text>
+        <text class="title-block-label" x="30" y="641">HYPOTHÈSE / USAGE</text>
+        <text class="title-block-value" x="30" y="657">${safeUsage}</text>
+        <text class="title-block-label" x="574" y="558">NUMÉRO DE DOCUMENT</text>
+        <text class="title-block-value" x="574" y="578">${safeDocumentCode}</text>
+        <text class="title-block-label" x="574" y="600">PHASE / NIVEAU</text>
+        <text class="title-block-value" x="574" y="620">AVP · SCHÉMA DE PRINCIPE</text>
+        <text class="title-block-label" x="574" y="641">FORMAT / ÉCHELLE</text>
+        <text class="title-block-value" x="574" y="657">FOLIO · SANS ÉCHELLE</text>
+        <text class="title-block-label" x="772" y="558">ÉTABLI PAR</text>
+        <text class="title-block-value" x="772" y="578">VOLTIA</text>
+        <text class="title-block-label" x="772" y="600">DATE D'ÉMISSION</text>
+        <text class="title-block-value" x="772" y="620">${issueDate}</text>
+        <text class="title-block-label" x="772" y="641">CONTRÔLE</text>
+        <text class="title-block-value" x="772" y="657">À EFFECTUER</text>
+        <text class="title-block-label" x="934" y="558">INDICE</text>
+        <text class="engineering-revision" x="934" y="580">R00</text>
+        <text class="title-block-label" x="1018" y="558">FOLIO</text>
+        <text class="title-block-value" x="1018" y="578">01 / 01</text>
+        <text class="title-block-label" x="934" y="600">STATUT</text>
+        <text class="title-block-value warning-value" x="934" y="620">NON EXÉCUTOIRE</text>
+        <text class="engineering-small" x="934" y="646">VALIDATION PROFESSIONNELLE REQUISE</text>
+      </g>
+    </svg>
+  `;
+}
+
 function professionalSchemaSheet({ type, title, room, usage, summary, body, documentCode, symbolMode = "standard" }) {
   const instanceId = `${type}-${++schemaRenderSequence}`;
   const gridId = `professional-grid-${instanceId}`;
   const shadowId = `professional-shadow-${instanceId}`;
   const safeTitle = escapeHtml(title);
-  const safeRoom = escapeHtml(room || "Pièce à confirmer");
-  const safeUsage = escapeHtml(usage || "Usage à confirmer");
+  const safeRoom = escapeHtml(String(room || "Pièce à confirmer").slice(0, 58));
+  const safeUsage = escapeHtml(String(usage || "Usage à confirmer").slice(0, 78));
   const safeSummary = escapeHtml(String(summary || "").slice(0, 68));
+  const safeDocumentCode = escapeHtml(documentCode);
+  if (symbolMode === "engineering" || symbolMode === "normalized") {
+    return engineeringSchemaSheet({ type, safeTitle, safeRoom, safeUsage, safeSummary, body, safeDocumentCode, instanceId, gridId });
+  }
   return `
-    <svg class="professional-schema schema-style-${symbolMode === "normalized" ? "normalized" : "annotated"}" viewBox="0 0 900 560" role="img" aria-labelledby="title-${instanceId} desc-${instanceId}" data-schema-type="${escapeHtml(type)}">
+    <svg class="professional-schema schema-style-annotated" viewBox="0 0 900 560" role="img" aria-labelledby="title-${instanceId} desc-${instanceId}" data-schema-type="${escapeHtml(type)}" data-schema-form="annotated">
       <title id="title-${instanceId}">${safeTitle}</title>
       <desc id="desc-${instanceId}">${safeSummary}. Schéma électrique de principe indicatif avec symboles électriques, appareils repérés et cartouche.</desc>
       <defs>
@@ -2920,14 +3023,15 @@ function professionalSchemaSheet({ type, title, room, usage, summary, body, docu
       </defs>
       <rect class="schema-sheet-background" x="8" y="8" width="884" height="544" rx="3" />
       <rect class="schema-sheet-frame" x="16" y="16" width="868" height="528" />
-      <rect class="schema-drawing-zone" x="24" y="96" width="852" height="354" fill="url(#${gridId})" />
+      <rect class="schema-drawing-zone" x="24" y="96" width="852" height="354" />
+      <rect class="schema-grid-fill" x="24" y="96" width="852" height="354" fill="url(#${gridId})" />
       <g class="schema-sheet-header">
-        <text class="sheet-kicker" x="38" y="42">SCHÉMA ÉLECTRIQUE DE PRINCIPE</text>
+        <text class="sheet-kicker" x="38" y="42">SCHÉMA CLAIR ANNOTÉ</text>
         <text class="sheet-title" x="38" y="70">${safeTitle}</text>
         <text class="sheet-subtitle" x="38" y="88">${safeSummary}</text>
         <rect class="document-status" x="690" y="32" width="170" height="44" rx="4" />
-        <text class="document-status-title" x="775" y="50">DOCUMENT INDICATIF</text>
-        <text class="document-status-detail" x="775" y="66">à confirmer sur site</text>
+        <text class="document-status-title" x="775" y="50">LECTURE RAPIDE</text>
+        <text class="document-status-detail" x="775" y="66">document indicatif</text>
       </g>
       <g class="conductor-legend" transform="translate(488 78)">
         <rect width="372" height="16" rx="3" />
@@ -2948,7 +3052,7 @@ function professionalSchemaSheet({ type, title, room, usage, summary, body, docu
         <text class="title-block-label" x="30" y="522">USAGE / HYPOTHÈSE</text>
         <text class="title-block-value" x="30" y="538">${safeUsage}</text>
         <text class="title-block-label" x="534" y="483">DOCUMENT</text>
-        <text class="title-block-value" x="534" y="499">${escapeHtml(documentCode)}</text>
+        <text class="title-block-value" x="534" y="499">${safeDocumentCode}</text>
         <text class="title-block-label" x="534" y="522">RÉFÉRENCES</text>
         <text class="title-block-value" x="534" y="538">QF / ID / X / S / PC</text>
         <text class="title-block-label" x="730" y="483">RÉVISION</text>
@@ -3318,9 +3422,9 @@ function buildSchemaPrompt() {
   const usage = schemaUse.value.trim() || "usage non précisé";
   const counts = getSchemaCounts();
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
-  const symbolStyle = schemaSymbolMode?.value === "normalized"
-    ? "Style normalisé: explique uniquement les repères réellement dessinés et n'ajoute aucun organe absent du schéma."
-    : "Style de lecture claire: privilégie les libellés explicites et reste strictement fidèle aux éléments dessinés.";
+  const symbolStyle = schemaSymbolMode?.value === "engineering"
+    ? "Format bureau d'études: analyse le folio, le numéro de document, la nomenclature, les conventions conducteurs, la table de révision et le cartouche. Reste strictement fidèle aux repères dessinés et n'ajoute aucun organe absent."
+    : "Format clair annoté: privilégie les libellés explicites, la lecture rapide et reste strictement fidèle aux éléments dessinés.";
   const diagramInventory = schemaType.value === "prise"
     ? dedicatedLoad
       ? `Composants réellement dessinés et repérés: arrivée X0, interrupteur différentiel ID1, disjoncteur QF1, point dédié E1 ${dedicatedLoad}, liaison unifilaire et conducteur PE. Aucun symbole PC n'est dessiné: ne prétends pas le contraire.`
@@ -3344,7 +3448,7 @@ function buildSchemaPrompt() {
   return [
     "Explique ce schéma électrique indicatif.",
     `Type: ${typeLabel}.`,
-    `Style demandé: ${symbolStyle}`,
+    `Format demandé: ${symbolStyle}`,
     diagramInventory,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
@@ -3469,24 +3573,29 @@ function inferSchemaCounts(content, type) {
     counts.sockets = Math.max(counts.sockets, 1);
   }
 
+  counts.symbolMode = /bureau d['’ ]?etudes?|bureau d['’ ]?études?|folio|dossier technique/.test(text)
+    ? "engineering"
+    : "standard";
+
   return counts;
 }
 
-function schemaTitle(type) {
+function schemaTitle(type, symbolMode = "standard") {
   const titles = {
     prise: "Schéma symbolique — circuit prises",
     eclairage: "Schéma symbolique — éclairage simple allumage",
     "va-et-vient": "Schéma symbolique — commande va-et-vient",
     tableau: "Schéma symbolique — tableau électrique"
   };
-  return titles[type] || titles.prise;
+  const title = titles[type] || titles.prise;
+  return symbolMode === "engineering" ? title.replace("Schéma symbolique", "Dossier bureau d'études") : title;
 }
 
 function addAutomaticSchema(content) {
   const type = inferSchemaType(content);
   const counts = inferSchemaCounts(content, type);
   addDiagramMessage(
-    schemaTitle(type),
+    schemaTitle(type, counts.symbolMode),
     buildSchema(type, "demande du chat", content.slice(0, 90), counts),
     "Schéma généré automatiquement depuis ta demande avec des symboles électriques. Il reste indicatif et doit être validé avant travaux."
   );
@@ -3951,15 +4060,16 @@ startDiagnostic.addEventListener("click", async () => {
 createSchema.addEventListener("click", async () => {
   syncSchemaDefaults();
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
-  const styleLabel = schemaSymbolMode?.selectedOptions?.[0]?.textContent || "Lecture claire";
+  const styleLabel = schemaSymbolMode?.selectedOptions?.[0]?.textContent || "Schéma clair annoté";
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
   const schemaPrompt = buildSchemaPrompt();
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
+  const circuitTitle = dedicatedLoad ? `Circuit spécialisé - ${dedicatedLoad}` : typeLabel;
   addMessage("user", `Crée un schéma : ${typeLabel}, style : ${styleLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);
   addDiagramMessage(
-    dedicatedLoad ? `Circuit spécialisé - ${dedicatedLoad}` : typeLabel,
+    `${styleLabel} — ${circuitTitle}`,
     buildSchema(schemaType.value, room, usage, counts),
     "Schéma symbolique indicatif généré par Voltia. Ne pas intervenir sous tension."
   );
@@ -3974,6 +4084,12 @@ createSchema.addEventListener("click", async () => {
 schemaType.addEventListener("change", () => {
   syncSchemaDefaults();
   hint.textContent = "Type de schéma mis à jour. Ajuste les quantités puis crée le schéma.";
+});
+
+schemaSymbolMode?.addEventListener("change", () => {
+  hint.textContent = schemaSymbolMode.value === "engineering"
+    ? "Format bureau d'études sélectionné : folio, nomenclature, révision et cartouche complet."
+    : "Format clair sélectionné : schéma annoté pour une lecture rapide.";
 });
 
 photoInput.addEventListener("change", async () => {
