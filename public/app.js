@@ -1146,9 +1146,12 @@ function renderReportHistory(reports = [], options = {}) {
   }
 
   if (!reports.length) {
+    reportHistory.hidden = true;
     reportList.innerHTML = `<p class="empty-history">${escapeHtml(emptyMessage)}</p>`;
     return;
   }
+
+  reportHistory.hidden = false;
 
   reports.forEach((report) => {
     const item = document.createElement("article");
@@ -1254,7 +1257,7 @@ function renderProjects(projects = []) {
   const isLoggedIn = Boolean(currentUser);
   const isPro = currentUser?.plan === "pro";
 
-  projectWorkspace.hidden = !isLoggedIn;
+  projectWorkspace.hidden = !isLoggedIn || !isPro;
 
   if (!isLoggedIn) {
     projectsCache = [];
@@ -1285,6 +1288,8 @@ function renderProjects(projects = []) {
   if (!isPro) {
     activeProjectId = "";
     projectList.innerHTML = "";
+    projectUpsell.hidden = true;
+    projectManager.hidden = true;
     updateSaveTargetUi();
     return;
   }
@@ -1924,13 +1929,13 @@ function updateAccountUi(user, meta = {}) {
     ? "compteur quotidien levé"
     : `${currentUser.usageToday || 0} / ${currentUser.freeDailyLimit || 10} usages aujourd'hui`;
   const projectsLabel = currentUser.plan === "pro"
-    ? ` | ${currentUser.projectCount || 0} dossier${currentUser.projectCount > 1 ? "s" : ""}`
+    ? ` · ${currentUser.projectCount || 0} dossier${currentUser.projectCount > 1 ? "s" : ""}`
     : "";
   const classroomLabel = meta.pedagogy?.classroom?.name
-    ? ` | Classe ${meta.pedagogy.classroom.name}`
+    ? ` · Classe ${meta.pedagogy.classroom.name}`
     : "";
 
-  accountStatus.textContent = `Bonjour ${displayName} | ${roleLabel} | Compte ${planLabel} | ${usage}${projectsLabel}${classroomLabel} | Rapports sauvegardés`;
+  accountStatus.textContent = `${displayName} · ${roleLabel} · Compte ${planLabel} · ${usage}${projectsLabel}${classroomLabel}`;
   accessCodeFields.hidden = true;
   accessCodeDisclosure.hidden = true;
   accountAuthDetails.hidden = true;
