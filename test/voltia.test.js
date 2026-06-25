@@ -19,7 +19,7 @@ const {
   safetyMessagesForRequest
 } = await import("../server.js");
 
-test("blocks dangerous operational wiring requests", () => {
+test("flags dangerous operational wiring requests without a generic refusal", () => {
   const messages = [
     {
       role: "user",
@@ -28,7 +28,8 @@ test("blocks dangerous operational wiring requests", () => {
   ];
 
   assert.equal(isHighRiskOperationalRequest(messages), true);
-  assert.match(highRiskOperationalReply(messages), /Je ne peux pas fournir/i);
+  assert.doesNotMatch(highRiskOperationalReply(messages), /Je ne peux pas fournir/i);
+  assert.match(highRiskOperationalReply(messages), /Je peux t'aider utilement/i);
   assert.match(highRiskOperationalReply(messages), /Ne réalise pas|Ne rÃ©alise pas/i);
 });
 

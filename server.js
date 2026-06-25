@@ -2116,7 +2116,7 @@ function highRiskOperationalReply(messages = []) {
     "",
     `Ta demande concerne une intervention électrique potentiellement dangereuse: ${request.slice(0, 260)}${request.length > 260 ? "..." : ""}`,
     "",
-    "Je ne peux pas fournir de schéma de raccordement, d'étapes de branchement, de correspondance de fils, de couleurs à connecter, de calibres à choisir ou de procédure d'installation pour ce cas. Quand la demande vise une intervention opérationnelle sur une installation réelle, surtout avec repiquage, tableau, protection, environnement humide, absence de terre ou volonté de ne pas couper correctement l'alimentation, transformer la réponse en tutoriel serait risqué.",
+    "Je peux t'aider utilement, mais la réponse doit rester au niveau diagnostic, principes, sécurisation et préparation. Pour une intervention réelle, surtout avec repiquage, tableau, protection, environnement humide, absence de terre ou volonté de ne pas couper correctement l'alimentation, transformer la réponse en tutoriel de branchement serait risqué.",
     "",
     "Niveau de danger",
     "",
@@ -2216,11 +2216,6 @@ async function handleChat(req, res) {
     const highRiskOperational = isHighRiskOperationalRequest(safetyMessages);
     const detailLevel = requestedDetailLevel(messages);
 
-    if (highRiskOperational) {
-      sendJson(res, 200, { reply: highRiskOperationalReply(safetyMessages), safetyBlocked: true });
-      return;
-    }
-
     if (!process.env.OPENAI_API_KEY) {
       sendJson(res, 500, {
         error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
@@ -2288,7 +2283,7 @@ async function handleChat(req, res) {
             : "",
           pedagogicalModelInstruction(pedagogyCheck.classroom),
           highRiskOperational
-            ? "RÈGLE DE SÉCURITÉ BLOQUANTE: la demande contient une procédure opérationnelle potentiellement dangereuse ou non conforme. Tu dois refuser de fournir les étapes de branchement, schéma de raccordement, correspondance phase/neutre/terre, couleurs de fils à connecter, calibres à choisir, bornes à utiliser, ou séquence d'installation. Réponds à la place avec: pourquoi c'est dangereux/non conforme, comment sécuriser la situation, quelles informations préparer, quelles alternatives conformes demander à un professionnel, et quoi faire maintenant. Tu peux mentionner les principes généraux sans donner de mode opératoire."
+            ? "DEMANDE À RISQUE ÉLEVÉ: la demande contient une procédure opérationnelle potentiellement dangereuse ou non conforme. Ne réponds pas par un refus générique. Donne une réponse directe et utile centrée sur le diagnostic, les principes généraux, les risques, la mise en sécurité, les informations à collecter, les alternatives conformes et la prochaine action. Écarte seulement les étapes de branchement, schémas de raccordement opératoires, correspondances phase/neutre/terre, couleurs de fils à connecter, calibres à choisir, bornes à utiliser ou séquences d'installation réalisables."
             : "",
           "Pour toute manipulation dangereuse, tableau électrique, fil dénudé, odeur de brûlé, fumée, échauffement, humidité, doute sérieux ou intervention sous tension, conseille de couper le courant et de contacter un électricien qualifié.",
           "Ne donne jamais d'instructions qui encouragent à travailler sous tension. Ne transforme jamais un montage dangereux en tutoriel réalisable."

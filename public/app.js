@@ -2477,7 +2477,7 @@ function buildResponseFormatInstruction() {
     "Pour une question normative: Réponse directe, Contexte, Règles à vérifier, Points de vigilance, Ce qui reste à confirmer, Sources si disponibles, Limites.",
     "Pour un rapport: Réponse directe, Synthèse, Risques, Priorités, Données manquantes, Plan d'action, Limites non certifiantes.",
     "En mode expert, alterne paragraphes courts et listes ciblées pour obtenir une réponse complète, lisible et exploitable.",
-    "Mets les avertissements importants dans la section Sécurité et refuse tout mode opératoire dangereux."
+    "Mets les avertissements importants dans la section Sécurité et transforme toute demande de mode opératoire dangereux en réponse utile: diagnostic, risques, principes généraux, mise en sécurité, informations à vérifier et prochaine action."
   ].join("\n");
 }
 
@@ -3987,7 +3987,7 @@ async function askAssistant(content, options = {}) {
         ? "Réponse générée avec recherche de normes. Vérifie toujours la NF C 15-100 officielle avant travaux."
       : "Réponse générée. Précise le contexte si tu veux une piste plus exacte.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas répondre pour l'instant: ${error.message}`);
+    setAssistantMessage(pending, `Réponse indisponible pour l'instant: ${error.message}`);
     hint.textContent = "Vérifie OPENAI_API_KEY, le quota OpenAI et les logs Render si le site est en ligne.";
   } finally {
     sendButton.disabled = false;
@@ -4036,7 +4036,7 @@ async function analyzePhotoToSchema() {
     if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Photo analysée. Vérifie toujours avec un électricien avant intervention.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas analyser cette photo pour l'instant: ${error.message}`);
+    setAssistantMessage(pending, `Analyse photo indisponible pour l'instant: ${error.message}`);
     hint.textContent = "Vérifie la clé API, le quota OpenAI ou essaye une image plus nette.";
   } finally {
     analyzePhoto.disabled = false;
@@ -4082,7 +4082,7 @@ async function searchManualNotice() {
     if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Recherche terminée. Vérifie toujours que la référence correspond exactement à ton appareil.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas rechercher la notice pour l'instant: ${error.message}`);
+    setAssistantMessage(pending, `Recherche de notice indisponible pour l'instant: ${error.message}`);
     hint.textContent = "Vérifie la clé API, le quota OpenAI ou retente avec une référence plus complète.";
   } finally {
     searchManual.disabled = false;
@@ -4151,7 +4151,7 @@ async function analyzeLightingPlan() {
     if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Dimensionnement généré. Vérifie les cotes et fais valider avant travaux.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas dimensionner l'éclairage pour l'instant: ${error.message}`);
+    setAssistantMessage(pending, `Dimensionnement éclairage indisponible pour l'instant: ${error.message}`);
     hint.textContent = "Vérifie la clé API, le quota OpenAI ou ajoute un plan plus lisible.";
   } finally {
     analyzeLighting.disabled = false;
@@ -4219,7 +4219,7 @@ async function sizeClimateSystem() {
     if (handlePedagogicalBlockedResponse(data)) return;
     hint.textContent = "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
   } catch (error) {
-    setAssistantMessage(pending, `Je ne peux pas dimensionner la clim pour l'instant: ${error.message}`);
+    setAssistantMessage(pending, `Dimensionnement clim indisponible pour l'instant: ${error.message}`);
     hint.textContent = "Vérifie les données ou les logs Render si le site est en ligne.";
   } finally {
     sizeClimate.disabled = false;
