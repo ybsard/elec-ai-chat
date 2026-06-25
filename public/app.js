@@ -1146,8 +1146,13 @@ function renderReportHistory(reports = [], options = {}) {
   }
 
   if (!reports.length) {
-    reportHistory.hidden = true;
-    reportList.innerHTML = `<p class="empty-history">${escapeHtml(emptyMessage)}</p>`;
+    reportHistory.hidden = false;
+    reportList.innerHTML = `
+      <div class="empty-history">
+        <strong>${escapeHtml(emptyMessage)}</strong>
+        <span>Lance un diagnostic, charge un exemple ou sauvegarde ton prochain échange pour remplir cet espace.</span>
+      </div>
+    `;
     return;
   }
 
@@ -1257,7 +1262,7 @@ function renderProjects(projects = []) {
   const isLoggedIn = Boolean(currentUser);
   const isPro = currentUser?.plan === "pro";
 
-  projectWorkspace.hidden = !isLoggedIn || !isPro;
+  projectWorkspace.hidden = !isLoggedIn;
 
   if (!isLoggedIn) {
     projectsCache = [];
@@ -1288,7 +1293,7 @@ function renderProjects(projects = []) {
   if (!isPro) {
     activeProjectId = "";
     projectList.innerHTML = "";
-    projectUpsell.hidden = true;
+    projectUpsell.hidden = false;
     projectManager.hidden = true;
     updateSaveTargetUi();
     return;
