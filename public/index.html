@@ -72,7 +72,7 @@
               <span class="account-badge">Plus</span>
               <div>
                 <h2>Essayer Voltia</h2>
-                <p>Compte gratuit avec historique. Plus débloque photo, notices, dimensionnements et exports.</p>
+                <p>Le compte gratuit garde l'historique. Plus débloque photo, notices, dimensionnements et exports.</p>
               </div>
             </div>
 
@@ -734,9 +734,28 @@
               <span class="step-badge">6</span>
               <div>
                 <h2>Dimensionnement clim</h2>
-                <p>Estime la puissance du climatiseur selon la pièce et les conditions.</p>
+                <p>Estime la puissance et place l'unité intérieure selon la pièce et les apports.</p>
               </div>
             </div>
+
+            <section class="lighting-sketch-pad climate-sketch-pad" aria-label="Croquis quadrillé pour l'implantation de climatisation">
+              <div class="lighting-sketch-heading">
+                <div>
+                  <strong>Croquis de la pièce</strong>
+                  <span>Dessine murs, portes, fenêtres, meubles hauts, zones de passage et mur possible pour l'unité.</span>
+                </div>
+                <div class="lighting-sketch-tools" aria-label="Outils de dessin climatisation">
+                  <button class="sketch-tool is-active" type="button" data-climate-draw-mode="draw">Crayon</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="erase">Gomme</button>
+                </div>
+              </div>
+              <canvas id="climateSketchCanvas" width="900" height="560" tabindex="0" aria-label="Zone de dessin quadrillée pour la climatisation"></canvas>
+              <div class="lighting-sketch-actions">
+                <button id="useClimateSketch" class="secondary-action" type="button">Utiliser ce croquis</button>
+                <button id="clearClimateSketch" class="secondary-action" type="button">Effacer</button>
+              </div>
+              <p id="climateSketchStatus" class="sketch-status">Un carreau peut représenter 50 cm ou 1 m. Indique aussi où sont les fenêtres et le canapé/lit/bureau.</p>
+            </section>
 
             <div class="schema-row">
               <label class="field">

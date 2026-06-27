@@ -109,6 +109,24 @@ function clearAnswerInstructions(task = "la question posée") {
   ];
 }
 
+function specialistQualityContract(domain = "general") {
+  const contracts = {
+    diagnostic: "Spécialiste diagnostic électrique: distingue symptôme observé, causes probables, contrôles sans danger, urgence et prochaine action. Ne transforme pas un diagnostic en tutoriel de raccordement.",
+    schema: "Spécialiste schéma électrique: reste strictement fidèle aux repères et symboles fournis, explique le rôle de chaque organe dessiné, puis liste les informations absentes à confirmer sur notice, norme ou installation réelle.",
+    "photo-schema": "Spécialiste photo vers schéma: reconnais d'abord l'objet visible lui-même, sépare ce qui est lu, vu et supposé, puis produis un schéma de principe cohérent avec cette reconnaissance sans inventer d'appareil masqué.",
+    "manual-search": "Spécialiste notice fabricant: identifie catégorie, marque, modèle, référence exacte et variante avant de proposer une notice. Rejette explicitement les résultats dont la référence ne correspond pas.",
+    "lighting-plan": "Spécialiste éclairage: relie le calcul lumens/lux au plan, place les points lumineux sur le schéma, justifie chaque position par l'usage, les obstacles et l'homogénéité.",
+    "climate-sizing": "Spécialiste climatisation: relie la puissance estimée à la pièce, aux apports thermiques et au croquis; recommande l'emplacement de l'unité intérieure, l'orientation du soufflage et les zones à éviter sans donner de procédure de pose.",
+    general: "Spécialiste Voltia: réponds au besoin exact, sépare faits, hypothèses et limites, puis donne une prochaine action vérifiable."
+  };
+
+  return [
+    "Contrat spécialiste: réponds comme un spécialiste du domaine demandé, pas comme un assistant généraliste.",
+    "Ancre chaque conclusion dans les données fournies par l'utilisateur. Si une donnée manque, dis ce qu'elle changerait et ne la compense pas par une certitude inventée.",
+    contracts[domain] || contracts.general
+  ];
+}
+
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...securityHeaders() });
   res.end(JSON.stringify(body));
@@ -2262,6 +2280,7 @@ async function handleChat(req, res) {
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique et petit tertiaire en France.",
           ...clearAnswerInstructions("la question électrique posée par l'utilisateur"),
+          ...specialistQualityContract(requestKind === "schema-explanation" ? "schema" : "diagnostic"),
           "Réponds comme un expert prudent: diagnostic, raisonnement, priorisation du risque, limites et prochaine action. Tu dois être utile sans donner de procédure dangereuse.",
           "Adapte fortement la taille et l'agencement à la question. Une question simple appelle une réponse courte. Une question experte, un rapport ou un cas complexe appelle une réponse complète avec paragraphes structurés et listes ciblées.",
           "En mode expert, donne une analyse approfondie: résumé exécutif, niveau de danger, raisonnement technique, hypothèses classées, contrôles sans danger, informations à collecter, limites et plan d'action. Utilise des paragraphes courts de 2 à 4 phrases, puis des listes quand elles clarifient.",
@@ -2333,6 +2352,7 @@ async function handlePhotoSchema(req, res) {
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
           ...clearAnswerInstructions("ce qui est visible sur la photo"),
+          ...specialistQualityContract("photo-schema"),
           "Analyse la photo fournie pour retranscrire ce qui est visible en schéma électrique de principe structuré, proche d'un document technique professionnel mais clairement non exécutoire.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
           "Commence par identifier l'objet lui-même avant d'interpréter ses connexions. Distingue strictement ce qui est lu sur l'étiquette, ce qui est reconnu visuellement et ce qui reste une hypothèse.",
@@ -2439,6 +2459,7 @@ async function handleManualSearch(req, res) {
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
           ...clearAnswerInstructions("la notice ou reference demandee"),
+          ...specialistQualityContract("manual-search"),
           "Tu aides à retrouver des notices constructeur à partir d'une référence texte ou d'une photo.",
           "Priorise les sources constructeur, distributeurs techniques reconnus, catalogues officiels et PDF de notice.",
           "Ne donne pas de certitude si la référence ne correspond pas exactement.",
@@ -2560,6 +2581,7 @@ async function handleLightingPlan(req, res) {
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans l'éclairage domestique et le dimensionnement indicatif.",
           ...clearAnswerInstructions("la demande d'implantation lumineuse"),
+          ...specialistQualityContract("lighting-plan"),
           "Analyse le plan fourni et propose une implantation logique des éclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la pièce.",
           "Si le plan est un croquis quadrillé dessiné à la main, tu dois le refaire proprement dans la réponse: murs, ouvertures, meubles ou zones utiles, cotes connues, hypothèse d'échelle du quadrillage et limites.",
           "Ne te limite pas à décrire le croquis. Produis un schéma propre et coté en texte monospacé avec les cotes placées autour du plan et les spots directement positionnés sur le schéma.",
@@ -2685,7 +2707,11 @@ function estimateClimateSizing(input) {
 
 async function handleClimateSizing(req, res) {
   try {
-    const input = await readRequestJson(req);
+    const input = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
+    const hasImage = Boolean(input.image);
+    if (hasImage) {
+      assertSupportedImageDataUrl(input.image, "Croquis de pièce");
+    }
     const estimate = estimateClimateSizing(input);
 
     if (!estimate.area || estimate.area < 5) {
@@ -2724,30 +2750,44 @@ async function handleClimateSizing(req, res) {
         instructions: [
           "Tu es Voltia, un assistant français spécialisé dans le dimensionnement indicatif de climatisation domestique.",
           ...clearAnswerInstructions("la demande de dimensionnement de climatisation"),
+          ...specialistQualityContract("climate-sizing"),
           "Explique une estimation de puissance de climatiseur à partir des données fournies.",
+          "Si un croquis quadrillé est fourni, analyse-le comme un plan de pièce: murs, portes, fenêtres, mobilier, zones d'occupation, mur possible pour unité intérieure et obstacles au soufflage.",
           "Ne présente jamais le résultat comme une étude thermique professionnelle.",
           "Rappelle qu'un bilan thermique réel dépend des vitrages, murs, orientation, apports internes, ventilation, région, humidité et contraintes de pose.",
-          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Données prises en compte, Calcul indicatif, Puissance conseillée, Type de climatiseur, Points de vigilance, Conclusion.",
-          "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait être sous-dimensionné ou surdimensionné."
+          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Données prises en compte, Lecture du croquis, Calcul indicatif, Puissance conseillée, Implantation conseillée, Schéma d'implantation, Type de climatiseur, Points de vigilance, Conclusion.",
+          "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait être sous-dimensionné ou surdimensionné.",
+          "Dans Implantation conseillée, indique où placer l'unité intérieure dans la pièce, l'orientation du soufflage, les zones à éviter (lit/canapé/bureau direct, obstacle, source chaude, angle mort), les limites de condensats et liaisons frigorifiques à vérifier par un professionnel.",
+          "Dans Schéma d'implantation, si un croquis est fourni, refais un petit plan textuel propre avec le repère UI pour l'unité intérieure, des flèches de soufflage et les zones à éviter. Si aucun croquis n'est fourni, écris ce qui manque pour placer l'unité correctement."
         ].join(" "),
         input: [
           {
             role: "user",
             content: [
-              "Dimensionne une climatisation avec ces donnees.",
-              `Superficie: ${estimate.area} m2.`,
-              `Hauteur: ${estimate.height} m.`,
-              `Volume: ${estimate.volume} m3.`,
-              `Piece: ${String(input.room || "non precise").slice(0, 80)}.`,
-              `Isolation: ${String(input.insulation || "non precisee").slice(0, 80)}.`,
-              `Exposition soleil: ${String(input.sun || "non precisee").slice(0, 80)}.`,
-              `Personnes: ${String(input.people || "1").slice(0, 20)}.`,
-              `Appareils chauffants: ${String(input.heatSources || "non precise").slice(0, 80)}.`,
-              `Region/climat: ${String(input.region || "non precise").slice(0, 80)}.`,
-              `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
-              `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
-              `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`
-            ].join(" ")
+              {
+                type: "input_text",
+                text: [
+                  "Dimensionne une climatisation avec ces donnees.",
+                  `Superficie: ${estimate.area} m2.`,
+                  `Hauteur: ${estimate.height} m.`,
+                  `Volume: ${estimate.volume} m3.`,
+                  `Piece: ${String(input.room || "non precise").slice(0, 80)}.`,
+                  `Isolation: ${String(input.insulation || "non precisee").slice(0, 80)}.`,
+                  `Exposition soleil: ${String(input.sun || "non precisee").slice(0, 80)}.`,
+                  `Personnes: ${String(input.people || "1").slice(0, 20)}.`,
+                  `Appareils chauffants: ${String(input.heatSources || "non precise").slice(0, 80)}.`,
+                  `Region/climat: ${String(input.region || "non precise").slice(0, 80)}.`,
+                  `Source du plan: ${String(input.source || (hasImage ? "croquis" : "aucune")).slice(0, 40)}.`,
+                  `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
+                  `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
+                  `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`,
+                  hasImage
+                    ? "Le croquis fourni sert a recommander l'emplacement de l'unite interieure et l'orientation du soufflage."
+                    : "Aucun croquis n'est fourni: donne la puissance puis explique quelles informations visuelles manquent pour placer l'unite interieure."
+                ].join(" ")
+              },
+              ...(hasImage ? [{ type: "input_image", image_url: input.image }] : [])
+            ]
           }
         ]
       })
@@ -3002,5 +3042,6 @@ export {
   pedagogicalBlockedReply,
   requestListener,
   requestedDetailLevel,
-  safetyMessagesForRequest
+  safetyMessagesForRequest,
+  specialistQualityContract
 };

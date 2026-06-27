@@ -16,7 +16,8 @@ const {
   normalizePedagogicalCode,
   pedagogicalBlockedReply,
   requestedDetailLevel,
-  safetyMessagesForRequest
+  safetyMessagesForRequest,
+  specialistQualityContract
 } = await import("../server.js");
 
 test("flags dangerous operational wiring requests without a generic refusal", () => {
@@ -124,6 +125,15 @@ test("estimates climate sizing with bounded numeric output", () => {
   assert.equal(estimate.area, 30);
   assert.equal(estimate.recommendedKw > 0, true);
   assert.equal(estimate.recommendedBtu > estimate.recommendedWatts, true);
+});
+
+test("defines domain specialist contracts for climate placement", () => {
+  const contract = specialistQualityContract("climate-sizing").join("\n");
+
+  assert.match(contract, /Spécialiste climatisation|SpÃ©cialiste climatisation/);
+  assert.match(contract, /emplacement de l'unité intérieure|emplacement de l'unitÃ© intÃ©rieure/);
+  assert.match(contract, /soufflage/);
+  assert.match(contract, /sans donner de procédure de pose|sans donner de procÃ©dure de pose/);
 });
 
 test("estimates lighting from metric room dimensions", () => {

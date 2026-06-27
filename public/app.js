@@ -134,6 +134,11 @@ const climateSun = document.querySelector("#climateSun");
 const climatePeople = document.querySelector("#climatePeople");
 const climateHeatSources = document.querySelector("#climateHeatSources");
 const climateRegion = document.querySelector("#climateRegion");
+const climateSketchCanvas = document.querySelector("#climateSketchCanvas");
+const climateDrawModeButtons = document.querySelectorAll("[data-climate-draw-mode]");
+const useClimateSketch = document.querySelector("#useClimateSketch");
+const clearClimateSketch = document.querySelector("#clearClimateSketch");
+const climateSketchStatus = document.querySelector("#climateSketchStatus");
 const sizeClimate = document.querySelector("#sizeClimate");
 const saveTargetText = document.querySelector("#saveTargetText");
 
@@ -161,6 +166,11 @@ let lightingSketchMode = "draw";
 let lightingSketchDrawing = false;
 let lightingSketchCurrentStroke = null;
 let lightingSketchStrokes = [];
+let climateSketchMode = "draw";
+let climateSketchDrawing = false;
+let climateSketchCurrentStroke = null;
+let climateSketchStrokes = [];
+let selectedClimateSketchDataUrl = "";
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -179,12 +189,6 @@ function setChatFullscreenState(active) {
     "aria-label",
     active ? "Quitter le plein écran du chat" : "Mettre le chat en plein écran"
   );
-}
-
-function openFormulaLibraryFromHash() {
-  if (window.location.hash === "#formules-electriques") {
-    formulaLibrary?.setAttribute("open", "");
-  }
 }
 
 async function enterChatFullscreen() {
@@ -475,6 +479,12 @@ function addManualSearchMessage(reference, dataUrl) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
+function openFormulaLibraryFromHash() {
+  if (window.location.hash === "#formules-electriques") {
+    formulaLibrary?.setAttribute("open", "");
+  }
+}
+
 function cleanIdentityValue(value) {
   const text = String(value || "").trim();
   return /^(inconn|illisible|non visible|non identifi)/i.test(text) ? "" : text;
@@ -691,7 +701,150 @@ function endLightingSketchStroke(event) {
   }
 }
 
-function addClimateSizingMessage(details) {
+function getClimateSketchContext() {
+  return climateSketchCanvas?.getContext("2d") || null;
+}
+
+function drawClimateSketchGrid(ctx) {
+  const width = climateSketchCanvas.width;
+  const height = climateSketchCanvas.height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  for (let x = 0; x <= width; x += 20) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.strokeStyle = x % 100 === 0 ? "#b7cbd6" : "#e4edf2";
+    ctx.lineWidth = x % 100 === 0 ? 1.4 : 1;
+    ctx.stroke();
+  }
+
+  for (let y = 0; y <= height; y += 20) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.strokeStyle = y % 100 === 0 ? "#b7cbd6" : "#e4edf2";
+    ctx.lineWidth = y % 100 === 0 ? 1.4 : 1;
+    ctx.stroke();
+  }
+}
+
+function drawClimateSketchStroke(ctx, stroke) {
+  if (!stroke?.points?.length) return;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = stroke.mode === "erase" ? "#ffffff" : "#10212b";
+  ctx.lineWidth = stroke.mode === "erase" ? 28 : 5;
+  ctx.beginPath();
+  stroke.points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+    } else {
+      ctx.lineTo(point.x, point.y);
+    }
+  });
+  ctx.stroke();
+  ctx.restore();
+}
+
+function renderClimateSketch() {
+  const ctx = getClimateSketchContext();
+  if (!ctx) return;
+  drawClimateSketchGrid(ctx);
+  climateSketchStrokes.forEach((stroke) => drawClimateSketchStroke(ctx, stroke));
+}
+
+function getClimateSketchPoint(event) {
+  const rect = climateSketchCanvas.getBoundingClientRect();
+  const scaleX = climateSketchCanvas.width / rect.width;
+  const scaleY = climateSketchCanvas.height / rect.height;
+  return {
+    x: Math.min(Math.max((event.clientX - rect.left) * scaleX, 0), climateSketchCanvas.width),
+    y: Math.min(Math.max((event.clientY - rect.top) * scaleY, 0), climateSketchCanvas.height)
+  };
+}
+
+function setClimateSketchMode(mode) {
+  climateSketchMode = mode === "erase" ? "erase" : "draw";
+  climateDrawModeButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.climateDrawMode === climateSketchMode);
+  });
+  if (climateSketchStatus) {
+    climateSketchStatus.textContent = climateSketchMode === "erase"
+      ? "Gomme active. Efface les traits inutiles puis utilise le croquis."
+      : "Crayon actif. Dessine murs, fenêtres, meubles, passage d'air et mur possible.";
+  }
+}
+
+function useClimateSketchAsPlan({ silent = false } = {}) {
+  if (!climateSketchCanvas || !climateSketchStrokes.length) {
+    if (!silent) {
+      setHint("Dessine d'abord un croquis de la pièce pour demander un emplacement de clim.", true);
+      climateSketchCanvas?.focus();
+    }
+    return false;
+  }
+
+  selectedClimateSketchDataUrl = climateSketchCanvas.toDataURL("image/png");
+  if (climateSketchStatus) {
+    climateSketchStatus.textContent = "Croquis utilisé pour demander un emplacement d'unité intérieure.";
+  }
+  if (!silent) {
+    setHint("Croquis clim prêt. Renseigne la surface puis lance l'estimation.");
+  }
+  return true;
+}
+
+function clearClimateSketchCanvas() {
+  climateSketchStrokes = [];
+  climateSketchCurrentStroke = null;
+  climateSketchDrawing = false;
+  selectedClimateSketchDataUrl = "";
+  renderClimateSketch();
+
+  if (climateSketchStatus) {
+    climateSketchStatus.textContent = "Croquis effacé. Redessine la pièce si tu veux une recommandation d'emplacement.";
+  }
+  setHint("Croquis clim effacé.");
+}
+
+function startClimateSketchStroke(event) {
+  if (!climateSketchCanvas) return;
+  event.preventDefault();
+  climateSketchDrawing = true;
+  climateSketchCurrentStroke = {
+    mode: climateSketchMode,
+    points: [getClimateSketchPoint(event)]
+  };
+  climateSketchCanvas.setPointerCapture?.(event.pointerId);
+}
+
+function moveClimateSketchStroke(event) {
+  if (!climateSketchDrawing || !climateSketchCurrentStroke) return;
+  event.preventDefault();
+  climateSketchCurrentStroke.points.push(getClimateSketchPoint(event));
+  renderClimateSketch();
+  drawClimateSketchStroke(getClimateSketchContext(), climateSketchCurrentStroke);
+}
+
+function endClimateSketchStroke(event) {
+  if (!climateSketchDrawing || !climateSketchCurrentStroke) return;
+  event.preventDefault();
+  climateSketchDrawing = false;
+  climateSketchCanvas.releasePointerCapture?.(event.pointerId);
+  climateSketchStrokes.push(climateSketchCurrentStroke);
+  climateSketchCurrentStroke = null;
+  selectedClimateSketchDataUrl = "";
+  renderClimateSketch();
+  if (climateSketchStatus) {
+    climateSketchStatus.textContent = "Croquis modifié. Clique sur Utiliser ce croquis ou lance directement l'estimation.";
+  }
+}
+
+function addClimateSizingMessage(details, dataUrl = "") {
   const item = document.createElement("article");
   item.className = "message user";
 
@@ -707,8 +860,16 @@ function addClimateSizingMessage(details) {
   label.textContent = "Vous";
 
   const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.textContent = `Dimensionnement climatisation\n${details}`;
+  bubble.className = dataUrl ? "bubble photo-bubble" : "bubble";
+  if (dataUrl) {
+    bubble.innerHTML = `
+      <strong>Dimensionnement climatisation</strong>
+      <img src="${dataUrl}" alt="Croquis envoyé pour implantation de climatisation">
+      <span>${escapeHtml(details || "Croquis et contexte envoyés")}</span>
+    `;
+  } else {
+    bubble.textContent = `Dimensionnement climatisation\n${details}`;
+  }
 
   stack.append(label, bubble);
   item.append(avatar, stack);
@@ -3798,6 +3959,9 @@ function buildSchemaPrompt() {
     schemaType.value === "tableau"
       ? "Pour le tableau, explique la logique arrivee/AGCP, interrupteur differentiel 30mA, peignes, disjoncteurs divisionnaires, borniers neutre et terre, sans presenter cela comme un plan de conformite."
       : "",
+    dedicatedLoad
+      ? "Pour ce depart specialise, relie l'explication a l'objet alimente: type d'appareil, repere E1, puissance ou plaque signaletique a verifier, notice fabricant a retrouver et limites avant tout dimensionnement reel."
+      : "",
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
     "Donne une explication simple, les points de sécurité, les limites du schéma, puis rappelle qu'un schéma réel doit respecter la norme applicable et être validé par un électricien.",
@@ -4176,6 +4340,10 @@ async function sizeClimateSystem() {
     return;
   }
 
+  if (!selectedClimateSketchDataUrl && climateSketchStrokes.length) {
+    useClimateSketchAsPlan({ silent: true });
+  }
+
   const payload = {
     area,
     height,
@@ -4185,10 +4353,13 @@ async function sizeClimateSystem() {
     people: Number(climatePeople.value || 1),
     heatSources: climateHeatSources.value,
     region: climateRegion.value,
-    level: selectedLevel
+    level: selectedLevel,
+    image: selectedClimateSketchDataUrl,
+    source: selectedClimateSketchDataUrl ? "sketch" : ""
   };
 
   const details = [
+    selectedClimateSketchDataUrl ? "Source: croquis quadrillé de la pièce" : "Source: données sans croquis",
     `${payload.area} m2`,
     `${payload.height} m de hauteur`,
     payload.room,
@@ -4196,21 +4367,26 @@ async function sizeClimateSystem() {
     `exposition ${payload.sun.toLowerCase()}`,
     `${payload.people} personne(s)`,
     `appareils: ${payload.heatSources.toLowerCase()}`,
-    `climat ${payload.region.toLowerCase()}`
-  ].join(" | ");
+    `climat ${payload.region.toLowerCase()}`,
+    selectedClimateSketchDataUrl
+      ? "Demande: proposer où placer l'unité intérieure, l'orientation du soufflage et les zones à éviter."
+      : ""
+  ].filter(Boolean).join(" | ");
 
-  addClimateSizingMessage(details);
+  addClimateSizingMessage(details, selectedClimateSketchDataUrl);
 
   const pending = addMessage("assistant", "", { loading: true });
   sizeClimate.disabled = true;
-  hint.textContent = "Voltia estime la puissance de climatisation...";
+  hint.textContent = selectedClimateSketchDataUrl
+    ? "Voltia estime la puissance et analyse le croquis pour placer la clim..."
+    : "Voltia estime la puissance de climatisation...";
 
   try {
-    const response = await fetch("/api/climate-sizing", {
+    const response = await fetchWithTimeout("/api/climate-sizing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    });
+    }, 180000);
 
     const data = await readJsonResponse(response);
     if (handleBarrierResponse(response, data, "Erreur inconnue.")) return;
@@ -4224,7 +4400,9 @@ async function sizeClimateSystem() {
     await refreshAccount();
     hideConversionBanner();
     if (handlePedagogicalBlockedResponse(data)) return;
-    hint.textContent = "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
+    hint.textContent = selectedClimateSketchDataUrl
+      ? "Estimation clim générée avec proposition d'emplacement. Fais valider par un frigoriste avant achat ou pose."
+      : "Estimation clim générée. Vérifie avec un frigoriste avant achat ou pose.";
   } catch (error) {
     setAssistantMessage(pending, `Dimensionnement clim indisponible pour l'instant: ${error.message}`);
     hint.textContent = "Vérifie les données ou les logs Render si le site est en ligne.";
@@ -4543,6 +4721,12 @@ lightingDrawModeButtons.forEach((button) => {
   });
 });
 
+climateDrawModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setClimateSketchMode(button.dataset.climateDrawMode);
+  });
+});
+
 lightingSketchCanvas?.addEventListener("pointerdown", startLightingSketchStroke);
 lightingSketchCanvas?.addEventListener("pointermove", moveLightingSketchStroke);
 lightingSketchCanvas?.addEventListener("pointerup", endLightingSketchStroke);
@@ -4553,12 +4737,23 @@ lightingSketchCanvas?.addEventListener("pointerleave", (event) => {
 useLightingSketch?.addEventListener("click", () => useLightingSketchAsPlan());
 clearLightingSketch?.addEventListener("click", clearLightingSketchCanvas);
 
+climateSketchCanvas?.addEventListener("pointerdown", startClimateSketchStroke);
+climateSketchCanvas?.addEventListener("pointermove", moveClimateSketchStroke);
+climateSketchCanvas?.addEventListener("pointerup", endClimateSketchStroke);
+climateSketchCanvas?.addEventListener("pointercancel", endClimateSketchStroke);
+climateSketchCanvas?.addEventListener("pointerleave", (event) => {
+  if (climateSketchDrawing) endClimateSketchStroke(event);
+});
+useClimateSketch?.addEventListener("click", () => useClimateSketchAsPlan());
+clearClimateSketch?.addEventListener("click", clearClimateSketchCanvas);
+
 analyzePhoto.addEventListener("click", analyzePhotoToSchema);
 searchManual.addEventListener("click", searchManualNotice);
 analyzeLighting.addEventListener("click", analyzeLightingPlan);
 sizeClimate.addEventListener("click", sizeClimateSystem);
 
 renderLightingSketch();
+renderClimateSketch();
 openFormulaLibraryFromHash();
 await refreshAccount();
 handleLandingState();
