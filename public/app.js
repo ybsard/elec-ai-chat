@@ -7,6 +7,7 @@ const clearButton = document.querySelector("#clearChat");
 const exportReportButton = document.querySelector("#exportReport");
 const saveReportButton = document.querySelector("#saveReport");
 const reportType = document.querySelector("#reportType");
+const formulaLibrary = document.querySelector("#formules-electriques");
 const showSampleReport = document.querySelector("#showSampleReport");
 const hint = document.querySelector("#hint");
 const counter = document.querySelector("#counter");
@@ -178,6 +179,12 @@ function setChatFullscreenState(active) {
     "aria-label",
     active ? "Quitter le plein écran du chat" : "Mettre le chat en plein écran"
   );
+}
+
+function openFormulaLibraryFromHash() {
+  if (window.location.hash === "#formules-electriques") {
+    formulaLibrary?.setAttribute("open", "");
+  }
 }
 
 async function enterChatFullscreen() {
@@ -4291,6 +4298,14 @@ document.addEventListener("fullscreenchange", () => {
   setChatFullscreenState(document.fullscreenElement === chatShell);
 });
 
+window.addEventListener("hashchange", openFormulaLibraryFromHash);
+
+document.querySelectorAll('a[href="#formules-electriques"]').forEach((link) => {
+  link.addEventListener("click", () => {
+    formulaLibrary?.setAttribute("open", "");
+  });
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape" || !fallbackChatFullscreen) return;
   setChatFullscreenState(false);
@@ -4544,6 +4559,7 @@ analyzeLighting.addEventListener("click", analyzeLightingPlan);
 sizeClimate.addEventListener("click", sizeClimateSystem);
 
 renderLightingSketch();
+openFormulaLibraryFromHash();
 await refreshAccount();
 handleLandingState();
 const initialReportId = pageParams.get("report");
