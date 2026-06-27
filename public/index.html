@@ -20,6 +20,7 @@
           </div>
           <div class="topbar-actions">
             <a href="/pro.html">Voltia Plus</a>
+            <a href="#formules-electriques">Formules</a>
             <a href="/legal.html">Sécurité et mentions</a>
             <span class="pill">Assistant intelligent</span>
           </div>
@@ -348,6 +349,139 @@
           <p>Retrouver les documents utiles et cadrer éclairage ou clim avec hypothèses lisibles.</p>
         </article>
       </section>
+
+      <section id="formules-electriques" class="formula-library" aria-labelledby="formulaLibraryTitle">
+        <div class="formula-library-header">
+          <div>
+            <span class="eyebrow">Formulaire &eacute;lectrique</span>
+            <h2 id="formulaLibraryTitle">Toutes les formules utiles en &eacute;lectricit&eacute;</h2>
+            <p>Un aide-m&eacute;moire class&eacute; par usage pour retrouver rapidement les grandeurs, les unit&eacute;s et les relations de calcul les plus courantes.</p>
+          </div>
+          <a class="secondary-action formula-library-cta" href="#workspace">V&eacute;rifier un calcul</a>
+        </div>
+
+        <div class="formula-grid" aria-label="Liste des formules &eacute;lectriques">
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">01</span>
+              <h3>Grandeurs de base</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>U = R &times; I</code><span>Loi d'Ohm : tension, r&eacute;sistance et intensit&eacute;.</span></li>
+              <li><code>I = U / R</code><span>Courant en amp&egrave;res &agrave; partir de la tension et de la r&eacute;sistance.</span></li>
+              <li><code>R = U / I</code><span>R&eacute;sistance en ohms.</span></li>
+              <li><code>Q = I &times; t</code><span>Charge &eacute;lectrique en coulombs.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">02</span>
+              <h3>Puissance et &eacute;nergie</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>P = U &times; I</code><span>Puissance active en courant continu ou charge r&eacute;sistive.</span></li>
+              <li><code>P = R &times; I<sup>2</sup></code><span>Effet Joule dans une r&eacute;sistance.</span></li>
+              <li><code>P = U<sup>2</sup> / R</code><span>Puissance dissip&eacute;e selon la tension appliqu&eacute;e.</span></li>
+              <li><code>E = P &times; t</code><span>&Eacute;nergie en Wh ou kWh selon les unit&eacute;s choisies.</span></li>
+              <li><code>&eta; = P utile / P absorb&eacute;e</code><span>Rendement d'un appareil ou d'une conversion.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">03</span>
+              <h3>Courant alternatif</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>Z = U / I</code><span>Imp&eacute;dance d'un circuit en ohms.</span></li>
+              <li><code>S = U &times; I</code><span>Puissance apparente en VA.</span></li>
+              <li><code>P = U &times; I &times; cos &phi;</code><span>Puissance active en W.</span></li>
+              <li><code>Q = U &times; I &times; sin &phi;</code><span>Puissance r&eacute;active en var.</span></li>
+              <li><code>X<sub>L</sub> = 2 &times; &pi; &times; f &times; L</code><span>R&eacute;actance inductive.</span></li>
+              <li><code>X<sub>C</sub> = 1 / (2 &times; &pi; &times; f &times; C)</code><span>R&eacute;actance capacitive.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">04</span>
+              <h3>Triphas&eacute;</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>S = &radic;3 &times; U &times; I</code><span>Puissance apparente triphas&eacute;e.</span></li>
+              <li><code>P = &radic;3 &times; U &times; I &times; cos &phi;</code><span>Puissance active avec tension compos&eacute;e.</span></li>
+              <li><code>Q = &radic;3 &times; U &times; I &times; sin &phi;</code><span>Puissance r&eacute;active triphas&eacute;e.</span></li>
+              <li><code>U ligne = &radic;3 &times; U phase</code><span>Couplage &eacute;toile &eacute;quilibr&eacute;.</span></li>
+              <li><code>P = 3 &times; U phase &times; I phase &times; cos &phi;</code><span>Calcul par phase.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">05</span>
+              <h3>R&eacute;sistances et composants</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>R eq = R1 + R2 + ...</code><span>R&eacute;sistances en s&eacute;rie.</span></li>
+              <li><code>1 / R eq = 1 / R1 + 1 / R2 + ...</code><span>R&eacute;sistances en parall&egrave;le.</span></li>
+              <li><code>U2 = U &times; R2 / (R1 + R2)</code><span>Diviseur de tension.</span></li>
+              <li><code>C eq = C1 + C2 + ...</code><span>Condensateurs en parall&egrave;le.</span></li>
+              <li><code>W = 1/2 &times; C &times; U<sup>2</sup></code><span>&Eacute;nergie stock&eacute;e dans un condensateur.</span></li>
+              <li><code>&tau; = R &times; C</code><span>Constante de temps RC.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">06</span>
+              <h3>C&acirc;bles et protections</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>R = &rho; &times; L / S</code><span>R&eacute;sistance d'un conducteur.</span></li>
+              <li><code>&Delta;U mono = 2 &times; &rho; &times; L &times; I / S</code><span>Chute de tension en monophas&eacute;.</span></li>
+              <li><code>&Delta;U tri = &radic;3 &times; &rho; &times; L &times; I / S</code><span>Chute de tension en triphas&eacute;.</span></li>
+              <li><code>I<sub>B</sub> = P / U</code><span>Courant d'emploi en monophas&eacute; simplifi&eacute;.</span></li>
+              <li><code>I<sub>B</sub> = P / (&radic;3 &times; U &times; cos &phi;)</code><span>Courant d'emploi en triphas&eacute;.</span></li>
+              <li><code>R<sub>A</sub> &times; I<sub>&Delta;n</sub> &le; 50 V</code><span>Condition de s&eacute;curit&eacute; usuelle en sch&eacute;ma TT.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">07</span>
+              <h3>&Eacute;clairage</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>&Phi; = E &times; A</code><span>Flux lumineux n&eacute;cessaire : lux multipli&eacute;s par surface.</span></li>
+              <li><code>E moyen = &Phi; utile / A</code><span>&Eacute;clairement moyen sur une zone.</span></li>
+              <li><code>N = &Phi; total / &Phi; luminaire</code><span>Nombre indicatif de luminaires.</span></li>
+              <li><code>P surf = P install&eacute;e / A</code><span>Puissance d'&eacute;clairage par m&egrave;tre carr&eacute;.</span></li>
+            </ul>
+          </article>
+
+          <article class="formula-topic">
+            <div class="formula-topic-heading">
+              <span class="formula-index">08</span>
+              <h3>Batteries, moteurs, transformateurs</h3>
+            </div>
+            <ul class="formula-list">
+              <li><code>E(Wh) = U &times; Ah</code><span>&Eacute;nergie approximative d'une batterie.</span></li>
+              <li><code>t(h) = Ah / I</code><span>Autonomie th&eacute;orique sans pertes.</span></li>
+              <li><code>U1 / U2 = N1 / N2</code><span>Rapport de transformation id&eacute;al.</span></li>
+              <li><code>I1 / I2 = N2 / N1</code><span>Courants dans un transformateur id&eacute;al.</span></li>
+              <li><code>P m&eacute;ca = C &times; &omega;</code><span>Puissance m&eacute;canique d'un moteur.</span></li>
+              <li><code>n<sub>s</sub> = 60 &times; f / p</code><span>Vitesse synchrone selon la fr&eacute;quence et le nombre de paires de p&ocirc;les.</span></li>
+            </ul>
+          </article>
+        </div>
+
+        <p class="formula-library-note">
+          <strong>Rep&egrave;re s&eacute;curit&eacute; :</strong>
+          ces formules aident &agrave; comprendre et pr&eacute;parer un calcul. Avant travaux, il faut v&eacute;rifier les unit&eacute;s, les hypoth&egrave;ses, les normes applicables et faire valider l'installation par une personne qualifi&eacute;e.
+        </p>
+      </section>
+
 
       <section id="workspace" class="workspace" aria-label="Assistant Voltia">
         <aside class="diagnostic-panel">

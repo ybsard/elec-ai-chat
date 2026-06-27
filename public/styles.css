@@ -85,6 +85,171 @@ button:hover {
   align-items: start;
 }
 
+.formula-library {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid rgba(20, 85, 109, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 249, 0.98));
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+}
+
+.formula-library-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.formula-library-header .eyebrow {
+  margin-bottom: 6px;
+}
+
+.formula-library-header h2 {
+  margin-bottom: 6px;
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1.08;
+}
+
+.formula-library-header p {
+  max-width: 780px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.5;
+}
+
+.formula-library-cta {
+  display: inline-grid;
+  width: auto;
+  min-width: 172px;
+  min-height: 42px;
+  place-items: center;
+  padding: 0 14px;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.formula-topic {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.formula-topic-heading {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.formula-index {
+  display: inline-grid;
+  width: 34px;
+  height: 28px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: #10212b;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.formula-topic h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.formula-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.formula-list li {
+  display: grid;
+  gap: 3px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(17, 24, 39, 0.07);
+}
+
+.formula-list code {
+  color: #10212b;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.formula-list span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
+.formula-library-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(242, 165, 26, 0.32);
+  border-left: 5px solid var(--warning);
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #5b6670;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.45;
+}
+
+.formula-library-note strong {
+  color: var(--warning-dark);
+}
+
+@media (max-width: 1180px) {
+  .formula-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .formula-library {
+    padding: 12px;
+  }
+
+  .formula-library-header,
+  .formula-grid,
+  .formula-library-note {
+    grid-template-columns: 1fr;
+  }
+
+  .formula-library-cta {
+    width: 100%;
+  }
+}
+
+
 .diagnostic-panel,
 .chat-shell {
   border: 1px solid rgba(217, 225, 231, 0.95);
