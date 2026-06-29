@@ -5,6 +5,7 @@ process.env.NODE_ENV = "test";
 
 const {
   assertSupportedImageDataUrl,
+  buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,
   estimateLightingSizing,
@@ -132,6 +133,7 @@ test("defines domain specialist contracts for climate placement", () => {
 
   assert.match(contract, /Spécialiste climatisation|SpÃ©cialiste climatisation/);
   assert.match(contract, /emplacement de l'unité intérieure|emplacement de l'unitÃ© intÃ©rieure/);
+  assert.match(contract, /croquis/);
   assert.match(contract, /soufflage/);
   assert.match(contract, /sans donner de procédure de pose|sans donner de procÃ©dure de pose/);
 });
@@ -166,6 +168,19 @@ Objet reconnu
     reference: "A9C20842",
     confidence: "92 %"
   });
+});
+
+test("builds a notice search query from the recognized object", () => {
+  assert.equal(
+    buildManualSearchQuery({
+      category: "contacteur",
+      brand: "Schneider Electric",
+      model: "Acti9 iCT",
+      reference: "A9C20842"
+    }),
+    "Schneider Electric Acti9 iCT A9C20842"
+  );
+  assert.equal(buildManualSearchQuery({ brand: "non visible", reference: "inconnue" }), "");
 });
 
 test("normalizes classroom invite codes", () => {

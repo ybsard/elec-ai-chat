@@ -2003,6 +2003,15 @@ function extractObjectIdentity(reply = "") {
   return meaningful ? identity : null;
 }
 
+function buildManualSearchQuery(identity) {
+  if (!identity || typeof identity !== "object") return "";
+  const parts = [identity.brand, identity.model, identity.reference]
+    .map((value) => String(value || "").trim())
+    .filter((value) => value && !/^(inconn|illisible|non visible|non identifi)/i.test(value));
+
+  return [...new Set(parts)].join(" ").trim();
+}
+
 function isHighRiskOperationalRequest(messages = []) {
   const text = normalizePromptText(latestUserMessage(messages));
   const evChargingPlanning = textHasAny(text, [
@@ -2355,7 +2364,7 @@ async function handlePhotoSchema(req, res) {
           ...specialistQualityContract("photo-schema"),
           "Analyse la photo fournie pour retranscrire ce qui est visible en schéma électrique de principe structuré, proche d'un document technique professionnel mais clairement non exécutoire.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
-          "Commence par identifier l'objet lui-même avant d'interpréter ses connexions. Distingue strictement ce qui est lu sur l'étiquette, ce qui est reconnu visuellement et ce qui reste une hypothèse.",
+          "Commence par identifier l'objet lui-même avant d'interpréter ses connexions. Nomme l'appareil principal visible avant sa fonction dans le circuit: par exemple contacteur, disjoncteur, thermostat, variateur, récepteur, bornier ou module de commande. Distingue strictement ce qui est lu sur l'étiquette, ce qui est reconnu visuellement et ce qui reste une hypothèse.",
           "Dans la section Objet reconnu, écris exactement une ligne par champ sous la forme '- Catégorie:', '- Marque:', '- Modèle:', '- Référence exacte:' et '- Confiance:'. Utilise 'inconnue' ou 'non visible' quand l'information ne peut pas être lue.",
           "Réponds en français avec exactement ces sections: Réponse directe, Objet reconnu, Indices visuels, Inventaire repéré, Schéma unifilaire de principe, Cartouche technique, Légende, Correspondance objet vers notice, Points à vérifier, Sécurité, Conclusion.",
           "Dans Inventaire repéré, attribue seulement aux éléments réellement visibles des repères cohérents: ID pour différentiel, QF pour disjoncteur, X pour point lumineux, S pour commande, PC pour prise, E pour récepteur, XTB pour bornier. N'invente aucun appareil masqué.",
@@ -2389,7 +2398,12 @@ async function handlePhotoSchema(req, res) {
     }
 
     const reply = extractResponseText(data) || "Je n'ai pas pu analyser cette photo.";
-    sendJson(res, 200, { reply, objectIdentity: extractObjectIdentity(reply) });
+    const objectIdentity = extractObjectIdentity(reply);
+    sendJson(res, 200, {
+      reply,
+      objectIdentity,
+      manualSearchQuery: buildManualSearchQuery(objectIdentity)
+    });
   } catch (error) {
     sendError(res, error);
   }
@@ -2428,11 +2442,11 @@ async function handleManualSearch(req, res) {
           "Recherche une notice technique ou notice utilisateur fiable pour cet appareil électrique.",
           `Référence saisie: ${cleanReference || "aucune référence texte"}.`,
           "Si une photo est fournie, lis la marque, le modèle, la référence, les tensions/courants visibles, puis utilise ces éléments pour chercher.",
-          "Commence par reconnaître l'objet lui-même et sépare marque, modèle, référence exacte, variante et caractéristiques lisibles.",
+          "Commence par reconnaître l'objet lui-même et sépare catégorie, marque, modèle, référence exacte, variante et caractéristiques lisibles.",
           "Réponds en français avec ces sections: Réponse directe, Objet reconnu, Référence identifiée, Preuves de correspondance, Liens de notice vérifiés, Infos utiles, Points de vigilance, Conclusion.",
           "Dans Objet reconnu, écris exactement une ligne par champ sous la forme '- Catégorie:', '- Marque:', '- Modèle:', '- Référence exacte:' et '- Confiance:'.",
           "Dans Preuves de correspondance, compare la référence, la tension, le courant, la variante et l'apparence visibles avec chaque notice candidate. Rejette les notices d'une variante différente.",
-          "Dans Liens de notice probables, donne uniquement des liens ou sources que tu juges plausibles, avec le nom du site et pourquoi c'est probablement la bonne notice.",
+          "Dans Liens de notice vérifiés, donne uniquement des liens ou sources que tu juges plausibles, avec le nom du site et pourquoi c'est probablement la bonne notice.",
           "Si tu n'es pas certain, dis clairement que la notice doit être vérifiée par comparaison exacte de la référence."
         ].join(" ")
       }
@@ -2481,7 +2495,13 @@ async function handleManualSearch(req, res) {
       return;
     }
 
-    sendJson(res, 200, { reply: extractResponseText(data) || "Je n'ai pas pu trouver de notice fiable." });
+    const reply = extractResponseText(data) || "Je n'ai pas pu trouver de notice fiable.";
+    const objectIdentity = extractObjectIdentity(reply);
+    sendJson(res, 200, {
+      reply,
+      objectIdentity,
+      manualSearchQuery: buildManualSearchQuery(objectIdentity)
+    });
   } catch (error) {
     sendError(res, error);
   }
@@ -2709,6 +2729,8 @@ async function handleClimateSizing(req, res) {
   try {
     const input = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
     const hasImage = Boolean(input.image);
+    const dimensions = String(input.dimensions || "").slice(0, 160);
+    const constraints = String(input.constraints || "").slice(0, 220);
     if (hasImage) {
       assertSupportedImageDataUrl(input.image, "Croquis de pièce");
     }
@@ -2722,7 +2744,7 @@ async function handleClimateSizing(req, res) {
     const auth = await getSessionUser(req);
     const pedagogyCheck = sendPedagogicalBlockIfNeeded(res, auth, {
       feature: "climate-sizing",
-      text: `${input.room || ""} ${input.area || ""} ${input.region || ""}`
+      text: `${input.room || ""} ${input.area || ""} ${input.region || ""} ${dimensions} ${constraints}`
     });
     if (pedagogyCheck.blocked) return;
     if (!process.env.OPENAI_API_KEY) {
@@ -2753,12 +2775,14 @@ async function handleClimateSizing(req, res) {
           ...specialistQualityContract("climate-sizing"),
           "Explique une estimation de puissance de climatiseur à partir des données fournies.",
           "Si un croquis quadrillé est fourni, analyse-le comme un plan de pièce: murs, portes, fenêtres, mobilier, zones d'occupation, mur possible pour unité intérieure et obstacles au soufflage.",
+          "Quand un croquis est fourni, indique vraiment où dans la pièce placer l'unité intérieure: mur, zone, orientation, distance approximative aux murs et aux ouvertures, plus les zones à ne pas viser.",
           "Ne présente jamais le résultat comme une étude thermique professionnelle.",
           "Rappelle qu'un bilan thermique réel dépend des vitrages, murs, orientation, apports internes, ventilation, région, humidité et contraintes de pose.",
-          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Données prises en compte, Lecture du croquis, Calcul indicatif, Puissance conseillée, Implantation conseillée, Schéma d'implantation, Type de climatiseur, Points de vigilance, Conclusion.",
+          "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Données prises en compte, Lecture du croquis, Calcul indicatif, Puissance conseillée, Implantation conseillée, Schéma d'implantation, Zones à éviter, Type de climatiseur, Points de vigilance, Conclusion.",
           "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait être sous-dimensionné ou surdimensionné.",
           "Dans Implantation conseillée, indique où placer l'unité intérieure dans la pièce, l'orientation du soufflage, les zones à éviter (lit/canapé/bureau direct, obstacle, source chaude, angle mort), les limites de condensats et liaisons frigorifiques à vérifier par un professionnel.",
-          "Dans Schéma d'implantation, si un croquis est fourni, refais un petit plan textuel propre avec le repère UI pour l'unité intérieure, des flèches de soufflage et les zones à éviter. Si aucun croquis n'est fourni, écris ce qui manque pour placer l'unité correctement."
+          "Dans Schéma d'implantation, si un croquis est fourni, refais un petit plan textuel propre avec le repère UI pour l'unité intérieure, des flèches de soufflage, les ouvertures et les zones à éviter. Utilise des repères lisibles: UI = unité intérieure, -> = soufflage, X = zone à éviter, P = porte, F = fenêtre.",
+          "Si des dimensions ou une échelle sont fournies, place UI et les flèches de soufflage de façon proportionnelle et donne des distances approximatives aux murs. Si aucun croquis n'est fourni, écris ce qui manque pour placer l'unité correctement."
         ].join(" "),
         input: [
           {
@@ -2772,17 +2796,19 @@ async function handleClimateSizing(req, res) {
                   `Hauteur: ${estimate.height} m.`,
                   `Volume: ${estimate.volume} m3.`,
                   `Piece: ${String(input.room || "non precise").slice(0, 80)}.`,
+                  `Dimensions / echelle de la piece: ${dimensions || "non precisees"}.`,
                   `Isolation: ${String(input.insulation || "non precisee").slice(0, 80)}.`,
                   `Exposition soleil: ${String(input.sun || "non precisee").slice(0, 80)}.`,
                   `Personnes: ${String(input.people || "1").slice(0, 20)}.`,
                   `Appareils chauffants: ${String(input.heatSources || "non precise").slice(0, 80)}.`,
                   `Region/climat: ${String(input.region || "non precise").slice(0, 80)}.`,
+                  `Contraintes d'implantation: ${constraints || "aucune precisee"}.`,
                   `Source du plan: ${String(input.source || (hasImage ? "croquis" : "aucune")).slice(0, 40)}.`,
                   `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
                   `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
                   `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`,
                   hasImage
-                    ? "Le croquis fourni sert a recommander l'emplacement de l'unite interieure et l'orientation du soufflage."
+                    ? "Le croquis fourni sert a recommander l'emplacement de l'unite interieure et l'orientation du soufflage. Indique explicitement ou dans la piece placer UI et quelles zones ne doivent pas recevoir le souffle direct."
                     : "Aucun croquis n'est fourni: donne la puissance puis explique quelles informations visuelles manquent pour placer l'unite interieure."
                 ].join(" ")
               },
@@ -3030,6 +3056,7 @@ if (process.env.NODE_ENV !== "test") {
 
 export {
   assertSupportedImageDataUrl,
+  buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,
   estimateLightingSizing,

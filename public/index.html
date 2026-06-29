@@ -83,7 +83,7 @@
               <a class="secondary-action account-start-link" href="/?openAuth=1&openSignup=1">Créer un compte</a>
             </div>
 
-            <details class="account-auth-details" open>
+            <details class="account-auth-details">
               <summary>Créer un compte ou se connecter</summary>
               <div class="auth-panel-intro">
                 <span>Accès sécurisé</span>
@@ -657,6 +657,7 @@
             </label>
 
             <div id="manualPhotoPreview" class="photo-preview" hidden></div>
+            <div id="manualObjectResult" class="object-identity-card" hidden></div>
 
             <button id="searchManual" class="secondary-action" type="button">Rechercher la notice</button>
           </div>
@@ -765,6 +766,17 @@
               <label class="field">
                 <span>Hauteur plafond</span>
                 <input id="climateHeight" type="number" min="2" max="5" step="0.1" placeholder="Ex: 2.5">
+              </label>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Dimensions / échelle du croquis</span>
+                <input id="climateDimensions" type="text" placeholder="Ex: 6,2 x 4,4 m ; 1 carreau = 50 cm">
+              </label>
+              <label class="field">
+                <span>Contraintes d'implantation</span>
+                <input id="climateConstraints" type="text" maxlength="220" placeholder="Ex: éviter le canapé, baie vitrée au sud, mur haut disponible à l'est">
               </label>
             </div>
 

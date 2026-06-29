@@ -112,6 +112,7 @@ const manualReference = document.querySelector("#manualReference");
 const manualPhotoInput = document.querySelector("#manualPhotoInput");
 const manualPhotoLabel = document.querySelector("#manualPhotoLabel");
 const manualPhotoPreview = document.querySelector("#manualPhotoPreview");
+const manualObjectResult = document.querySelector("#manualObjectResult");
 const searchManual = document.querySelector("#searchManual");
 const lightingPlanInput = document.querySelector("#lightingPlanInput");
 const lightingPlanLabel = document.querySelector("#lightingPlanLabel");
@@ -128,6 +129,8 @@ const lightingType = document.querySelector("#lightingType");
 const analyzeLighting = document.querySelector("#analyzeLighting");
 const climateArea = document.querySelector("#climateArea");
 const climateHeight = document.querySelector("#climateHeight");
+const climateDimensions = document.querySelector("#climateDimensions");
+const climateConstraints = document.querySelector("#climateConstraints");
 const climateRoom = document.querySelector("#climateRoom");
 const climateInsulation = document.querySelector("#climateInsulation");
 const climateSun = document.querySelector("#climateSun");
@@ -490,7 +493,7 @@ function cleanIdentityValue(value) {
   return /^(inconn|illisible|non visible|non identifi)/i.test(text) ? "" : text;
 }
 
-function renderRecognizedObject(identity) {
+function renderRecognizedObjectLegacy(identity) {
   if (!photoObjectResult) return;
 
   const category = cleanIdentityValue(identity?.category);
@@ -517,6 +520,67 @@ function renderRecognizedObject(identity) {
   if (!manualReference.value.trim() && values.length) {
     manualReference.value = values.join(" ");
   }
+}
+
+function applyManualSearchQuery(query, { focus = false } = {}) {
+  const cleanQuery = String(query || "").trim();
+  if (!cleanQuery) return false;
+  manualReference.value = cleanQuery;
+  if (focus) {
+    manualReference.focus();
+    manualReference.select?.();
+  }
+  return true;
+}
+
+function renderObjectIdentityCard(target, identity, options = {}) {
+  if (!target) return;
+
+  const category = cleanIdentityValue(identity?.category);
+  const brand = cleanIdentityValue(identity?.brand);
+  const model = cleanIdentityValue(identity?.model);
+  const reference = cleanIdentityValue(identity?.reference);
+  const confidence = cleanIdentityValue(identity?.confidence);
+  const values = [brand, model, reference].filter(Boolean);
+  const manualSearchQuery = String(options.manualSearchQuery || values.join(" ")).trim();
+  const showUseButton = Boolean(options.showUseButton && manualSearchQuery);
+
+  if (!category && !values.length) {
+    target.hidden = true;
+    target.innerHTML = "";
+    return;
+  }
+
+  target.hidden = false;
+  target.innerHTML = `
+    <strong>Objet reconnu</strong>
+    <span>${escapeHtml([category, ...values].filter(Boolean).join(" Â· "))}</span>
+    ${confidence ? `<small>Confiance IA : ${escapeHtml(confidence)}</small>` : ""}
+    <small>${escapeHtml(options.note || "La rÃ©fÃ©rence doit correspondre exactement Ã  l'Ã©tiquette avant d'utiliser une notice.")}</small>
+    ${showUseButton ? `<button class="secondary-action object-identity-action" type="button" data-use-manual-query="${escapeHtml(manualSearchQuery)}">Utiliser pour la notice</button>` : ""}
+  `;
+
+  if (options.prefillReference && !manualReference.value.trim() && manualSearchQuery) {
+    applyManualSearchQuery(manualSearchQuery);
+  }
+}
+
+function renderRecognizedObject(identity, manualSearchQuery = "") {
+  renderObjectIdentityCard(photoObjectResult, identity, {
+    manualSearchQuery,
+    note: "Passe ensuite dans Recherche de notice pour vÃ©rifier la rÃ©fÃ©rence exacte avec un document fabricant.",
+    prefillReference: true,
+    showUseButton: true
+  });
+}
+
+function renderManualRecognizedObject(identity, manualSearchQuery = "") {
+  renderObjectIdentityCard(manualObjectResult, identity, {
+    manualSearchQuery,
+    note: "Avant d'ouvrir une notice, compare toujours la rÃ©fÃ©rence exacte, la variante et la tension indiquÃ©es sur l'appareil.",
+    prefillReference: false,
+    showUseButton: false
+  });
 }
 
 function addLightingPlanMessage(details, dataUrl) {
@@ -4197,7 +4261,7 @@ async function analyzePhotoToSchema() {
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu analyser cette photo.";
     setAssistantMessage(pending, reply);
-    renderRecognizedObject(data.objectIdentity);
+    renderRecognizedObject(data.objectIdentity, data.manualSearchQuery);
     messages.push({
       role: "assistant",
       content: `Analyse photo vers schéma:\n${reply}`
@@ -4244,6 +4308,7 @@ async function searchManualNotice() {
 
     const reply = (data.reply || "").trim() || "Je n'ai pas pu trouver de notice fiable.";
     setAssistantMessage(pending, reply);
+    renderManualRecognizedObject(data.objectIdentity, data.manualSearchQuery);
     messages.push({
       role: "assistant",
       content: `Recherche de notice:\n${reply}`
@@ -4347,6 +4412,8 @@ async function sizeClimateSystem() {
   const payload = {
     area,
     height,
+    dimensions: climateDimensions.value,
+    constraints: climateConstraints.value,
     room: climateRoom.value,
     insulation: climateInsulation.value,
     sun: climateSun.value,
@@ -4362,14 +4429,16 @@ async function sizeClimateSystem() {
     selectedClimateSketchDataUrl ? "Source: croquis quadrillé de la pièce" : "Source: données sans croquis",
     `${payload.area} m2`,
     `${payload.height} m de hauteur`,
+    payload.dimensions ? `dimensions ${payload.dimensions}` : "",
     payload.room,
     `isolation ${payload.insulation.toLowerCase()}`,
     `exposition ${payload.sun.toLowerCase()}`,
     `${payload.people} personne(s)`,
     `appareils: ${payload.heatSources.toLowerCase()}`,
     `climat ${payload.region.toLowerCase()}`,
+    payload.constraints ? `contraintes: ${payload.constraints}` : "",
     selectedClimateSketchDataUrl
-      ? "Demande: proposer où placer l'unité intérieure, l'orientation du soufflage et les zones à éviter."
+      ? "Demande: proposer où placer l'unité intérieure dans la pièce, l'orientation du soufflage et les zones à éviter."
       : ""
   ].filter(Boolean).join(" | ");
 
@@ -4487,6 +4556,14 @@ document.querySelectorAll('a[href="#formules-electriques"]').forEach((link) => {
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape" || !fallbackChatFullscreen) return;
   setChatFullscreenState(false);
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-use-manual-query]");
+  if (!button) return;
+  if (applyManualSearchQuery(button.dataset.useManualQuery, { focus: true })) {
+    hint.textContent = "RÃ©fÃ©rence transfÃ©rÃ©e vers Recherche de notice. ComplÃ¨te si besoin puis lance la recherche.";
+  }
 });
 
 reportList?.addEventListener("click", async (event) => {
@@ -4641,6 +4718,7 @@ photoInput.addEventListener("change", async () => {
   if (!file) return;
 
   selectedPhotoDataUrl = "";
+  renderRecognizedObject(null);
   analyzePhoto.disabled = true;
   hint.textContent = "Préparation et optimisation de la photo...";
   try {
@@ -4667,6 +4745,7 @@ manualPhotoInput.addEventListener("change", async () => {
   if (!file) return;
 
   selectedManualPhotoDataUrl = "";
+  renderManualRecognizedObject(null);
   searchManual.disabled = true;
   hint.textContent = "Préparation de la photo de référence...";
   try {
@@ -4685,6 +4764,12 @@ manualPhotoInput.addEventListener("change", async () => {
     hint.textContent = error.message;
   } finally {
     searchManual.disabled = false;
+  }
+});
+
+manualReference?.addEventListener("input", () => {
+  if (!manualReference.value.trim()) {
+    renderManualRecognizedObject(null);
   }
 });
 
