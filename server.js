@@ -2908,10 +2908,14 @@ async function handleHealth(req, res) {
     storage = `${storage}: ${error.message || "indisponible"}`;
   }
 
-  sendJson(res, storageReady ? 200 : 503, {
-    ok: storageReady,
+  sendJson(res, 200, {
+    ok: true,
     app: "Voltia",
     storage,
+    storageReady,
+    dependencies: {
+      storageReady
+    },
     storageMode: supabaseStorageMode,
     openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
     stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID),
