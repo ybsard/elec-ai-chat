@@ -5,6 +5,7 @@ process.env.NODE_ENV = "test";
 
 const {
   assertSupportedImageDataUrl,
+  buildClimatePlacementGuidance,
   buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,
@@ -126,6 +127,51 @@ test("estimates climate sizing with bounded numeric output", () => {
   assert.equal(estimate.area, 30);
   assert.equal(estimate.recommendedKw > 0, true);
   assert.equal(estimate.recommendedBtu > estimate.recommendedWatts, true);
+});
+
+test("normalizes accented climate coefficients", () => {
+  const estimate = estimateClimateSizing({
+    area: 24,
+    height: 2.6,
+    room: "Salon",
+    insulation: "Moyenne",
+    sun: "Très ensoleillée",
+    people: 3,
+    heatSources: "Nombreux",
+    region: "Très chaud"
+  });
+
+  assert.equal(estimate.coefficients.soleil, 1.18);
+  assert.equal(estimate.coefficients.region, 1.24);
+  assert.equal(estimate.coefficients.isolation, 1.12);
+  assert.equal(estimate.coefficients.appareils, 1.12);
+  assert.equal(estimate.recommendedKw > 3, true);
+});
+
+test("builds deterministic climate placement guidance from sketch constraints", () => {
+  const estimate = estimateClimateSizing({
+    area: 28,
+    height: 2.5,
+    room: "Salon",
+    insulation: "Correcte",
+    sun: "Très ensoleillée",
+    people: 2,
+    heatSources: "Normaux",
+    region: "Tempéré"
+  });
+  const guidance = buildClimatePlacementGuidance({
+    room: "Salon",
+    dimensions: "6,2 x 4,4 m",
+    constraints: "éviter le canapé, baie vitrée au sud, mur haut disponible à l'est",
+    sun: "Très ensoleillée",
+    region: "Tempéré"
+  }, estimate);
+
+  assert.equal(guidance.hasMetricDimensions, true);
+  assert.match(guidance.preferredWall, /est/);
+  assert.match(guidance.distanceGuidance, /6\.2 x 4\.4 m/);
+  assert.match(guidance.airflowDirection, /centre/);
+  assert.equal(guidance.avoidZones.some((zone) => /canape/.test(zone)), true);
 });
 
 test("defines domain specialist contracts for climate placement", () => {

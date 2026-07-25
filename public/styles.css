@@ -1150,6 +1150,10 @@ textarea:focus {
   line-height: 1.4;
 }
 
+.schema-card .object-identity-card {
+  margin-bottom: 12px;
+}
+
 .object-identity-action {
   width: auto;
   min-height: 38px;
@@ -1720,6 +1724,16 @@ textarea:focus {
 
 .message-stack {
   max-width: min(94%, 1080px);
+  width: 100%;
+}
+
+.message.assistant .message-stack {
+  flex: 1;
+}
+
+.message.user .message-stack {
+  flex: 0 1 min(86%, 860px);
+  width: auto;
 }
 
 .message-label {
@@ -1758,6 +1772,25 @@ textarea:focus {
   font-size: 15px;
   line-height: 1.25;
   font-weight: 950;
+}
+
+.formatted-response .response-heading {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(20, 85, 109, 0.16);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: #f5fbfd;
+  color: #10212b;
+}
+
+.formatted-response .response-heading-direct {
+  border-color: rgba(246, 191, 69, 0.34);
+  border-left-color: var(--warning);
+  background: #fffaf0;
+  color: #704a00;
 }
 
 .formatted-response h3:first-child {
@@ -1869,7 +1902,7 @@ textarea:focus {
 }
 
 .diagram-frame .professional-schema {
-  min-width: 760px;
+  min-width: min(760px, 100%);
   background: #e8edf0;
 }
 
@@ -1883,7 +1916,7 @@ textarea:focus {
 }
 
 .diagram-frame .schema-style-engineering {
-  min-width: 1000px;
+  min-width: min(1000px, 100%);
   background: #d9dcde;
 }
 
@@ -4193,6 +4226,23 @@ body {
   min-height: 42px;
 }
 
+.account-auth-details summary > span,
+.account-path span {
+  color: var(--warning-dark);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.account-auth-details summary > strong {
+  flex: 1;
+  min-width: 0;
+  color: #10212b;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
 .account-auth-details summary::after {
   content: "Ouvrir";
   flex: 0 0 auto;
@@ -4219,6 +4269,48 @@ body {
 .account-auth-details .auth-panel {
   gap: 6px;
   padding: 8px;
+}
+
+.account-auth-details .auth-panel[aria-busy="true"] {
+  opacity: 0.82;
+}
+
+.account-auth-details .auth-panel[aria-busy="true"] input,
+.account-auth-details .auth-panel[aria-busy="true"] select {
+  pointer-events: none;
+}
+
+.account-path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 8px 6px;
+}
+
+.account-path span {
+  display: grid;
+  gap: 3px;
+  min-height: 42px;
+  padding: 7px;
+  border: 1px solid rgba(246, 191, 69, 0.22);
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #755012;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: none;
+}
+
+.account-path strong {
+  display: inline-grid;
+  place-items: center;
+  justify-self: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #ffffff;
+  font-size: 10px;
 }
 
 .account-auth-details .access-code-panel {
@@ -4453,7 +4545,8 @@ body {
   }
 
   .hero-product-shot figcaption,
-  .auth-value-points {
+  .auth-value-points,
+  .account-path {
     grid-template-columns: 1fr;
   }
 

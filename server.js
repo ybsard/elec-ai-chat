@@ -2662,7 +2662,7 @@ async function handleLightingPlan(req, res) {
 }
 
 function climateCoefficient(value, map, fallback = 1) {
-  return map[String(value || "").toLowerCase()] || fallback;
+  return map[normalizePromptText(value)] || fallback;
 }
 
 function estimateClimateSizing(input) {
@@ -2670,10 +2670,11 @@ function estimateClimateSizing(input) {
   const height = Math.min(Math.max(Number(input.height || 2.5), 2), 5);
   const people = Math.min(Math.max(Number(input.people || 1), 1), 20);
   const room = String(input.room || "Salon / sejour");
+  const roomText = normalizePromptText(room);
 
-  const baseWattsPerM2 = room.toLowerCase().includes("cuisine")
+  const baseWattsPerM2 = roomText.includes("cuisine")
     ? 120
-    : room.toLowerCase().includes("bureau")
+    : roomText.includes("bureau")
       ? 105
       : 100;
 
@@ -2725,6 +2726,63 @@ function estimateClimateSizing(input) {
   };
 }
 
+function buildClimatePlacementGuidance(input = {}, estimate = null) {
+  const text = normalizePromptText(`${input.room || ""} ${input.constraints || ""} ${input.sun || ""} ${input.region || ""}`);
+  const parsedDimensions = parseMetricRoomDimensions(input.dimensions);
+  const wallHints = [
+    ["nord", "mur nord"],
+    ["sud", "mur sud"],
+    ["est", "mur est"],
+    ["ouest", "mur ouest"],
+    ["haut", "mur haut du croquis"],
+    ["bas", "mur bas du croquis"],
+    ["gauche", "mur gauche du croquis"],
+    ["droite", "mur droit du croquis"]
+  ];
+  const explicitWall = wallHints.find(([keyword]) => {
+    const wallPattern = new RegExp(`\\bmur\\b[^.,;\\n]{0,45}\\b${keyword}\\b`);
+    return wallPattern.test(text);
+  }) || wallHints.find(([keyword]) => {
+    const availabilityPattern = new RegExp(`\\b${keyword}\\b[^.,;\\n]{0,35}\\b(disponible|possible|libre)\\b`);
+    return availabilityPattern.test(text);
+  });
+  const avoidZones = [];
+  if (text.includes("canape") || text.includes("salon")) avoidZones.push("soufflage direct sur canape ou assise");
+  if (text.includes("lit") || text.includes("chambre")) avoidZones.push("soufflage direct sur lit");
+  if (text.includes("bureau")) avoidZones.push("soufflage direct sur poste de travail");
+  if (text.includes("baie") || text.includes("fenetre") || text.includes("vitree")) avoidZones.push("pose collee a une baie vitree ou a une fenetre chaude");
+  if (text.includes("cuisine") || text.includes("four") || text.includes("plaque")) avoidZones.push("soufflage repris par une source chaude de cuisine");
+  if (text.includes("passage") || text.includes("porte")) avoidZones.push("soufflage coupe par une porte ou une zone de passage");
+
+  if (!avoidZones.length) {
+    avoidZones.push("soufflage direct sur les occupants", "obstacle proche devant l'unite");
+  }
+
+  const preferredWall = explicitWall?.[1] || (
+    parsedDimensions
+      ? "mur long le plus libre, idealement oppose aux vitrages les plus chauds"
+      : "mur haut libre du croquis, a confirmer avec les ouvrants et les occupants"
+  );
+  const distanceGuidance = parsedDimensions
+    ? `placer UI sur ${preferredWall}, environ a 15-25% de la longueur depuis un angle libre; soufflage vers le centre des ${parsedDimensions.length} x ${parsedDimensions.width} m`
+    : `placer UI sur ${preferredWall}; demander les cotes pour donner une distance fiable aux murs`;
+  const airflowDirection = "orienter le soufflage vers le centre de la piece puis vers la zone a traiter, sans viser directement les occupants";
+
+  return {
+    hasMetricDimensions: Boolean(parsedDimensions),
+    preferredWall,
+    unitMarker: "UI",
+    airflowMarker: "->",
+    avoidMarker: "X",
+    distanceGuidance,
+    airflowDirection,
+    avoidZones: [...new Set(avoidZones)].slice(0, 6),
+    powerBasis: estimate
+      ? `${estimate.recommendedKw} kW / ${estimate.recommendedWatts} W / ${estimate.recommendedBtu} BTU/h`
+      : "puissance a calculer"
+  };
+}
+
 async function handleClimateSizing(req, res) {
   try {
     const input = await readRequestJson(req, { limitBytes: maxImageJsonBodyBytes });
@@ -2735,6 +2793,7 @@ async function handleClimateSizing(req, res) {
       assertSupportedImageDataUrl(input.image, "Croquis de pièce");
     }
     const estimate = estimateClimateSizing(input);
+    const placementGuidance = buildClimatePlacementGuidance(input, estimate);
 
     if (!estimate.area || estimate.area < 5) {
       sendJson(res, 400, { error: "Superficie manquante ou trop faible." });
@@ -2776,12 +2835,14 @@ async function handleClimateSizing(req, res) {
           "Explique une estimation de puissance de climatiseur à partir des données fournies.",
           "Si un croquis quadrillé est fourni, analyse-le comme un plan de pièce: murs, portes, fenêtres, mobilier, zones d'occupation, mur possible pour unité intérieure et obstacles au soufflage.",
           "Quand un croquis est fourni, indique vraiment où dans la pièce placer l'unité intérieure: mur, zone, orientation, distance approximative aux murs et aux ouvertures, plus les zones à ne pas viser.",
+          "Utilise la base d'implantation déterministe fournie comme point de départ. Corrige-la seulement si le croquis contredit clairement cette base, et explique pourquoi.",
           "Ne présente jamais le résultat comme une étude thermique professionnelle.",
           "Rappelle qu'un bilan thermique réel dépend des vitrages, murs, orientation, apports internes, ventilation, région, humidité et contraintes de pose.",
           "Réponds avec exactement ces sections: Réponse directe, Résumé rapide, Données prises en compte, Lecture du croquis, Calcul indicatif, Puissance conseillée, Implantation conseillée, Schéma d'implantation, Zones à éviter, Type de climatiseur, Points de vigilance, Conclusion.",
           "Donne la puissance en kW, W et BTU/h. Explique si l'appareil pourrait être sous-dimensionné ou surdimensionné.",
           "Dans Implantation conseillée, indique où placer l'unité intérieure dans la pièce, l'orientation du soufflage, les zones à éviter (lit/canapé/bureau direct, obstacle, source chaude, angle mort), les limites de condensats et liaisons frigorifiques à vérifier par un professionnel.",
           "Dans Schéma d'implantation, si un croquis est fourni, refais un petit plan textuel propre avec le repère UI pour l'unité intérieure, des flèches de soufflage, les ouvertures et les zones à éviter. Utilise des repères lisibles: UI = unité intérieure, -> = soufflage, X = zone à éviter, P = porte, F = fenêtre.",
+          "Le schéma d'implantation doit placer UI dans le contour de la pièce et montrer au moins une flèche de soufflage -> et les zones X à éviter quand elles sont connues.",
           "Si des dimensions ou une échelle sont fournies, place UI et les flèches de soufflage de façon proportionnelle et donne des distances approximatives aux murs. Si aucun croquis n'est fourni, écris ce qui manque pour placer l'unité correctement."
         ].join(" "),
         input: [
@@ -2806,6 +2867,7 @@ async function handleClimateSizing(req, res) {
                   `Source du plan: ${String(input.source || (hasImage ? "croquis" : "aucune")).slice(0, 40)}.`,
                   `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
                   `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
+                  `Base implantation deterministe: ${JSON.stringify(placementGuidance)}.`,
                   `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`,
                   hasImage
                     ? "Le croquis fourni sert a recommander l'emplacement de l'unite interieure et l'orientation du soufflage. Indique explicitement ou dans la piece placer UI et quelles zones ne doivent pas recevoir le souffle direct."
@@ -2827,7 +2889,8 @@ async function handleClimateSizing(req, res) {
 
     sendJson(res, 200, {
       reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cette climatisation.",
-      estimate
+      estimate,
+      placementGuidance
     });
   } catch (error) {
     sendError(res, error);
@@ -3056,6 +3119,7 @@ if (process.env.NODE_ENV !== "test") {
 
 export {
   assertSupportedImageDataUrl,
+  buildClimatePlacementGuidance,
   buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,

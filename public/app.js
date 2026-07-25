@@ -96,6 +96,7 @@ const schemaType = document.querySelector("#schemaType");
 const schemaSymbolMode = document.querySelector("#schemaSymbolMode");
 const schemaRoom = document.querySelector("#schemaRoom");
 const schemaUse = document.querySelector("#schemaUse");
+const schemaObjectResult = document.querySelector("#schemaObjectResult");
 const socketCount = document.querySelector("#socketCount");
 const lightCount = document.querySelector("#lightCount");
 const switchCount = document.querySelector("#switchCount");
@@ -147,6 +148,8 @@ const saveTargetText = document.querySelector("#saveTargetText");
 
 const messages = [];
 const maxLength = Number(promptInput.getAttribute("maxlength") || 1200);
+const signupButtonLabel = signupButton?.textContent || "Créer mon compte gratuit";
+const loginButtonLabel = loginButton?.textContent || "Se connecter";
 let selectedIssue = "Disjoncteur qui saute";
 let schemaRenderSequence = 0;
 let selectedPhotoDataUrl = "";
@@ -174,6 +177,9 @@ let climateSketchDrawing = false;
 let climateSketchCurrentStroke = null;
 let climateSketchStrokes = [];
 let selectedClimateSketchDataUrl = "";
+
+normalizeLiveRegionText(hint);
+normalizeLiveRegionText(pedagogyNotice);
 
 function updateCounter() {
   counter.textContent = `${promptInput.value.length} / ${maxLength}`;
@@ -303,12 +309,63 @@ function setAssistantMessage(item, content) {
 }
 
 function escapeHtml(value) {
-  return String(value)
+  return normalizeVisibleText(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function normalizeVisibleText(value) {
+  let text = String(value ?? "");
+  const replacements = [
+    ["ÃƒÂ©", "é"],
+    ["ÃƒÂ¨", "è"],
+    ["ÃƒÂª", "ê"],
+    ["ÃƒÂ«", "ë"],
+    ["ÃƒÂ ", "à"],
+    ["ÃƒÂ¢", "â"],
+    ["ÃƒÂ®", "î"],
+    ["ÃƒÂ¯", "ï"],
+    ["ÃƒÂ´", "ô"],
+    ["ÃƒÂ¶", "ö"],
+    ["ÃƒÂ¹", "ù"],
+    ["ÃƒÂ»", "û"],
+    ["ÃƒÂ¼", "ü"],
+    ["ÃƒÂ§", "ç"],
+    ["Ãƒâ€°", "É"],
+    ["Ãƒâ€°", "É"],
+    ["Ã‚Â·", "·"],
+    ["Â«", "«"],
+    ["Â»", "»"],
+    ["Â :", " :"],
+    ["Â ?", " ?"],
+    ["Â !", " !"],
+    ["Â;", ";"],
+    ["Â·", "·"],
+    ["Â", ""]
+  ];
+
+  for (const [from, to] of replacements) {
+    text = text.replaceAll(from, to);
+  }
+
+  return text;
+}
+
+function normalizeLiveRegionText(node) {
+  if (!node) return;
+
+  const syncNode = () => {
+    const normalized = normalizeVisibleText(node.textContent);
+    if (node.textContent !== normalized) {
+      node.textContent = normalized;
+    }
+  };
+
+  syncNode();
+  new MutationObserver(syncNode).observe(node, { childList: true, characterData: true, subtree: true });
 }
 
 function formatInline(value) {
@@ -320,6 +377,18 @@ function formatInline(value) {
       const url = trailing ? match.slice(0, -trailing.length) : match;
       return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
     });
+}
+
+function responseHeadingClass(value) {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const classes = ["response-heading"];
+  if (normalized.includes("reponse directe")) {
+    classes.push("response-heading-direct");
+  }
+  return classes.join(" ");
 }
 
 function renderAssistantContent(content) {
@@ -383,7 +452,7 @@ function renderAssistantContent(content) {
     flushList();
 
     if (headingMatch && line.length <= 48) {
-      html.push(`<h3>${formatInline(headingMatch[1])}</h3>`);
+      html.push(`<h3 class="${responseHeadingClass(headingMatch[1])}">${formatInline(headingMatch[1])}</h3>`);
     } else {
       html.push(`<p>${formatInline(line)}</p>`);
     }
@@ -580,6 +649,132 @@ function renderManualRecognizedObject(identity, manualSearchQuery = "") {
     note: "Avant d'ouvrir une notice, compare toujours la rÃ©fÃ©rence exacte, la variante et la tension indiquÃ©es sur l'appareil.",
     prefillReference: false,
     showUseButton: false
+  });
+}
+
+const schemaKnownBrands = [
+  "Legrand",
+  "Hager",
+  "Schneider",
+  "Schneider Electric",
+  "Siemens",
+  "ABB",
+  "Delta Dore",
+  "Somfy",
+  "Atlantic",
+  "Thermor",
+  "De Dietrich",
+  "Bosch",
+  "Whirlpool",
+  "Electrolux",
+  "Brandt",
+  "Sauter",
+  "Auer",
+  "Daikin",
+  "Mitsubishi",
+  "Mitsubishi Electric",
+  "Hitachi",
+  "Panasonic",
+  "LG",
+  "Samsung"
+];
+
+function firstMatchingBrand(value = "") {
+  const source = String(value || "");
+  const normalized = normalizeText(source);
+  return schemaKnownBrands
+    .slice()
+    .sort((left, right) => right.length - left.length)
+    .find((brand) => normalized.includes(normalizeText(brand))) || "";
+}
+
+function firstReferenceToken(value = "") {
+  const ignored = new Set(["230v", "400v", "16a", "20a", "32a", "2p", "2pt", "30ma"]);
+  const tokens = String(value || "").match(/\b[A-Z0-9][A-Z0-9-]{4,}\b/gi) || [];
+  return tokens.find((token) => /\d/.test(token) && !ignored.has(token.toLowerCase())) || "";
+}
+
+function schemaObjectCategory(usage = "", type = "prise") {
+  const text = normalizeText(usage);
+  const categories = [
+    ["telerupteur", "télérupteur"],
+    ["contacteur", "contacteur"],
+    ["minuterie", "minuterie"],
+    ["variateur", "variateur"],
+    ["thermostat", "thermostat"],
+    ["parafoudre", "parafoudre"],
+    ["inter differentiel", "interrupteur différentiel"],
+    ["interrupteur differentiel", "interrupteur différentiel"],
+    ["disjoncteur", "disjoncteur"],
+    ["borne", "borne de recharge"],
+    ["irve", "borne de recharge"],
+    ["chauffe eau", "chauffe-eau"],
+    ["chauffe-eau", "chauffe-eau"],
+    ["plaque", "plaque de cuisson"],
+    ["four", "four"],
+    ["lave linge", "lave-linge"],
+    ["lave-linge", "lave-linge"],
+    ["lave vaisselle", "lave-vaisselle"],
+    ["lave-vaisselle", "lave-vaisselle"],
+    ["clim", "climatiseur"],
+    ["vmc", "VMC"]
+  ];
+  const category = categories.find(([keyword]) => text.includes(keyword))?.[1];
+  if (category) return category;
+  if (type === "tableau" && text) return "équipement de tableau";
+  return type === "prise" ? dedicatedLoadLabel(usage) : "";
+}
+
+function inferSchemaObjectIdentity(usage = "", type = "prise") {
+  const source = String(usage || "").trim();
+  if (!source) return null;
+
+  const brand = firstMatchingBrand(source);
+  const reference = firstReferenceToken(source);
+  const category = schemaObjectCategory(source, type);
+  if (!brand && !reference && !category) return null;
+
+  let model = source;
+  [brand, reference, category].filter(Boolean).forEach((part) => {
+    model = model.replace(new RegExp(part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), " ");
+  });
+  model = model
+    .replace(/\b\d+(?:[,.]\d+)?\s*(?:a|ma|w|kw|v|va)\b/gi, " ")
+    .replace(/\b(circuit|départ|depart|dédié|dedie|prise|prises|usage|pour)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+
+  return {
+    category,
+    brand,
+    model,
+    reference,
+    confidence: brand || reference
+      ? "moyenne - saisie utilisateur"
+      : "faible - objet déduit de l'usage"
+  };
+}
+
+function buildObjectSearchQuery(identity) {
+  if (!identity) return "";
+  if (!cleanIdentityValue(identity.brand) && !cleanIdentityValue(identity.reference)) return "";
+  return [...new Set([identity.brand, identity.model, identity.reference]
+    .map((value) => cleanIdentityValue(value))
+    .filter(Boolean))]
+    .join(" ")
+    .trim();
+}
+
+function renderSchemaObjectIdentity(identity = inferSchemaObjectIdentity(schemaUse.value, schemaType.value)) {
+  const manualSearchQuery = buildObjectSearchQuery(identity);
+  renderObjectIdentityCard(schemaObjectResult, identity, {
+    manualSearchQuery,
+    note: manualSearchQuery
+      ? "Objet transmis à l'explication du schéma. Tu peux aussi l'utiliser pour rechercher la notice exacte."
+      : "Ajoute une marque, un modèle ou une référence si tu veux relier ce schéma à une notice fabricant.",
+    prefillReference: false,
+    showUseButton: Boolean(manualSearchQuery)
   });
 }
 
@@ -1838,9 +2033,19 @@ function setAuthMode(mode, { focus = false } = {}) {
   }
 }
 
+function setAuthBusy(mode, busy) {
+  [signupToggleButton, loginModeButton, signupButton, loginButton].forEach((button) => {
+    if (button) button.disabled = busy;
+  });
+
+  authFields?.setAttribute("aria-busy", String(busy));
+  signupButton.textContent = busy && mode === "signup" ? "Création..." : signupButtonLabel;
+  loginButton.textContent = busy && mode === "login" ? "Connexion..." : loginButtonLabel;
+}
+
 function setPedagogyNotice(message, important = false) {
   if (!pedagogyNotice) return;
-  pedagogyNotice.textContent = message || "";
+  pedagogyNotice.textContent = normalizeVisibleText(message);
   pedagogyNotice.classList.toggle("is-important", important);
 }
 
@@ -2145,6 +2350,7 @@ function updateAccountUi(user, meta = {}) {
     accessCodeFields.hidden = false;
     accessCodeDisclosure.hidden = false;
     accountAuthDetails.hidden = false;
+    accountAuthDetails.open = true;
     authFields.hidden = false;
     setAuthMode("signup");
     memberActions.hidden = true;
@@ -2193,7 +2399,7 @@ function setAccountNotice(message) {
 }
 
 function setHint(message, important = false) {
-  hint.textContent = message;
+  hint.textContent = normalizeVisibleText(message);
   hint.classList.toggle("important-hint", important);
 }
 
@@ -2503,9 +2709,7 @@ async function submitAuth(mode) {
     return;
   }
 
-  signupToggleButton.disabled = true;
-  signupButton.disabled = true;
-  loginButton.disabled = true;
+  setAuthBusy(mode, true);
   setAccountNotice(mode === "signup" ? "Création du compte en cours..." : "Connexion en cours...");
   setHint(mode === "signup" ? "Création du compte..." : "Connexion...");
 
@@ -2539,9 +2743,7 @@ async function submitAuth(mode) {
     setAccountNotice(error.message);
     setHint(error.message);
   } finally {
-    signupToggleButton.disabled = false;
-    signupButton.disabled = false;
-    loginButton.disabled = false;
+    setAuthBusy(mode, false);
   }
 }
 
@@ -3983,9 +4185,25 @@ La terre PE est distribuee vers tous les circuits concernes.
 function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
   const room = schemaRoom.value.trim() || "pièce non précisée";
-  const usage = schemaUse.value.trim() || "usage non précisé";
+  const rawUsage = schemaUse.value.trim();
+  const usage = rawUsage || "usage non précisé";
   const counts = getSchemaCounts();
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
+  const schemaIdentity = inferSchemaObjectIdentity(rawUsage, schemaType.value);
+  const schemaManualSearchQuery = buildObjectSearchQuery(schemaIdentity);
+  const schemaObjectDetails = schemaIdentity
+    ? [
+        `Objet reconnu depuis la demande: ${[
+          schemaIdentity.category,
+          schemaIdentity.brand,
+          schemaIdentity.model,
+          schemaIdentity.reference
+        ].filter(Boolean).join(" / ")}.`,
+        schemaManualSearchQuery
+          ? `Recherche notice à proposer: ${schemaManualSearchQuery}.`
+          : "Aucune marque, modèle ou référence exploitable pour une notice: demander la plaque signalétique."
+      ].join(" ")
+    : "Aucun objet fabricant identifiable depuis la demande: ne prétends pas reconnaître une notice.";
   const symbolStyle = schemaSymbolMode?.value === "engineering"
     ? "Format bureau d'études: analyse le folio, le numéro de document, la nomenclature, les conventions conducteurs, la table de révision et le cartouche. Reste strictement fidèle aux repères dessinés et n'ajoute aucun organe absent."
     : "Format clair annoté: privilégie les libellés explicites, la lecture rapide et reste strictement fidèle aux éléments dessinés.";
@@ -4014,6 +4232,7 @@ function buildSchemaPrompt() {
     `Type: ${typeLabel}.`,
     `Format demandé: ${symbolStyle}`,
     diagramInventory,
+    schemaObjectDetails,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
     ...quantityDetails,
@@ -4025,6 +4244,9 @@ function buildSchemaPrompt() {
       : "",
     dedicatedLoad
       ? "Pour ce depart specialise, relie l'explication a l'objet alimente: type d'appareil, repere E1, puissance ou plaque signaletique a verifier, notice fabricant a retrouver et limites avant tout dimensionnement reel."
+      : "",
+    schemaIdentity
+      ? "Ajoute une section courte 'Objet vers notice': rappelle l'objet reconnu, le niveau de confiance, la requete notice si elle est exploitable et les informations exactes a lire sur l'etiquette avant de retenir une notice."
       : "",
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
@@ -4553,6 +4775,14 @@ document.querySelectorAll('a[href="#formules-electriques"]').forEach((link) => {
   });
 });
 
+document.querySelectorAll("[data-open-auth='signup']").forEach((trigger) => {
+  trigger.addEventListener("click", (event) => {
+    event.preventDefault();
+    openSignupFlow();
+    setHint("Compte gratuit : sauvegarde des rapports, reprise des échanges et 10 usages par jour.");
+  });
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape" || !fallbackChatFullscreen) return;
   setChatFullscreenState(false);
@@ -4655,6 +4885,11 @@ loginModeButton.addEventListener("click", () => {
   setAuthMode("login", { focus: true });
   setHint("Connecte-toi pour retrouver tes rapports et ton abonnement.");
 });
+authFields?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || !event.target.matches("input")) return;
+  event.preventDefault();
+  submitAuth(loginFields.hidden ? "signup" : "login");
+});
 signupButton.addEventListener("click", () => submitAuth("signup"));
 loginButton.addEventListener("click", () => submitAuth("login"));
 accessCodeButton.addEventListener("click", submitAccessCode);
@@ -4684,15 +4919,20 @@ createSchema.addEventListener("click", async () => {
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
   const counts = getSchemaCounts();
+  const schemaIdentity = inferSchemaObjectIdentity(usage, schemaType.value);
+  const schemaManualSearchQuery = buildObjectSearchQuery(schemaIdentity);
   const schemaPrompt = buildSchemaPrompt();
   if (guardPedagogicalFeature("schematics", schemaPrompt)) return;
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
   const circuitTitle = dedicatedLoad ? `Circuit spécialisé - ${dedicatedLoad}` : typeLabel;
+  renderSchemaObjectIdentity(schemaIdentity);
   addMessage("user", `Crée un schéma : ${typeLabel}, style : ${styleLabel}${room ? `, pièce : ${room}` : ""}${usage ? `, usage : ${usage}` : ""}.`);
   addDiagramMessage(
     `${styleLabel} — ${circuitTitle}`,
     buildSchema(schemaType.value, room, usage, counts),
-    "Schéma symbolique indicatif généré par Voltia. Ne pas intervenir sous tension."
+    schemaManualSearchQuery
+      ? `Schéma symbolique indicatif généré par Voltia. Objet repéré pour notice: ${schemaManualSearchQuery}. Ne pas intervenir sous tension.`
+      : "Schéma symbolique indicatif généré par Voltia. Ne pas intervenir sous tension."
   );
   await askAssistant(schemaPrompt, {
     skipAutoSchema: true,
@@ -4704,7 +4944,12 @@ createSchema.addEventListener("click", async () => {
 
 schemaType.addEventListener("change", () => {
   syncSchemaDefaults();
+  renderSchemaObjectIdentity();
   hint.textContent = "Type de schéma mis à jour. Ajuste les quantités puis crée le schéma.";
+});
+
+schemaUse?.addEventListener("input", () => {
+  renderSchemaObjectIdentity();
 });
 
 schemaSymbolMode?.addEventListener("change", () => {
@@ -4847,4 +5092,5 @@ if (initialReportId) {
   await loadSavedConversation(initialReportId);
 }
 syncSchemaDefaults();
+renderSchemaObjectIdentity();
 autosize();

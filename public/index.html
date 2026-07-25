@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Voltia - Assistant intelligent en électricité</title>
-    <meta name="description" content="Voltia aide à diagnostiquer une panne électrique, préparer un schéma indicatif et exporter un rapport clair avant intervention.">
+    <title>Voltia - Diagnostic électrique, schémas et rapports IA</title>
+    <meta name="description" content="Voltia aide à diagnostiquer une panne électrique, préparer un schéma indicatif et exporter un rapport clair avant achat, devis ou intervention.">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -22,14 +22,14 @@
             <a href="/pro.html">Voltia Plus</a>
             <a href="#formules-electriques">Formules</a>
             <a href="/legal.html">Sécurité et mentions</a>
-            <span class="pill">Assistant intelligent</span>
+            <span class="pill">Diagnostic + rapports</span>
           </div>
         </nav>
 
         <div class="intro-layout">
           <div class="hero-copy">
             <p class="eyebrow">Assistant IA pour clarifier une panne, préparer un schéma et garder un rapport exploitable.</p>
-            <h1>Transforme un doute électrique en livrable clair.</h1>
+            <h1>Transforme un doute électrique en rapport exploitable.</h1>
             <p class="intro">
               Voltia aide à décider quoi vérifier, quoi éviter et quoi transmettre avant achat,
               devis ou intervention, avec des rapports lisibles et exportables.
@@ -67,32 +67,37 @@
             </div>
           </div>
 
-          <section class="account-card intro-account-card" aria-label="Compte et abonnement Voltia">
+          <section id="account" class="account-card intro-account-card" aria-label="Compte et abonnement Voltia">
             <div class="account-hero">
-              <span class="account-badge">Plus</span>
+              <span class="account-badge">Free</span>
               <div>
-                <h2>Essayer Voltia</h2>
-                <p>Le compte gratuit garde l'historique. Plus débloque photo, notices, dimensionnements et exports.</p>
+                <h2>Créer ton compte gratuit</h2>
+                <p>Sans carte. Historique, rapports sauvegardés et 10 usages par jour avant Plus.</p>
               </div>
             </div>
 
-            <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes sans carte. Crée ensuite un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.</div>
+            <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes. Le compte gratuit sauvegarde tes rapports et passe à 10 usages par jour, toujours sans carte.</div>
 
             <div class="account-quick-actions" aria-label="Actions rapides Voltia">
               <a class="primary-action account-start-link" href="#workspace">Démarrer un diagnostic</a>
-              <a class="secondary-action account-start-link" href="/?openAuth=1&openSignup=1">Créer un compte</a>
+              <a class="secondary-action account-start-link account-signup-trigger" href="#account" data-open-auth="signup">Créer un compte</a>
             </div>
 
-            <details class="account-auth-details">
-              <summary>Créer un compte ou se connecter</summary>
+            <details class="account-auth-details" open>
+              <summary><span>Accès compte</span><strong>Créer ou se connecter</strong></summary>
               <div class="auth-panel-intro">
-                <span>Accès sécurisé</span>
-                <strong>Crée ton compte sans carte pour garder tes rapports, ou connecte-toi pour reprendre ton historique.</strong>
+                <span>30 secondes, sans carte</span>
+                <strong>Crée ton espace pour garder les rapports utiles. Connecte-toi si tu as déjà un historique.</strong>
               </div>
               <div class="auth-value-points" aria-label="Avantages du compte gratuit">
                 <span>Sans carte</span>
                 <span>Historique</span>
                 <span>10 usages / jour</span>
+              </div>
+              <div class="account-path" aria-label="Parcours conseillé">
+                <span><strong>1</strong> Tester</span>
+                <span><strong>2</strong> Sauvegarder</span>
+                <span><strong>3</strong> Activer Plus si besoin</span>
               </div>
 
             <div id="authFields" class="auth-panel">
@@ -122,7 +127,7 @@
                   </select>
                 </label>
                 <button id="signupButton" class="primary-action" type="button">Créer mon compte gratuit</button>
-                <small>Aucune carte bancaire demandée.</small>
+                <small>Compte gratuit d'abord. Plus s'active ensuite seulement si les modules premium sont utiles.</small>
               </div>
 
               <div id="loginFields" class="auth-mode-panel login-fields" role="tabpanel" hidden>
@@ -157,7 +162,7 @@
                 <span class="plan-label">Voltia Plus</span>
                 <strong>9,99 € / mois</strong>
               </div>
-              <small>Modules photo, notices, dimensionnements et export dossier complet. <a href="/pro.html">Voir l'offre</a></small>
+              <small>À activer quand tu veux produire des dossiers, schémas photo, notices et exports complets. <a href="/pro.html">Voir l'offre</a></small>
             </div>
 
             <ul class="plan-benefits" aria-label="Avantages Voltia Plus">
@@ -606,6 +611,8 @@
               </label>
             </div>
 
+            <div id="schemaObjectResult" class="object-identity-card" hidden></div>
+
             <button id="createSchema" class="secondary-action" type="button">Créer un schéma</button>
           </div>
 
@@ -912,7 +919,7 @@
                 <span>Prochaine action</span>
                 <span>Rapport exportable</span>
               </div>
-              <p>Le compte gratuit couvre déjà ce format de livrable. Voltia Plus ajoute surtout les modules visuels et l'organisation en dossiers.</p>
+              <p>Chaque résultat doit se lire comme une fiche de décision : conclusion, danger, hypothèses, vérifications sûres et prochaine action. Plus ajoute les modules visuels et l'organisation en dossiers.</p>
             </div>
           </div>
 
@@ -922,7 +929,7 @@
               <div class="message-stack">
                 <span class="message-label">Voltia</span>
                 <div class="bubble">
-                  Bonjour, je suis Voltia. Décris ton problème électrique ou charge un exemple de rapport pour voir le rendu.
+                  Bonjour, je suis Voltia. Décris le symptôme, l'appareil concerné et ce qui déclenche. Je te renvoie un diagnostic structuré avec danger, hypothèses, vérifications sûres et prochaine action.
                 </div>
               </div>
             </article>
