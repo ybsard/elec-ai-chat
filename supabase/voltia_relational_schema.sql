@@ -8,12 +8,31 @@ create table if not exists public.voltia_users (
   password_hash text not null,
   plan text not null default 'free',
   subscription_status text not null default 'free',
+  account_role text not null default 'student' check (account_role in ('student', 'teacher')),
+  classroom_id text,
+  classroom_joined_at timestamptz,
   usage jsonb,
   last_feature text,
   stripe_customer_id text,
   stripe_subscription_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table if not exists public.voltia_classrooms (
+  id text primary key,
+  teacher_id text not null references public.voltia_users(id) on delete cascade,
+  code text not null unique,
+  name text not null,
+  response_mode text not null default 'block' check (response_mode in ('block', 'guided')),
+  blocked_categories jsonb not null default '[]'::jsonb,
+  custom_rules jsonb not null default '[]'::jsonb,
+  teacher_message text not null default '',
+  active boolean not null default true,
+  code_updated_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (teacher_id)
 );
 
 create table if not exists public.voltia_sessions (
@@ -57,12 +76,16 @@ create table if not exists public.voltia_usage_events (
 
 create index if not exists voltia_sessions_user_id_idx on public.voltia_sessions(user_id);
 create index if not exists voltia_sessions_expires_at_idx on public.voltia_sessions(expires_at);
+create index if not exists voltia_users_classroom_id_idx on public.voltia_users(classroom_id);
+create index if not exists voltia_classrooms_teacher_id_idx on public.voltia_classrooms(teacher_id);
+create index if not exists voltia_classrooms_code_idx on public.voltia_classrooms(code);
 create index if not exists voltia_projects_user_id_idx on public.voltia_projects(user_id);
 create index if not exists voltia_reports_user_id_created_at_idx on public.voltia_reports(user_id, created_at desc);
 create index if not exists voltia_reports_project_id_idx on public.voltia_reports(project_id);
 create index if not exists voltia_usage_events_user_id_created_at_idx on public.voltia_usage_events(user_id, created_at desc);
 
 alter table public.voltia_users enable row level security;
+alter table public.voltia_classrooms enable row level security;
 alter table public.voltia_sessions enable row level security;
 alter table public.voltia_projects enable row level security;
 alter table public.voltia_reports enable row level security;

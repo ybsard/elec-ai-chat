@@ -584,6 +584,10 @@
                 <span>Puissance ou usage</span>
                 <input id="schemaUse" type="text" placeholder="Ex: 16A, lumière, four">
               </label>
+              <label class="field">
+                <span>Objet / reference fabricant</span>
+                <input id="schemaObjectReference" type="text" placeholder="Ex: Legrand 412170, four Bosch HBA, contacteur A9C...">
+              </label>
             </div>
 
             <div class="schema-row schema-counts">
@@ -755,6 +759,10 @@
                 </div>
                 <div class="lighting-sketch-tools" aria-label="Outils de dessin climatisation">
                   <button class="sketch-tool is-active" type="button" data-climate-draw-mode="draw">Crayon</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="door">Porte</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="window">Fenetre</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="occupant">Zone occupee</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="unit">Mur UI</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="erase">Gomme</button>
                 </div>
               </div>
@@ -785,6 +793,17 @@
               <label class="field">
                 <span>Contraintes d'implantation</span>
                 <input id="climateConstraints" type="text" maxlength="220" placeholder="Ex: éviter le canapé, baie vitrée au sud, mur haut disponible à l'est">
+              </label>
+            </div>
+
+            <div class="schema-row">
+              <label class="field">
+                <span>Ouvrants / soleil</span>
+                <input id="climateOpenings" type="text" maxlength="220" placeholder="Ex: fenêtre ouest, baie vitrée sud, porte côté couloir">
+              </label>
+              <label class="field">
+                <span>Zones occupées</span>
+                <input id="climateOccupiedZones" type="text" maxlength="220" placeholder="Ex: lit au fond, canapé à gauche, bureau sous la fenêtre">
               </label>
             </div>
 

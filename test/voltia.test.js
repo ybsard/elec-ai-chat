@@ -101,6 +101,7 @@ test("rejects unsupported or oversized data images", () => {
 
 test("keeps answer contract focused on direct response", () => {
   const instructions = clearAnswerInstructions("la question test").join("\n");
+  assert.match(instructions, /Controle de coherence/);
   assert.match(instructions, /Réponse directe|RÃ©ponse directe/);
   assert.match(instructions, /exactement/);
 });
@@ -174,6 +175,32 @@ test("builds deterministic climate placement guidance from sketch constraints", 
   assert.equal(guidance.avoidZones.some((zone) => /canape/.test(zone)), true);
 });
 
+test("uses openings and occupied zones for climate placement guidance", () => {
+  const estimate = estimateClimateSizing({
+    area: 12,
+    height: 2.5,
+    room: "Chambre",
+    insulation: "Bonne",
+    sun: "Normale",
+    people: 1,
+    heatSources: "Peu",
+    region: "Tempere"
+  });
+  const guidance = buildClimatePlacementGuidance({
+    room: "Chambre",
+    dimensions: "4 x 3 m",
+    constraints: "mur nord disponible",
+    openings: "fenetre sud",
+    occupiedZones: "lit au centre"
+  }, estimate);
+
+  assert.match(guidance.preferredWall, /nord/);
+  assert.equal(guidance.openings, "fenetre sud");
+  assert.equal(guidance.occupiedZones, "lit au centre");
+  assert.equal(guidance.avoidZones.some((zone) => /lit/.test(zone)), true);
+  assert.equal(guidance.avoidZones.some((zone) => /fenetre/.test(zone)), true);
+});
+
 test("defines domain specialist contracts for climate placement", () => {
   const contract = specialistQualityContract("climate-sizing").join("\n");
 
@@ -227,6 +254,35 @@ test("builds a notice search query from the recognized object", () => {
     "Schneider Electric Acti9 iCT A9C20842"
   );
   assert.equal(buildManualSearchQuery({ brand: "non visible", reference: "inconnue" }), "");
+});
+
+test("extracts object identity from manufacturer reference variants", () => {
+  const identity = extractObjectIdentity(`
+Objet reconnu
+- Type d'objet: module de commande
+- Fabricant: Delta Dore
+- Gamme: Tyxia
+- Reference fabricant: 6351373
+- Certitude: forte
+  `);
+
+  assert.deepEqual(identity, {
+    category: "module de commande",
+    brand: "Delta Dore",
+    model: "Tyxia",
+    reference: "6351373",
+    confidence: "forte"
+  });
+});
+
+test("keeps category in notice query when brand and model are missing", () => {
+  assert.equal(
+    buildManualSearchQuery({
+      category: "contacteur jour nuit",
+      reference: "A9C20842"
+    }),
+    "contacteur jour nuit A9C20842"
+  );
 });
 
 test("normalizes classroom invite codes", () => {

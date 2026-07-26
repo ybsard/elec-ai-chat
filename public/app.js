@@ -96,6 +96,7 @@ const schemaType = document.querySelector("#schemaType");
 const schemaSymbolMode = document.querySelector("#schemaSymbolMode");
 const schemaRoom = document.querySelector("#schemaRoom");
 const schemaUse = document.querySelector("#schemaUse");
+const schemaObjectReference = document.querySelector("#schemaObjectReference");
 const schemaObjectResult = document.querySelector("#schemaObjectResult");
 const socketCount = document.querySelector("#socketCount");
 const lightCount = document.querySelector("#lightCount");
@@ -132,6 +133,8 @@ const climateArea = document.querySelector("#climateArea");
 const climateHeight = document.querySelector("#climateHeight");
 const climateDimensions = document.querySelector("#climateDimensions");
 const climateConstraints = document.querySelector("#climateConstraints");
+const climateOpenings = document.querySelector("#climateOpenings");
+const climateOccupiedZones = document.querySelector("#climateOccupiedZones");
 const climateRoom = document.querySelector("#climateRoom");
 const climateInsulation = document.querySelector("#climateInsulation");
 const climateSun = document.querySelector("#climateSun");
@@ -177,6 +180,15 @@ let climateSketchDrawing = false;
 let climateSketchCurrentStroke = null;
 let climateSketchStrokes = [];
 let selectedClimateSketchDataUrl = "";
+const climateStampModes = new Set(["door", "window", "occupant", "unit"]);
+const climateSketchModeLabels = {
+  draw: "Crayon",
+  door: "Porte",
+  window: "Fenetre",
+  occupant: "Zone occupee",
+  unit: "Mur UI",
+  erase: "Gomme"
+};
 
 normalizeLiveRegionText(hint);
 normalizeLiveRegionText(pedagogyNotice);
@@ -725,8 +737,8 @@ function schemaObjectCategory(usage = "", type = "prise") {
   return type === "prise" ? dedicatedLoadLabel(usage) : "";
 }
 
-function inferSchemaObjectIdentity(usage = "", type = "prise") {
-  const source = String(usage || "").trim();
+function inferSchemaObjectIdentity(usage = "", type = "prise", referenceContext = "") {
+  const source = `${usage || ""} ${referenceContext || ""}`.trim();
   if (!source) return null;
 
   const brand = firstMatchingBrand(source);
@@ -766,7 +778,11 @@ function buildObjectSearchQuery(identity) {
     .trim();
 }
 
-function renderSchemaObjectIdentity(identity = inferSchemaObjectIdentity(schemaUse.value, schemaType.value)) {
+function renderSchemaObjectIdentity(identity = inferSchemaObjectIdentity(
+  schemaUse.value,
+  schemaType.value,
+  schemaObjectReference?.value || ""
+)) {
   const manualSearchQuery = buildObjectSearchQuery(identity);
   renderObjectIdentityCard(schemaObjectResult, identity, {
     manualSearchQuery,
@@ -964,6 +980,25 @@ function getClimateSketchContext() {
   return climateSketchCanvas?.getContext("2d") || null;
 }
 
+function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+  if (ctx.roundRect) {
+    ctx.roundRect(x, y, width, height, radius);
+    return;
+  }
+
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  ctx.moveTo(x + safeRadius, y);
+  ctx.lineTo(x + width - safeRadius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  ctx.lineTo(x + width, y + height - safeRadius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  ctx.lineTo(x + safeRadius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  ctx.lineTo(x, y + safeRadius);
+  ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+  ctx.closePath();
+}
+
 function drawClimateSketchGrid(ctx) {
   const width = climateSketchCanvas.width;
   const height = climateSketchCanvas.height;
@@ -988,10 +1023,53 @@ function drawClimateSketchGrid(ctx) {
     ctx.lineWidth = y % 100 === 0 ? 1.4 : 1;
     ctx.stroke();
   }
+
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  ctx.strokeStyle = "rgba(29, 111, 143, 0.28)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  drawRoundedRectPath(ctx, 14, 14, 314, 34, 7);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#14556d";
+  ctx.font = "700 14px Inter, system-ui, sans-serif";
+  ctx.fillText("P porte | F fenetre | O zone occupee | UI mur possible", 26, 36);
+  ctx.restore();
+}
+
+function drawClimateSketchStamp(ctx, stroke) {
+  const point = stroke.points[0];
+  const markerConfig = {
+    door: { label: "P", color: "#8b5a19" },
+    window: { label: "F", color: "#1d6f8f" },
+    occupant: { label: "O", color: "#c44747" },
+    unit: { label: "UI", color: "#24a873" }
+  }[stroke.mode];
+  if (!markerConfig) return;
+
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = markerConfig.color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  drawRoundedRectPath(ctx, point.x - 17, point.y - 14, markerConfig.label.length > 1 ? 44 : 34, 28, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = markerConfig.color;
+  ctx.font = "800 16px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(markerConfig.label, point.x + (markerConfig.label.length > 1 ? 5 : 0), point.y + 1);
+  ctx.restore();
 }
 
 function drawClimateSketchStroke(ctx, stroke) {
   if (!stroke?.points?.length) return;
+  if (climateStampModes.has(stroke.mode)) {
+    drawClimateSketchStamp(ctx, stroke);
+    return;
+  }
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -1027,11 +1105,15 @@ function getClimateSketchPoint(event) {
 }
 
 function setClimateSketchMode(mode) {
-  climateSketchMode = mode === "erase" ? "erase" : "draw";
+  climateSketchMode = mode === "erase" || climateStampModes.has(mode) ? mode : "draw";
   climateDrawModeButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.climateDrawMode === climateSketchMode);
   });
   if (climateSketchStatus) {
+    if (climateStampModes.has(climateSketchMode)) {
+      climateSketchStatus.textContent = `${climateSketchModeLabels[climateSketchMode]} actif. Clique sur le croquis pour poser ce repere.`;
+      return;
+    }
     climateSketchStatus.textContent = climateSketchMode === "erase"
       ? "Gomme active. Efface les traits inutiles puis utilise le croquis."
       : "Crayon actif. Dessine murs, fenêtres, meubles, passage d'air et mur possible.";
@@ -1073,6 +1155,18 @@ function clearClimateSketchCanvas() {
 function startClimateSketchStroke(event) {
   if (!climateSketchCanvas) return;
   event.preventDefault();
+  if (climateStampModes.has(climateSketchMode)) {
+    climateSketchStrokes.push({
+      mode: climateSketchMode,
+      points: [getClimateSketchPoint(event)]
+    });
+    selectedClimateSketchDataUrl = "";
+    renderClimateSketch();
+    if (climateSketchStatus) {
+      climateSketchStatus.textContent = `${climateSketchModeLabels[climateSketchMode]} ajoute. Clique sur Utiliser ce croquis avant d'estimer.`;
+    }
+    return;
+  }
   climateSketchDrawing = true;
   climateSketchCurrentStroke = {
     mode: climateSketchMode,
@@ -4186,10 +4280,11 @@ function buildSchemaPrompt() {
   const typeLabel = schemaType.options[schemaType.selectedIndex].textContent;
   const room = schemaRoom.value.trim() || "pièce non précisée";
   const rawUsage = schemaUse.value.trim();
+  const objectReference = schemaObjectReference?.value.trim() || "";
   const usage = rawUsage || "usage non précisé";
   const counts = getSchemaCounts();
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
-  const schemaIdentity = inferSchemaObjectIdentity(rawUsage, schemaType.value);
+  const schemaIdentity = inferSchemaObjectIdentity(rawUsage, schemaType.value, objectReference);
   const schemaManualSearchQuery = buildObjectSearchQuery(schemaIdentity);
   const schemaObjectDetails = schemaIdentity
     ? [
@@ -4235,6 +4330,7 @@ function buildSchemaPrompt() {
     schemaObjectDetails,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
+    `Objet, marque, modele ou reference fabricant saisi: ${objectReference || "non precise"}.`,
     ...quantityDetails,
     schemaType.value === "va-et-vient" && counts.switches > 2
       ? "Important: pour plus de 2 points de commande, explique le principe avec deux va-et-vient aux extremites et un ou plusieurs permutateurs intermediaires."
@@ -4248,6 +4344,7 @@ function buildSchemaPrompt() {
     schemaIdentity
       ? "Ajoute une section courte 'Objet vers notice': rappelle l'objet reconnu, le niveau de confiance, la requete notice si elle est exploitable et les informations exactes a lire sur l'etiquette avant de retenir une notice."
       : "",
+    "Controle de coherence obligatoire: explique d'abord le schema demande, puis seulement ensuite la notice ou les donnees manquantes. Ne transforme pas une demande de schema en recherche web si le schema peut etre explique avec les donnees saisies.",
     buildLevelInstruction(),
     buildResponseFormatInstruction(),
     "Donne une explication simple, les points de sécurité, les limites du schéma, puis rappelle qu'un schéma réel doit respecter la norme applicable et être validé par un électricien.",
@@ -4636,6 +4733,8 @@ async function sizeClimateSystem() {
     height,
     dimensions: climateDimensions.value,
     constraints: climateConstraints.value,
+    openings: climateOpenings?.value || "",
+    occupiedZones: climateOccupiedZones?.value || "",
     room: climateRoom.value,
     insulation: climateInsulation.value,
     sun: climateSun.value,
@@ -4659,6 +4758,8 @@ async function sizeClimateSystem() {
     `appareils: ${payload.heatSources.toLowerCase()}`,
     `climat ${payload.region.toLowerCase()}`,
     payload.constraints ? `contraintes: ${payload.constraints}` : "",
+    payload.openings ? `ouvrants: ${payload.openings}` : "",
+    payload.occupiedZones ? `zones occupees: ${payload.occupiedZones}` : "",
     selectedClimateSketchDataUrl
       ? "Demande: proposer où placer l'unité intérieure dans la pièce, l'orientation du soufflage et les zones à éviter."
       : ""
@@ -4918,8 +5019,9 @@ createSchema.addEventListener("click", async () => {
   const styleLabel = schemaSymbolMode?.selectedOptions?.[0]?.textContent || "Schéma clair annoté";
   const room = schemaRoom.value.trim();
   const usage = schemaUse.value.trim();
+  const objectReference = schemaObjectReference?.value.trim() || "";
   const counts = getSchemaCounts();
-  const schemaIdentity = inferSchemaObjectIdentity(usage, schemaType.value);
+  const schemaIdentity = inferSchemaObjectIdentity(usage, schemaType.value, objectReference);
   const schemaManualSearchQuery = buildObjectSearchQuery(schemaIdentity);
   const schemaPrompt = buildSchemaPrompt();
   if (guardPedagogicalFeature("schematics", schemaPrompt)) return;
@@ -4938,7 +5040,7 @@ createSchema.addEventListener("click", async () => {
     skipAutoSchema: true,
     skipUserMessage: true,
     requestKind: "schema-explanation",
-    safetyContext: `${room} ${usage}`.trim()
+    safetyContext: `${room} ${usage} ${objectReference}`.trim()
   });
 });
 
@@ -4949,6 +5051,10 @@ schemaType.addEventListener("change", () => {
 });
 
 schemaUse?.addEventListener("input", () => {
+  renderSchemaObjectIdentity();
+});
+
+schemaObjectReference?.addEventListener("input", () => {
   renderSchemaObjectIdentity();
 });
 

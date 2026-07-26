@@ -43,7 +43,7 @@ async function loadLegacyStore() {
       headers: { Accept: "application/json" }
     }
   );
-  return rows?.[0]?.value || { users: [], sessions: {} };
+  return rows?.[0]?.value || { users: [], sessions: {}, classrooms: [] };
 }
 
 async function upsertRows(table, rows, conflictKey = "id") {
@@ -74,6 +74,9 @@ function userRow(user) {
     password_hash: user.passwordHash || "",
     plan: user.plan || "free",
     subscription_status: user.subscriptionStatus || "free",
+    account_role: user.accountRole === "teacher" ? "teacher" : "student",
+    classroom_id: user.classroomId || null,
+    classroom_joined_at: user.classroomJoinedAt ? normalizeDate(user.classroomJoinedAt) : null,
     usage: user.usage || null,
     last_feature: user.lastFeature || null,
     stripe_customer_id: user.stripeCustomerId || null,
@@ -81,6 +84,23 @@ function userRow(user) {
     created_at: normalizeDate(user.createdAt),
     updated_at: normalizeDate(user.updatedAt || user.createdAt)
   };
+}
+
+function classroomRows(classrooms = []) {
+  return classrooms.map((classroom) => ({
+    id: classroom.id,
+    teacher_id: classroom.teacherId,
+    code: classroom.code || "",
+    name: classroom.name || "Classe Voltia",
+    response_mode: classroom.responseMode === "guided" ? "guided" : "block",
+    blocked_categories: Array.isArray(classroom.blockedCategories) ? classroom.blockedCategories : [],
+    custom_rules: Array.isArray(classroom.customRules) ? classroom.customRules : [],
+    teacher_message: classroom.teacherMessage || "",
+    active: classroom.active !== false,
+    code_updated_at: classroom.codeUpdatedAt ? normalizeDate(classroom.codeUpdatedAt) : null,
+    created_at: normalizeDate(classroom.createdAt),
+    updated_at: normalizeDate(classroom.updatedAt || classroom.createdAt)
+  })).filter((classroom) => classroom.id && classroom.teacher_id);
 }
 
 function sessionRows(sessions = {}) {
@@ -126,12 +146,15 @@ function reportRows(users = []) {
 const store = await loadLegacyStore();
 const users = Array.isArray(store.users) ? store.users : [];
 const sessions = store.sessions && typeof store.sessions === "object" ? store.sessions : {};
+const classrooms = Array.isArray(store.classrooms) ? store.classrooms : [];
 
 console.log(`Migration Voltia Supabase ${dryRun ? "(dry-run)" : ""}`);
 console.log(`Utilisateurs: ${users.length}`);
 console.log(`Sessions: ${Object.keys(sessions).length}`);
+console.log(`Classes: ${classrooms.length}`);
 
 await upsertRows("voltia_users", users.map(userRow));
+await upsertRows("voltia_classrooms", classroomRows(classrooms));
 await upsertRows("voltia_projects", projectRows(users));
 await upsertRows("voltia_reports", reportRows(users));
 await upsertRows("voltia_sessions", sessionRows(sessions), "token");

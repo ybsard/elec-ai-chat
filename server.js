@@ -102,6 +102,7 @@ function openAIQualityOptions(model, { expert = false, verbosity = "medium" } = 
 
 function clearAnswerInstructions(task = "la question posée") {
   return [
+    "Controle de coherence: avant de conclure, verifie que le livrable correspond bien a la demande initiale, au type d'objet, aux mesures et aux contraintes donnees. Si la question demande un schema, une notice, un calcul ou un emplacement, fournis ce livrable explicitement au lieu de repondre par un conseil general.",
     `Contrat de qualité: commence toujours par une section "Réponse directe" qui répond exactement à ${task} en 2 à 5 phrases.`,
     "Ne remplace pas la réponse par des généralités, une prévention vague ou un plan hors sujet. Traite les mots exacts de l'utilisateur, puis détaille seulement ce qui aide à décider ou agir.",
     "Si plusieurs interprétations sont possibles, donne l'hypothèse la plus probable, puis les alternatives à vérifier. Si une information manque, explique en quoi elle change la conclusion.",
@@ -123,6 +124,7 @@ function specialistQualityContract(domain = "general") {
   return [
     "Contrat spécialiste: réponds comme un spécialiste du domaine demandé, pas comme un assistant généraliste.",
     "Ancre chaque conclusion dans les données fournies par l'utilisateur. Si une donnée manque, dis ce qu'elle changerait et ne la compense pas par une certitude inventée.",
+    "Structure la réponse comme un contrôle métier: données utilisées, hypothèses, résultat, limites, vérifications sûres, puis prochaine action. Chaque recommandation importante doit être reliée à une donnée utilisateur ou marquée comme hypothèse.",
     contracts[domain] || contracts.general
   ];
 }
@@ -1994,10 +1996,19 @@ function extractObjectIdentity(reply = "") {
 
   const identity = {
     category: readLabel("Catégorie", "Categorie", "Type d'objet", "Type objet"),
-    brand: readLabel("Marque", "Fabricant"),
-    model: readLabel("Modèle", "Modele"),
-    reference: readLabel("Référence exacte", "Reference exacte", "Référence", "Reference"),
-    confidence: readLabel("Confiance")
+    brand: readLabel("Marque", "Fabricant", "Constructeur"),
+    model: readLabel("Modèle", "Modele", "Gamme", "Série", "Serie"),
+    reference: readLabel(
+      "Référence exacte",
+      "Reference exacte",
+      "Référence fabricant",
+      "Reference fabricant",
+      "Référence",
+      "Reference",
+      "Réf.",
+      "Ref."
+    ),
+    confidence: readLabel("Confiance", "Certitude", "Niveau de confiance")
   };
   const meaningful = Object.values(identity).some((value) => value && !/^(inconn|illisible|non visible|non identifi)/i.test(value));
   return meaningful ? identity : null;
@@ -2005,9 +2016,16 @@ function extractObjectIdentity(reply = "") {
 
 function buildManualSearchQuery(identity) {
   if (!identity || typeof identity !== "object") return "";
-  const parts = [identity.brand, identity.model, identity.reference]
+  const brandModelParts = [identity.brand, identity.model]
     .map((value) => String(value || "").trim())
     .filter((value) => value && !/^(inconn|illisible|non visible|non identifi)/i.test(value));
+  const reference = String(identity.reference || "").trim();
+  const usefulReference = reference && !/^(inconn|illisible|non visible|non identifi)/i.test(reference) ? reference : "";
+  const parts = brandModelParts.length > 0
+    ? [...brandModelParts, usefulReference].filter(Boolean)
+    : [identity.category, identity.reference]
+      .map((value) => String(value || "").trim())
+      .filter((value) => value && !/^(inconn|illisible|non visible|non identifi)/i.test(value));
 
   return [...new Set(parts)].join(" ").trim();
 }
@@ -2727,7 +2745,9 @@ function estimateClimateSizing(input) {
 }
 
 function buildClimatePlacementGuidance(input = {}, estimate = null) {
-  const text = normalizePromptText(`${input.room || ""} ${input.constraints || ""} ${input.sun || ""} ${input.region || ""}`);
+  const openings = String(input.openings || "").slice(0, 220);
+  const occupiedZones = String(input.occupiedZones || "").slice(0, 220);
+  const text = normalizePromptText(`${input.room || ""} ${input.constraints || ""} ${openings} ${occupiedZones} ${input.sun || ""} ${input.region || ""}`);
   const parsedDimensions = parseMetricRoomDimensions(input.dimensions);
   const wallHints = [
     ["nord", "mur nord"],
@@ -2777,6 +2797,8 @@ function buildClimatePlacementGuidance(input = {}, estimate = null) {
     distanceGuidance,
     airflowDirection,
     avoidZones: [...new Set(avoidZones)].slice(0, 6),
+    openings: openings || "non precises",
+    occupiedZones: occupiedZones || "non precisees",
     powerBasis: estimate
       ? `${estimate.recommendedKw} kW / ${estimate.recommendedWatts} W / ${estimate.recommendedBtu} BTU/h`
       : "puissance a calculer"
@@ -2789,6 +2811,8 @@ async function handleClimateSizing(req, res) {
     const hasImage = Boolean(input.image);
     const dimensions = String(input.dimensions || "").slice(0, 160);
     const constraints = String(input.constraints || "").slice(0, 220);
+    const openings = String(input.openings || "").slice(0, 220);
+    const occupiedZones = String(input.occupiedZones || "").slice(0, 220);
     if (hasImage) {
       assertSupportedImageDataUrl(input.image, "Croquis de pièce");
     }
@@ -2803,7 +2827,7 @@ async function handleClimateSizing(req, res) {
     const auth = await getSessionUser(req);
     const pedagogyCheck = sendPedagogicalBlockIfNeeded(res, auth, {
       feature: "climate-sizing",
-      text: `${input.room || ""} ${input.area || ""} ${input.region || ""} ${dimensions} ${constraints}`
+      text: `${input.room || ""} ${input.area || ""} ${input.region || ""} ${dimensions} ${constraints} ${openings} ${occupiedZones}`
     });
     if (pedagogyCheck.blocked) return;
     if (!process.env.OPENAI_API_KEY) {
@@ -2834,6 +2858,7 @@ async function handleClimateSizing(req, res) {
           ...specialistQualityContract("climate-sizing"),
           "Explique une estimation de puissance de climatiseur à partir des données fournies.",
           "Si un croquis quadrillé est fourni, analyse-le comme un plan de pièce: murs, portes, fenêtres, mobilier, zones d'occupation, mur possible pour unité intérieure et obstacles au soufflage.",
+          "Le croquis peut contenir des repères ajoutés par l'utilisateur: P = porte, F = fenêtre, O = zone occupée sensible au soufflage direct, UI = mur ou zone pressentie pour l'unité intérieure. Utilise ces repères s'ils sont visibles.",
           "Quand un croquis est fourni, indique vraiment où dans la pièce placer l'unité intérieure: mur, zone, orientation, distance approximative aux murs et aux ouvertures, plus les zones à ne pas viser.",
           "Utilise la base d'implantation déterministe fournie comme point de départ. Corrige-la seulement si le croquis contredit clairement cette base, et explique pourquoi.",
           "Ne présente jamais le résultat comme une étude thermique professionnelle.",
@@ -2864,6 +2889,8 @@ async function handleClimateSizing(req, res) {
                   `Appareils chauffants: ${String(input.heatSources || "non precise").slice(0, 80)}.`,
                   `Region/climat: ${String(input.region || "non precise").slice(0, 80)}.`,
                   `Contraintes d'implantation: ${constraints || "aucune precisee"}.`,
+                  `Ouvrants, vitrages et soleil: ${openings || "non precises"}.`,
+                  `Zones occupees ou sensibles au soufflage: ${occupiedZones || "non precisees"}.`,
                   `Source du plan: ${String(input.source || (hasImage ? "croquis" : "aucune")).slice(0, 40)}.`,
                   `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
                   `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
