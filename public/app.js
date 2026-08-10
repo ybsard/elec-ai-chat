@@ -23,6 +23,8 @@ const conversionSecondaryButton = document.querySelector("#conversionSecondaryBu
 const issueButtons = document.querySelectorAll("[data-issue]");
 const levelButtons = document.querySelectorAll("[data-level]");
 const toolCards = document.querySelectorAll(".diagnostic-card, .schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
+const toolSwitcherButtons = document.querySelectorAll("[data-open-tool]");
+const promptShortcutButtons = document.querySelectorAll("[data-prompt-template]");
 const plusToolCards = document.querySelectorAll(".schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
 const accountCard = document.querySelector(".intro-account-card");
 const accountStatus = document.querySelector("#accountStatus");
@@ -43,6 +45,8 @@ const signupPassword = document.querySelector("#signupPassword");
 const signupAccountRole = document.querySelector("#signupAccountRole");
 const signupButton = document.querySelector("#signupButton");
 const loginButton = document.querySelector("#loginButton");
+const authInlineNotice = document.querySelector("#authInlineNotice");
+const passwordChecklist = document.querySelector("#passwordChecklist");
 const accessCodeDisclosure = document.querySelector("#accessCodeDisclosure");
 const memberActions = document.querySelector("#memberActions");
 const upgradeButton = document.querySelector("#upgradeButton");
@@ -184,8 +188,8 @@ const climateStampModes = new Set(["door", "window", "occupant", "unit"]);
 const climateSketchModeLabels = {
   draw: "Crayon",
   door: "Porte",
-  window: "Fenetre",
-  occupant: "Zone occupee",
+  window: "Fenêtre",
+  occupant: "Zone occupée",
   unit: "Mur UI",
   erase: "Gomme"
 };
@@ -332,6 +336,24 @@ function escapeHtml(value) {
 function normalizeVisibleText(value) {
   let text = String(value ?? "");
   const replacements = [
+    ["ÃƒÂ©", "\u00E9"],
+    ["ÃƒÂ¨", "\u00E8"],
+    ["ÃƒÂª", "\u00EA"],
+    ["ÃƒÂ«", "\u00EB"],
+    ["ÃƒÂ ", "\u00E0"],
+    ["ÃƒÂ¢", "\u00E2"],
+    ["ÃƒÂ®", "\u00EE"],
+    ["ÃƒÂ¯", "\u00EF"],
+    ["ÃƒÂ´", "\u00F4"],
+    ["ÃƒÂ¶", "\u00F6"],
+    ["ÃƒÂ¹", "\u00F9"],
+    ["ÃƒÂ»", "\u00FB"],
+    ["ÃƒÂ¼", "\u00FC"],
+    ["ÃƒÂ§", "\u00E7"],
+    ["Ãƒâ€°", "\u00C9"],
+    ["Ã‚Â·", "\u00B7"],
+    ["Ã‚Â«", "\u00AB"],
+    ["Ã‚Â»", "\u00BB"],
     ["ÃƒÂ©", "é"],
     ["ÃƒÂ¨", "è"],
     ["ÃƒÂª", "ê"],
@@ -637,7 +659,7 @@ function renderObjectIdentityCard(target, identity, options = {}) {
     <strong>Objet reconnu</strong>
     <span>${escapeHtml([category, ...values].filter(Boolean).join(" Â· "))}</span>
     ${confidence ? `<small>Confiance IA : ${escapeHtml(confidence)}</small>` : ""}
-    <small>${escapeHtml(options.note || "La rÃ©fÃ©rence doit correspondre exactement Ã  l'Ã©tiquette avant d'utiliser une notice.")}</small>
+    <small>${escapeHtml(options.note || "La référence doit correspondre exactement à l'étiquette avant d'utiliser une notice.")}</small>
     ${showUseButton ? `<button class="secondary-action object-identity-action" type="button" data-use-manual-query="${escapeHtml(manualSearchQuery)}">Utiliser pour la notice</button>` : ""}
   `;
 
@@ -649,7 +671,7 @@ function renderObjectIdentityCard(target, identity, options = {}) {
 function renderRecognizedObject(identity, manualSearchQuery = "") {
   renderObjectIdentityCard(photoObjectResult, identity, {
     manualSearchQuery,
-    note: "Passe ensuite dans Recherche de notice pour vÃ©rifier la rÃ©fÃ©rence exacte avec un document fabricant.",
+    note: "Passe ensuite dans Recherche de notice pour vérifier la référence exacte avec un document fabricant.",
     prefillReference: true,
     showUseButton: true
   });
@@ -658,7 +680,7 @@ function renderRecognizedObject(identity, manualSearchQuery = "") {
 function renderManualRecognizedObject(identity, manualSearchQuery = "") {
   renderObjectIdentityCard(manualObjectResult, identity, {
     manualSearchQuery,
-    note: "Avant d'ouvrir une notice, compare toujours la rÃ©fÃ©rence exacte, la variante et la tension indiquÃ©es sur l'appareil.",
+    note: "Avant d'ouvrir une notice, compare toujours la référence exacte, la variante et la tension indiquées sur l'appareil.",
     prefillReference: false,
     showUseButton: false
   });
@@ -1034,7 +1056,7 @@ function drawClimateSketchGrid(ctx) {
   ctx.stroke();
   ctx.fillStyle = "#14556d";
   ctx.font = "700 14px Inter, system-ui, sans-serif";
-  ctx.fillText("P porte | F fenetre | O zone occupee | UI mur possible", 26, 36);
+  ctx.fillText("P porte | F fenêtre | O zone occupée | UI mur possible", 26, 36);
   ctx.restore();
 }
 
@@ -2115,16 +2137,44 @@ async function readJsonResponse(response) {
 
 function setAuthMode(mode, { focus = false } = {}) {
   const signupMode = mode !== "login";
+  authFields?.setAttribute("data-auth-mode", signupMode ? "signup" : "login");
   signupFields.hidden = !signupMode;
   loginFields.hidden = signupMode;
   signupToggleButton.classList.toggle("is-active", signupMode);
   loginModeButton.classList.toggle("is-active", !signupMode);
   signupToggleButton.setAttribute("aria-selected", String(signupMode));
   loginModeButton.setAttribute("aria-selected", String(!signupMode));
+  setAuthInlineNotice(
+    signupMode
+      ? "Compte gratuit sans carte : 10 usages par jour, historique et rapports sauvegardés."
+      : "Connexion sécurisée : retrouve ton historique, tes rapports et ton statut Plus.",
+    "neutral"
+  );
+  updateAuthQuality();
 
   if (focus) {
     (signupMode ? authName : authEmail)?.focus();
   }
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function setAuthInlineNotice(message, tone = "neutral") {
+  if (!authInlineNotice) return;
+  authInlineNotice.textContent = normalizeVisibleText(message);
+  authInlineNotice.classList.toggle("is-warning", tone === "warning");
+  authInlineNotice.classList.toggle("is-success", tone === "success");
+}
+
+function updateAuthQuality() {
+  if (!passwordChecklist) return;
+  const emailValid = isValidEmail(signupEmail?.value || "");
+  const passwordReady = String(signupPassword?.value || "").length >= 8;
+
+  passwordChecklist.querySelector("[data-password-rule='email']")?.classList.toggle("is-valid", emailValid);
+  passwordChecklist.querySelector("[data-password-rule='length']")?.classList.toggle("is-valid", passwordReady);
 }
 
 function setAuthBusy(mode, busy) {
@@ -2444,7 +2494,7 @@ function updateAccountUi(user, meta = {}) {
     accessCodeFields.hidden = false;
     accessCodeDisclosure.hidden = false;
     accountAuthDetails.hidden = false;
-    accountAuthDetails.open = true;
+    accountAuthDetails.open = false;
     authFields.hidden = false;
     setAuthMode("signup");
     memberActions.hidden = true;
@@ -2639,6 +2689,11 @@ function openSignupFlow() {
   setAuthMode("signup", { focus: true });
 }
 
+function openLoginFlow() {
+  openAccountPanel();
+  setAuthMode("login", { focus: true });
+}
+
 function showAnonymousUpgradePrompt(message) {
   showConversionBanner({
     title: "Tes essais anonymes sont terminés",
@@ -2791,6 +2846,7 @@ async function submitAuth(mode) {
 
   if (mode === "signup" && !name) {
     setAccountNotice("Entre ton nom ou prénom pour personnaliser ton compte.");
+    setAuthInlineNotice("Nom ou prénom requis pour créer un espace identifiable.", "warning");
     setHint("Entre ton nom ou prénom.");
     authName.focus();
     return;
@@ -2798,13 +2854,32 @@ async function submitAuth(mode) {
 
   if (!email || !password) {
     setAccountNotice("Entre un email et un mot de passe.");
+    setAuthInlineNotice("Email et mot de passe sont nécessaires pour sécuriser ton espace.", "warning");
     setHint("Entre un email et un mot de passe.");
     (mode === "signup" ? signupEmail : authEmail).focus();
     return;
   }
 
+  if (!isValidEmail(email)) {
+    setAccountNotice("Entre un email valide.");
+    setAuthInlineNotice("Vérifie le format de l'email avant de continuer.", "warning");
+    setHint("Email invalide.");
+    (mode === "signup" ? signupEmail : authEmail).focus();
+    return;
+  }
+
+  if (mode === "signup" && password.length < 8) {
+    setAccountNotice("Choisis un mot de passe d'au moins 8 caractères.");
+    setAuthInlineNotice("Le mot de passe doit contenir au moins 8 caractères.", "warning");
+    setHint("Mot de passe trop court.");
+    signupPassword.focus();
+    updateAuthQuality();
+    return;
+  }
+
   setAuthBusy(mode, true);
   setAccountNotice(mode === "signup" ? "Création du compte en cours..." : "Connexion en cours...");
+  setAuthInlineNotice(mode === "signup" ? "Création de ton espace Voltia..." : "Connexion à ton espace Voltia...", "neutral");
   setHint(mode === "signup" ? "Création du compte..." : "Connexion...");
 
   try {
@@ -2826,15 +2901,18 @@ async function submitAuth(mode) {
     if (mode === "signup") {
       const roleLabel = data.user.accountRole === "teacher" ? "enseignant" : "élève / utilisateur";
       setAccountNotice(`Bienvenue ${displayName}. Ton compte ${roleLabel} est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
+      setAuthInlineNotice("Compte créé. Tu peux lancer un diagnostic ou sauvegarder un rapport.", "success");
       setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou activer Plus pour lever le compteur quotidien.`);
       hideConversionBanner();
     } else {
       setAccountNotice(`Bonjour ${displayName}. Connexion réussie. Ton historique de rapports est disponible dans ton compte.`);
+      setAuthInlineNotice("Connexion réussie. Ton espace Voltia est chargé.", "success");
       setHint("Connexion réussie.");
       hideConversionBanner();
     }
   } catch (error) {
     setAccountNotice(error.message);
+    setAuthInlineNotice(error.message, "warning");
     setHint(error.message);
   } finally {
     setAuthBusy(mode, false);
@@ -4805,6 +4883,18 @@ async function sizeClimateSystem() {
 
 promptInput.addEventListener("input", autosize);
 
+promptShortcutButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    promptShortcutButtons.forEach((item) => item.classList.remove("is-active"));
+    button.classList.add("is-active");
+    promptInput.value = button.dataset.promptTemplate || "";
+    autosize();
+    updateCounter();
+    promptInput.focus();
+    setHint("Demande prête. Ajuste les détails puis envoie à Voltia.");
+  });
+});
+
 sourceOnlyToggle.addEventListener("change", () => {
   sourceUrlInput.disabled = !sourceOnlyToggle.checked;
   if (sourceOnlyToggle.checked) {
@@ -4876,9 +4966,14 @@ document.querySelectorAll('a[href="#formules-electriques"]').forEach((link) => {
   });
 });
 
-document.querySelectorAll("[data-open-auth='signup']").forEach((trigger) => {
+document.querySelectorAll("[data-open-auth]").forEach((trigger) => {
   trigger.addEventListener("click", (event) => {
     event.preventDefault();
+    if (trigger.dataset.openAuth === "login") {
+      openLoginFlow();
+      setHint("Connexion : retrouve tes rapports, dossiers et ton statut Plus.");
+      return;
+    }
     openSignupFlow();
     setHint("Compte gratuit : sauvegarde des rapports, reprise des échanges et 10 usages par jour.");
   });
@@ -4893,7 +4988,7 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-use-manual-query]");
   if (!button) return;
   if (applyManualSearchQuery(button.dataset.useManualQuery, { focus: true })) {
-    hint.textContent = "RÃ©fÃ©rence transfÃ©rÃ©e vers Recherche de notice. ComplÃ¨te si besoin puis lance la recherche.";
+    setHint("Référence transférée vers Recherche de notice. Complète si besoin puis lance la recherche.");
   }
 });
 
@@ -4919,19 +5014,44 @@ projectList?.addEventListener("click", async (event) => {
   await loadProject(projectButton.dataset.projectId);
 });
 
+function syncToolSwitcherState() {
+  toolSwitcherButtons.forEach((button) => {
+    const target = document.querySelector(button.dataset.openTool);
+    const isActive = Boolean(target?.classList.contains("is-open"));
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+function openToolCard(card, options = {}) {
+  if (!card) return false;
+  if (guardPlusToolCard(card)) {
+    syncToolCardStates();
+    return false;
+  }
+
+  const alreadyOpen = card.classList.contains("is-open");
+  toolCards.forEach((item) => item.classList.remove("is-open"));
+
+  if (!options.toggle || !alreadyOpen) {
+    card.classList.add("is-open");
+  }
+
+  syncToolCardStates();
+
+  if (options.scroll && card.classList.contains("is-open")) {
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  return card.classList.contains("is-open");
+}
+
 toolCards.forEach((card) => {
   const heading = card.querySelector(".card-heading");
   if (!heading) return;
 
   const setOpenCard = () => {
-    if (guardPlusToolCard(card)) return;
-
-    const alreadyOpen = card.classList.contains("is-open");
-    toolCards.forEach((item) => item.classList.remove("is-open"));
-    if (!alreadyOpen) {
-      card.classList.add("is-open");
-    }
-    syncToolCardStates();
+    openToolCard(card, { toggle: true });
   };
 
   heading.setAttribute("role", "button");
@@ -4946,8 +5066,7 @@ toolCards.forEach((card) => {
   card.addEventListener("click", (event) => {
     if (event.target.closest("input, select, textarea, button, label, .upload-zone, .card-heading")) return;
     if (card.classList.contains("is-open")) return;
-    if (guardPlusToolCard(card)) return;
-    setOpenCard();
+    openToolCard(card);
   });
 });
 
@@ -4955,10 +5074,21 @@ function syncToolCardStates() {
   toolCards.forEach((card) => {
     card.querySelector(".card-heading")?.setAttribute("aria-expanded", String(card.classList.contains("is-open")));
   });
+  syncToolSwitcherState();
 }
 
 syncToolCardStates();
 updatePlusToolCards();
+
+toolSwitcherButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const card = document.querySelector(button.dataset.openTool);
+    const opened = openToolCard(card, { scroll: true });
+    if (!opened) return;
+    const label = button.querySelector("strong")?.textContent || "module";
+    setHint(`Module ${label} prêt dans le cockpit Voltia.`);
+  });
+});
 
 issueButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -4986,6 +5116,8 @@ loginModeButton.addEventListener("click", () => {
   setAuthMode("login", { focus: true });
   setHint("Connecte-toi pour retrouver tes rapports et ton abonnement.");
 });
+signupEmail?.addEventListener("input", updateAuthQuality);
+signupPassword?.addEventListener("input", updateAuthQuality);
 authFields?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || !event.target.matches("input")) return;
   event.preventDefault();

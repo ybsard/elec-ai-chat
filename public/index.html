@@ -45,6 +45,26 @@
               <a class="primary-action hero-link-button" href="#workspace">Démarrer gratuitement</a>
               <a class="secondary-action hero-link-button" href="/?sampleReport=1#workspace">Voir un exemple</a>
             </div>
+            <div class="hero-command-panel" aria-label="Aperçu du cockpit Voltia">
+              <div class="command-topline">
+                <span>Cockpit live</span>
+                <strong>Rapport chantier</strong>
+                <em>Plus</em>
+              </div>
+              <div class="command-metrics">
+                <span><strong>6</strong> modules</span>
+                <span><strong>10</strong> usages / jour</span>
+                <span><strong>PDF</strong> exportable</span>
+              </div>
+              <div class="command-progress" aria-hidden="true">
+                <span style="--progress: 72%"></span>
+              </div>
+              <div class="command-feed">
+                <span>Danger cadré</span>
+                <span>Hypothèses triées</span>
+                <span>Actions priorisées</span>
+              </div>
+            </div>
             <figure class="hero-product-shot">
               <img src="/assets/voltia-hero-workbench.png" alt="Tablette affichant un rapport électrique structuré avec schémas, photos et outils de diagnostic">
               <figcaption>
@@ -80,11 +100,18 @@
             <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes. Le compte gratuit sauvegarde tes rapports et passe à 10 usages par jour, toujours sans carte.</div>
 
             <div class="account-quick-actions" aria-label="Actions rapides Voltia">
-              <a class="primary-action account-start-link" href="#workspace">Démarrer un diagnostic</a>
-              <a class="secondary-action account-start-link account-signup-trigger" href="#account" data-open-auth="signup">Créer un compte</a>
+              <a class="primary-action account-start-link account-signup-trigger" href="#account" data-open-auth="signup">Créer un compte gratuit</a>
+              <a class="secondary-action account-start-link" href="#account" data-open-auth="login">Me connecter</a>
+              <a class="account-workspace-link" href="#workspace">Tester sans compte avec 5 essais anonymes</a>
             </div>
 
-            <details class="account-auth-details" open>
+            <div class="account-assurance-grid" aria-label="Garanties du parcours Voltia">
+              <span><strong>Sans carte</strong><small>Tu testes avant tout paiement.</small></span>
+              <span><strong>Compte utile</strong><small>Historique et rapports conservés.</small></span>
+              <span><strong>Plus ensuite</strong><small>À activer seulement si les modules premium servent.</small></span>
+            </div>
+
+            <details class="account-auth-details">
               <summary><span>Accès compte</span><strong>Créer ou se connecter</strong></summary>
               <div class="auth-panel-intro">
                 <span>30 secondes, sans carte</span>
@@ -106,6 +133,7 @@
                 <button id="signupToggleButton" class="auth-mode-button is-active" type="button" role="tab" aria-selected="true" aria-controls="signupFields">Créer un compte</button>
                 <button id="loginModeButton" class="auth-mode-button" type="button" role="tab" aria-selected="false" aria-controls="loginFields">J'ai déjà un compte</button>
               </div>
+              <p id="authInlineNotice" class="auth-inline-notice" role="status" aria-live="polite">Compte gratuit sans carte : 10 usages par jour, historique et rapports sauvegardés.</p>
 
               <div id="signupFields" class="signup-fields auth-mode-panel" role="tabpanel">
                 <label class="field">
@@ -120,6 +148,10 @@
                   <span>Mot de passe</span>
                   <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password">
                 </label>
+                <div id="passwordChecklist" class="password-checklist" aria-label="Préparation du compte">
+                  <span data-password-rule="email">Email valide</span>
+                  <span data-password-rule="length">Mot de passe 8 caractères minimum</span>
+                </div>
                 <label class="field">
                   <span>Type de compte</span>
                   <select id="signupAccountRole">
@@ -500,6 +532,31 @@
             <span class="eyebrow">Outils</span>
             <h2>Choisis ton point de départ</h2>
             <p>Un seul module ouvert à la fois pour garder l'interface lisible.</p>
+            <div class="workspace-kpis" aria-label="État du cockpit Voltia">
+              <span><strong>01</strong> Diagnostic</span>
+              <span><strong>Plus</strong> Modules visuels</span>
+              <span><strong>PDF</strong> Livrable</span>
+            </div>
+            <div class="tool-switcher" aria-label="Navigation des modules Voltia">
+              <button class="tool-switcher-button is-active" type="button" data-open-tool=".diagnostic-card" aria-pressed="true">
+                <span>01</span><strong>Diagnostic</strong>
+              </button>
+              <button class="tool-switcher-button" type="button" data-open-tool=".schema-card" aria-pressed="false">
+                <span>02</span><strong>Schéma</strong>
+              </button>
+              <button class="tool-switcher-button" type="button" data-open-tool=".photo-card" aria-pressed="false">
+                <span>03</span><strong>Photo</strong>
+              </button>
+              <button class="tool-switcher-button" type="button" data-open-tool=".manual-card" aria-pressed="false">
+                <span>04</span><strong>Notice</strong>
+              </button>
+              <button class="tool-switcher-button" type="button" data-open-tool=".lighting-card" aria-pressed="false">
+                <span>05</span><strong>Éclairage</strong>
+              </button>
+              <button class="tool-switcher-button" type="button" data-open-tool=".climate-card" aria-pressed="false">
+                <span>06</span><strong>Clim</strong>
+              </button>
+            </div>
           </div>
 
           <div class="diagnostic-card is-open">
@@ -760,8 +817,8 @@
                 <div class="lighting-sketch-tools" aria-label="Outils de dessin climatisation">
                   <button class="sketch-tool is-active" type="button" data-climate-draw-mode="draw">Crayon</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="door">Porte</button>
-                  <button class="sketch-tool" type="button" data-climate-draw-mode="window">Fenetre</button>
-                  <button class="sketch-tool" type="button" data-climate-draw-mode="occupant">Zone occupee</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="window">Fenêtre</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="occupant">Zone occupée</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="unit">Mur UI</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="erase">Gomme</button>
                 </div>
@@ -943,6 +1000,13 @@
             </div>
           </div>
 
+          <div class="prompt-shortcuts" aria-label="Demandes rapides Voltia">
+            <button type="button" data-prompt-template="Le disjoncteur saute quand j'allume le four. Je veux un diagnostic prudent avec hypothèses, contrôles sans risque et prochaine action.">Panne four</button>
+            <button type="button" data-prompt-template="J'ai une prise qui ne fonctionne plus dans la cuisine. Donne-moi une vérification simple, les causes possibles et les signes d'urgence.">Prise HS</button>
+            <button type="button" data-prompt-template="Je veux comprendre mon tableau électrique avant un devis. Aide-moi à organiser les circuits, les risques et les questions à poser.">Tableau</button>
+            <button type="button" data-prompt-template="Prépare un rapport clair à partager avec un électricien : symptôme, danger, hypothèses, tests autorisés et prochaine décision.">Rapport pro</button>
+          </div>
+
           <div id="messages" class="messages" aria-live="polite">
             <article class="message assistant">
               <div class="avatar">V</div>
@@ -994,6 +1058,7 @@
         <a href="/legal.html">Sécurité, confidentialité et conditions</a>
       </footer>
     </main>
+    <script src="/text-normalizer.js"></script>
     <script src="/app.js" type="module"></script>
   </body>
 </html>
