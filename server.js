@@ -230,6 +230,14 @@ function normalizeUserStore(store) {
   };
 }
 
+function storageErrorMessage(error) {
+  return error?.message || "indisponible";
+}
+
+function logStorageFallback(action, error) {
+  console.warn(`[storage] Supabase ${action} failed, using local fallback: ${storageErrorMessage(error)}`);
+}
+
 async function fetchSupabaseState() {
   const response = await fetch(
     `${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseStateTable)}?key=eq.${encodeURIComponent(userStoreKey)}&select=value`,
@@ -273,11 +281,7 @@ async function saveSupabaseState(store) {
   }
 }
 
-async function loadUserStore() {
-  if (isSupabaseConfigured()) {
-    return fetchSupabaseState();
-  }
-
+async function loadLocalUserStore() {
   try {
     return normalizeUserStore(JSON.parse(await readFile(usersFile, "utf8")));
   } catch {
@@ -285,14 +289,95 @@ async function loadUserStore() {
   }
 }
 
-async function saveUserStore(store) {
-  if (isSupabaseConfigured()) {
-    await saveSupabaseState(store);
-    return;
-  }
-
+async function saveLocalUserStore(store) {
   await mkdir(dataDir, { recursive: true });
   await writeFile(usersFile, JSON.stringify(normalizeUserStore(store), null, 2), "utf8");
+}
+
+async function loadUserStore() {
+  if (isSupabaseConfigured()) {
+    try {
+      return await fetchSupabaseState();
+    } catch (error) {
+      logStorageFallback("read", error);
+      return loadLocalUserStore();
+    }
+  }
+
+  return loadLocalUserStore();
+}
+
+async function saveUserStore(store) {
+  if (isSupabaseConfigured()) {
+    try {
+      await saveSupabaseState(store);
+      return;
+    } catch (error) {
+      logStorageFallback("write", error);
+    }
+  }
+
+  await saveLocalUserStore(store);
+}
+
+async function localStorageReady() {
+  await mkdir(dataDir, { recursive: true });
+  await loadLocalUserStore();
+}
+
+async function getStorageStatus() {
+  if (!isSupabaseConfigured()) {
+    try {
+      await localStorageReady();
+      return {
+        storage: "local-file",
+        storageReady: true,
+        storageDegraded: false,
+        primaryStorageReady: true,
+        fallbackStorageReady: true
+      };
+    } catch (error) {
+      return {
+        storage: `local-file: ${storageErrorMessage(error)}`,
+        storageReady: false,
+        storageDegraded: true,
+        primaryStorageReady: false,
+        fallbackStorageReady: false
+      };
+    }
+  }
+
+  try {
+    await fetchSupabaseState();
+    return {
+      storage: "supabase",
+      storageReady: true,
+      storageDegraded: false,
+      primaryStorageReady: true,
+      fallbackStorageReady: true
+    };
+  } catch (error) {
+    try {
+      await localStorageReady();
+      return {
+        storage: `supabase: ${storageErrorMessage(error)}`,
+        storageReady: true,
+        storageDegraded: true,
+        primaryStorageReady: false,
+        fallbackStorage: "local-file",
+        fallbackStorageReady: true
+      };
+    } catch (fallbackError) {
+      return {
+        storage: `supabase: ${storageErrorMessage(error)}`,
+        storageReady: false,
+        storageDegraded: true,
+        primaryStorageReady: false,
+        fallbackStorage: `local-file: ${storageErrorMessage(fallbackError)}`,
+        fallbackStorageReady: false
+      };
+    }
+  }
 }
 
 function hashPassword(password) {
@@ -2925,24 +3010,20 @@ async function handleClimateSizing(req, res) {
 }
 
 async function handleHealth(req, res) {
-  let storage = isSupabaseConfigured() ? "supabase" : "local-file";
-  let storageReady = true;
-
-  try {
-    await loadUserStore();
-  } catch (error) {
-    storageReady = false;
-    storage = `${storage}: ${error.message || "indisponible"}`;
-  }
+  const storageStatus = await getStorageStatus();
 
   sendJson(res, 200, {
     ok: true,
     app: "Voltia",
-    storage,
-    storageReady,
+    storage: storageStatus.storage,
+    storageReady: storageStatus.storageReady,
+    storageDegraded: storageStatus.storageDegraded,
     dependencies: {
-      storageReady
+      storageReady: storageStatus.storageReady,
+      primaryStorageReady: storageStatus.primaryStorageReady,
+      fallbackStorageReady: storageStatus.fallbackStorageReady
     },
+    fallbackStorage: storageStatus.fallbackStorage || "",
     storageMode: supabaseStorageMode,
     openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
     stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID),
