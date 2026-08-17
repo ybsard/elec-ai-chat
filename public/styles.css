@@ -52,6 +52,16 @@ button:hover {
   transform: translateY(-1px);
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(29, 111, 143, 0.35);
+  outline-offset: 2px;
+}
+
 .app {
   width: min(1440px, calc(100% - 28px));
   min-height: 100vh;
@@ -6863,11 +6873,131 @@ textarea:focus,
   padding: 9px 12px;
 }
 
+.auth-reassurance-strip,
+.plus-outcome-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.auth-reassurance-strip span,
+.plus-outcome-grid span {
+  display: grid;
+  min-height: 32px;
+  place-items: center;
+  padding: 6px 8px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 8px;
+  background: #f2fbf9;
+  color: #0b5f59;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.plus-outcome-grid {
+  margin: 2px 0;
+}
+
+.plus-outcome-grid span {
+  min-height: 58px;
+  border-color: rgba(246, 191, 69, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.plus-outcome-grid strong {
+  display: block;
+  color: #f6bf45;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.intro-account-card.is-auth-focused {
+  max-height: none;
+  overflow: visible;
+  align-self: start;
+  border-color: rgba(15, 118, 110, 0.42);
+  box-shadow:
+    0 0 0 4px rgba(15, 118, 110, 0.1),
+    0 24px 60px rgba(0, 0, 0, 0.24);
+}
+
+.app-intro:has(.intro-account-card.is-auth-focused) {
+  min-height: auto;
+  overflow: visible;
+}
+
+.app-intro:has(.intro-account-card.is-auth-focused) .intro-layout {
+  align-items: start;
+  padding-bottom: 24px;
+}
+
+.app-intro:has(.intro-account-card.is-auth-focused) .hero-copy {
+  align-content: start;
+}
+
+.intro-account-card.is-auth-focused .account-auth-details {
+  border-color: rgba(15, 118, 110, 0.24);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.intro-account-card.is-pro-intent .account-status {
+  border-color: rgba(246, 191, 69, 0.42);
+  background: #fff9e8;
+  color: #68460f;
+}
+
+.intro-account-card.is-pro-intent .plan-preview {
+  box-shadow: inset 3px 0 0 #f6bf45;
+}
+
+@media (min-width: 761px) {
+  .intro-account-card.is-auth-focused #signupFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .intro-account-card.is-auth-focused #signupFields .password-checklist,
+  .intro-account-card.is-auth-focused #signupFields .auth-reassurance-strip,
+  .intro-account-card.is-auth-focused #signupFields #signupButton,
+  .intro-account-card.is-auth-focused #signupFields small {
+    grid-column: 1 / -1;
+  }
+
+  .intro-account-card.is-auth-focused #loginFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .intro-account-card.is-auth-focused #loginFields .account-actions,
+  .intro-account-card.is-auth-focused #loginFields small {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 760px) {
+  .hero-copy h1,
+  .app-intro h1 {
+    max-width: 100%;
+    font-size: 32px;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
   .account-quick-actions,
   .account-assurance-grid,
   .password-checklist,
+  .auth-reassurance-strip,
+  .plus-outcome-grid,
   .pro-objection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbar-actions {
     grid-template-columns: 1fr;
   }
 }

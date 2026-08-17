@@ -194,6 +194,9 @@ const climateSketchModeLabels = {
   erase: "Gomme"
 };
 
+climateSketchModeLabels.window = "Fen\u00EAtre";
+climateSketchModeLabels.occupant = "Zone occup\u00E9e";
+
 normalizeLiveRegionText(hint);
 normalizeLiveRegionText(pedagogyNotice);
 
@@ -208,11 +211,11 @@ function setChatFullscreenState(active) {
 
   if (!fullscreenButton) return;
   fullscreenButton.setAttribute("aria-pressed", String(active));
-  fullscreenButton.textContent = active ? "Réduire" : "Plein écran";
-  fullscreenButton.title = active ? "Quitter le plein écran" : "Mettre le chat en plein écran";
+  fullscreenButton.textContent = active ? "R\u00E9duire" : "Plein \u00E9cran";
+  fullscreenButton.title = active ? "Quitter le plein \u00E9cran" : "Mettre le chat en plein \u00E9cran";
   fullscreenButton.setAttribute(
     "aria-label",
-    active ? "Quitter le plein écran du chat" : "Mettre le chat en plein écran"
+    active ? "Quitter le plein \u00E9cran du chat" : "Mettre le chat en plein \u00E9cran"
   );
 }
 
@@ -515,11 +518,11 @@ function addDiagramMessage(title, svgMarkup, note) {
 
   const bubble = document.createElement("div");
   bubble.className = "bubble diagram-bubble";
-  bubble.innerHTML = `
+  bubble.innerHTML = normalizeVisibleText(`
     <strong>${escapeHtml(title)}</strong>
     <div class="diagram-frame">${svgMarkup}</div>
     <p>${escapeHtml(note)}</p>
-  `;
+  `);
 
   stack.append(label, bubble);
   item.append(avatar, stack);
@@ -2168,6 +2171,11 @@ function setAuthInlineNotice(message, tone = "neutral") {
   authInlineNotice.classList.toggle("is-success", tone === "success");
 }
 
+function syncAccountAuthFocus() {
+  const focused = Boolean(accountAuthDetails?.open && !accountAuthDetails.hidden && !currentUser && !hasAccessPass);
+  accountCard?.classList.toggle("is-auth-focused", focused);
+}
+
 function updateAuthQuality() {
   if (!passwordChecklist) return;
   const emailValid = isValidEmail(signupEmail?.value || "");
@@ -2472,6 +2480,7 @@ function updateAccountUi(user, meta = {}) {
   accountCard?.classList.toggle("is-plus-account", currentUser?.plan === "pro" || hasAccessPass);
 
   if (hasAccessPass) {
+    accountCard?.classList.remove("is-auth-focused");
     accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet activé | Toutes les fonctionnalités sont débloquées.`;
     accessCodeFields.hidden = true;
     accessCodeDisclosure.hidden = true;
@@ -2495,6 +2504,7 @@ function updateAccountUi(user, meta = {}) {
     accessCodeDisclosure.hidden = false;
     accountAuthDetails.hidden = false;
     accountAuthDetails.open = false;
+    syncAccountAuthFocus();
     authFields.hidden = false;
     setAuthMode("signup");
     memberActions.hidden = true;
@@ -2510,6 +2520,7 @@ function updateAccountUi(user, meta = {}) {
   }
 
   const planLabel = currentUser.plan === "pro" ? "Plus" : "Gratuit";
+  accountCard?.classList.remove("is-auth-focused");
   const roleLabel = currentUser.accountRole === "teacher" ? "Enseignant" : "Élève / utilisateur";
   const displayName = currentUser.name || currentUser.email;
   const usage = currentUser.plan === "pro"
@@ -2677,21 +2688,22 @@ function showConversionBanner({
   conversionBanner.hidden = false;
 }
 
-function openAccountPanel() {
+function openAccountPanel({ block = "start" } = {}) {
   if (accountAuthDetails && !accountAuthDetails.open) {
     accountAuthDetails.open = true;
   }
-  accountCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+  syncAccountAuthFocus();
+  accountCard?.scrollIntoView({ behavior: "smooth", block });
 }
 
-function openSignupFlow() {
-  openAccountPanel();
-  setAuthMode("signup", { focus: true });
+function openSignupFlow({ focus = true, block = "center" } = {}) {
+  openAccountPanel({ block });
+  setAuthMode("signup", { focus });
 }
 
-function openLoginFlow() {
-  openAccountPanel();
-  setAuthMode("login", { focus: true });
+function openLoginFlow({ focus = true, block = "center" } = {}) {
+  openAccountPanel({ block });
+  setAuthMode("login", { focus });
 }
 
 function showAnonymousUpgradePrompt(message) {
@@ -2789,16 +2801,19 @@ function handleLandingState() {
   const intent = pageParams.get("intent");
 
   if (shouldOpenSignup && !currentUser) {
-    openSignupFlow();
+    openSignupFlow({ focus: false, block: "center" });
     setHint("Compte gratuit : sauvegarde des rapports, reprise des échanges et 10 usages par jour.");
   } else if (shouldOpenAuth) {
-    openAccountPanel();
+    openAccountPanel({ block: "center" });
     setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe à Plus si tu utilises Voltia plusieurs fois par semaine.");
   }
 
   if (intent === "pro") {
+    accountCard?.classList.add("is-pro-intent");
     setAccountNotice("Crée ton compte gratuit, puis clique sur Activer Plus pour lever le quota quotidien et activer les modules premium.");
     setHint("Parcours recommandé : compte gratuit d'abord, puis activation Plus depuis l'espace compte.", true);
+  } else {
+    accountCard?.classList.remove("is-pro-intent");
   }
 
   if (checkoutState === "success") {
@@ -3025,7 +3040,7 @@ async function startCheckout() {
   if (!currentUser) {
     setAccountNotice("Connecte-toi ou crée un compte avant d'activer Voltia Plus.");
     setHint("Connecte-toi ou crée un compte avant d'activer Plus.", true);
-    openAccountPanel();
+    openSignupFlow();
     return;
   }
 
@@ -4951,6 +4966,7 @@ fullscreenButton?.addEventListener("click", toggleChatFullscreen);
 showSampleReport?.addEventListener("click", showProfessionalReportExample);
 conversionPrimaryButton?.addEventListener("click", () => conversionPrimaryAction());
 conversionSecondaryButton?.addEventListener("click", () => conversionSecondaryAction());
+accountAuthDetails?.addEventListener("toggle", syncAccountAuthFocus);
 projectUpsellButton?.addEventListener("click", startCheckout);
 createProjectButton?.addEventListener("click", createProject);
 
