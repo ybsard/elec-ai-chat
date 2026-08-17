@@ -9,6 +9,7 @@ const {
   buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,
+  fetchWithTimeout,
   estimateLightingSizing,
   evaluatePedagogicalRestriction,
   extractObjectIdentity,
@@ -21,6 +22,25 @@ const {
   safetyMessagesForRequest,
   specialistQualityContract
 } = await import("../server.js");
+
+test("times out unavailable storage requests instead of stalling the service", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+  });
+
+  try {
+    await assert.rejects(
+      fetchWithTimeout("https://storage.invalid/rest/v1/app_state", {}, 10),
+      (error) => {
+        assert.match(error.message, /stockage/i);
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("flags dangerous operational wiring requests without a generic refusal", () => {
   const messages = [

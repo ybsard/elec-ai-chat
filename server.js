@@ -26,6 +26,10 @@ const maxJsonBodyBytes = positiveNumber(process.env.MAX_JSON_BODY_BYTES, 1_200_0
 const maxImageJsonBodyBytes = positiveNumber(process.env.MAX_IMAGE_JSON_BODY_BYTES, 9_000_000);
 const maxStripeBodyBytes = positiveNumber(process.env.MAX_STRIPE_BODY_BYTES, 1_000_000);
 const maxDataImageBytes = positiveNumber(process.env.MAX_DATA_IMAGE_BYTES, 6_500_000);
+const storageRequestTimeoutMs = Math.min(
+  positiveNumber(process.env.STORAGE_REQUEST_TIMEOUT_MS, 5_000),
+  15_000
+);
 const pedagogicalCategoryIds = new Set([
   "direct_answers",
   "assessments",
@@ -54,6 +58,23 @@ function normalizeSupabaseUrl(rawUrl) {
     .trim()
     .replace(/\/rest\/v1\/?$/i, "")
     .replace(/\/+$/, "");
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = storageRequestTimeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  timeout.unref?.();
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`La requête de stockage a dépassé ${timeoutMs} ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function normalizeOpenAIOption(value, allowed, fallback) {
@@ -239,7 +260,7 @@ function logStorageFallback(action, error) {
 }
 
 async function fetchSupabaseState() {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseStateTable)}?key=eq.${encodeURIComponent(userStoreKey)}&select=value`,
     {
       headers: {
@@ -260,7 +281,7 @@ async function fetchSupabaseState() {
 }
 
 async function saveSupabaseState(store) {
-  const response = await fetch(`${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseStateTable)}`, {
+  const response = await fetchWithTimeout(`${supabaseUrl}/rest/v1/${encodeURIComponent(supabaseStateTable)}`, {
     method: "POST",
     headers: {
       apikey: supabaseServiceRoleKey,
@@ -3235,6 +3256,7 @@ export {
   buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,
+  fetchWithTimeout,
   estimateLightingSizing,
   evaluatePedagogicalRestriction,
   extractObjectIdentity,
