@@ -665,6 +665,7 @@ function renderObjectIdentityCard(target, identity, options = {}) {
     <small>${escapeHtml(options.note || "La référence doit correspondre exactement à l'étiquette avant d'utiliser une notice.")}</small>
     ${showUseButton ? `<button class="secondary-action object-identity-action" type="button" data-use-manual-query="${escapeHtml(manualSearchQuery)}">Utiliser pour la notice</button>` : ""}
   `;
+  target.innerHTML = normalizeVisibleText(target.innerHTML);
 
   if (options.prefillReference && !manualReference.value.trim() && manualSearchQuery) {
     applyManualSearchQuery(manualSearchQuery);
@@ -1508,6 +1509,16 @@ function buildReportDocument() {
                 <li>Vérifier l'absence de tension avec un appareil adapté.</li>
                 <li>Ne pas intervenir si fumée, odeur de brûlé, humidité, chaleur ou fil dénudé.</li>
                 <li>Faire valider les travaux par un électricien qualifié.</li>
+              </ul>
+            </article>
+
+            <article class="panel soft">
+              <h2>Controle qualite du livrable</h2>
+              <ul class="checklist">
+                <li>La reponse directe traite la demande initiale, pas un sujet voisin.</li>
+                <li>Les hypotheses, donnees manquantes et limites sont visibles.</li>
+                <li>Les schemas, notices ou dimensionnements restent relies aux reperes utilisateur.</li>
+                <li>La prochaine action est verifiable avant achat, devis ou intervention.</li>
               </ul>
             </article>
 
@@ -4806,6 +4817,22 @@ async function analyzeLightingPlan() {
   }
 }
 
+function climateReadinessNote(payload, hasSketch) {
+  const hasSpatialText = Boolean(
+    String(payload.dimensions || "").trim()
+      || String(payload.constraints || "").trim()
+      || String(payload.openings || "").trim()
+      || String(payload.occupiedZones || "").trim()
+  );
+  if (hasSketch) {
+    return "Qualite implantation: croquis quadrille fourni avec reperes visuels exploitables.";
+  }
+  if (hasSpatialText) {
+    return "Qualite implantation: pas de croquis, placement indicatif base sur les dimensions et contraintes texte.";
+  }
+  return "Qualite implantation: puissance estimable, emplacement peu fiable sans croquis quadrille P/F/O/UI.";
+}
+
 async function sizeClimateSystem() {
   if (guardPedagogicalFeature("calculations")) return;
   const area = Number(climateArea.value);
@@ -4838,8 +4865,10 @@ async function sizeClimateSystem() {
     image: selectedClimateSketchDataUrl,
     source: selectedClimateSketchDataUrl ? "sketch" : ""
   };
+  const placementReadiness = climateReadinessNote(payload, Boolean(selectedClimateSketchDataUrl));
 
   const details = [
+    placementReadiness,
     selectedClimateSketchDataUrl ? "Source: croquis quadrillé de la pièce" : "Source: données sans croquis",
     `${payload.area} m2`,
     `${payload.height} m de hauteur`,
@@ -4864,7 +4893,7 @@ async function sizeClimateSystem() {
   sizeClimate.disabled = true;
   hint.textContent = selectedClimateSketchDataUrl
     ? "Voltia estime la puissance et analyse le croquis pour placer la clim..."
-    : "Voltia estime la puissance de climatisation...";
+    : "Voltia estime la puissance. Pour un emplacement fiable, ajoute un croquis quadrille avec P/F/O/UI.";
 
   try {
     const response = await fetchWithTimeout("/api/climate-sizing", {
@@ -4912,6 +4941,7 @@ promptShortcutButtons.forEach((button) => {
 
 sourceOnlyToggle.addEventListener("change", () => {
   sourceUrlInput.disabled = !sourceOnlyToggle.checked;
+  sourceUrlInput.hidden = !sourceOnlyToggle.checked;
   if (sourceOnlyToggle.checked) {
     normsSearchToggle.checked = false;
     normsSearchToggle.disabled = true;
@@ -5007,6 +5037,8 @@ document.addEventListener("click", (event) => {
     setHint("Référence transférée vers Recherche de notice. Complète si besoin puis lance la recherche.");
   }
 });
+
+sourceUrlInput.hidden = !sourceOnlyToggle.checked;
 
 reportList?.addEventListener("click", async (event) => {
   const link = event.target.closest("[data-report-id]");

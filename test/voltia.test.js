@@ -7,6 +7,7 @@ const {
   assertSupportedImageDataUrl,
   buildClimatePlacementGuidance,
   buildManualSearchQuery,
+  buildSpecialistOutputChecklist,
   clearAnswerInstructions,
   estimateClimateSizing,
   fetchWithTimeout,
@@ -221,6 +222,29 @@ test("uses openings and occupied zones for climate placement guidance", () => {
   assert.equal(guidance.avoidZones.some((zone) => /fenetre/.test(zone)), true);
 });
 
+test("asks for a climate sketch when placement data is incomplete", () => {
+  const estimate = estimateClimateSizing({
+    area: 22,
+    height: 2.5,
+    room: "Salon",
+    insulation: "Correcte",
+    sun: "Tres ensoleillee",
+    people: 2,
+    heatSources: "Normaux",
+    region: "Tempere"
+  });
+  const guidance = buildClimatePlacementGuidance({
+    room: "Salon",
+    dimensions: "5 x 4 m",
+    openings: "baie vitree sud"
+  }, estimate);
+
+  assert.equal(guidance.preferredWall, "mur nord");
+  assert.equal(guidance.sketchNeeded, true);
+  assert.match(guidance.placementConfidence, /indicative|faible/);
+  assert.match(guidance.sketchPrompt, /P=porte/);
+});
+
 test("defines domain specialist contracts for climate placement", () => {
   const contract = specialistQualityContract("climate-sizing").join("\n");
 
@@ -229,6 +253,17 @@ test("defines domain specialist contracts for climate placement", () => {
   assert.match(contract, /croquis/);
   assert.match(contract, /soufflage/);
   assert.match(contract, /sans donner de procédure de pose|sans donner de procÃ©dure de pose/);
+});
+
+test("defines output quality checklists for specialist deliverables", () => {
+  const climateChecklist = buildSpecialistOutputChecklist("climate-sizing").join("\n");
+  const schemaChecklist = buildSpecialistOutputChecklist("schema").join("\n");
+
+  assert.match(climateChecklist, /Controle qualite Voltia/);
+  assert.match(climateChecklist, /emplacement UI/);
+  assert.match(climateChecklist, /croquis/);
+  assert.match(schemaChecklist, /Objet vers notice/);
+  assert.match(schemaChecklist, /reperes visibles/);
 });
 
 test("estimates lighting from metric room dimensions", () => {
@@ -292,6 +327,25 @@ Objet reconnu
     model: "Tyxia",
     reference: "6351373",
     confidence: "forte"
+  });
+});
+
+test("extracts object identity from commercial reference labels", () => {
+  const identity = extractObjectIdentity(`
+Objet reconnu
+- Objet: thermostat connecte
+- Marque probable: Netatmo
+- Nom commercial: Thermostat modulant
+- Reference commerciale: NTH-PRO
+- Fiabilite: moyenne
+  `);
+
+  assert.deepEqual(identity, {
+    category: "thermostat connecte",
+    brand: "Netatmo",
+    model: "Thermostat modulant",
+    reference: "NTH-PRO",
+    confidence: "moyenne"
   });
 });
 

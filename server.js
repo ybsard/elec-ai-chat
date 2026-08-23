@@ -150,6 +150,24 @@ function specialistQualityContract(domain = "general") {
   ];
 }
 
+function buildSpecialistOutputChecklist(domain = "general") {
+  const domainRequirements = {
+    diagnostic: "Diagnostic: relie chaque hypothese au symptome donne, separe urgence immediate et verification sans danger, puis termine par une decision claire.",
+    schema: "Schema: cite les reperes visibles du schema, explique le role de chaque organe dessine, puis ajoute 'Objet vers notice' si une reference fabricant est disponible.",
+    "photo-schema": "Photo vers schema: commence par l'objet reconnu lui-meme, distingue lu/vu/suppose, puis fais correspondre les reperes du schema aux indices visuels.",
+    "manual-search": "Notice: garde uniquement les notices dont la reference, la variante et les caracteristiques visibles correspondent; sinon donne la requete exacte a verifier.",
+    "lighting-plan": "Eclairage: le schema propre doit contenir les points lumineux places sur le plan, les cotes ou hypotheses d'echelle, et un tableau par repere.",
+    "climate-sizing": "Climatisation: le livrable doit contenir puissance, hypothese thermique, emplacement UI, orientation du soufflage, zones X a eviter et ce qui manque si le croquis est absent.",
+    general: "General: reponds au besoin exact, puis indique les limites et la prochaine verification utile."
+  };
+
+  return [
+    "Controle qualite Voltia obligatoire: termine par une section 'Controle qualite Voltia' en cinq lignes courtes: Besoin traite, Donnees utilisees, Hypotheses, Points non verifies, Prochaine verification sure.",
+    "Dans ce controle, ne coche pas implicitement une donnee absente: ecris 'manquant' ou 'a confirmer' quand l'information n'est pas fournie.",
+    domainRequirements[domain] || domainRequirements.general
+  ];
+}
+
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...securityHeaders() });
   res.end(JSON.stringify(body));
@@ -2101,20 +2119,29 @@ function extractObjectIdentity(reply = "") {
   };
 
   const identity = {
-    category: readLabel("Catégorie", "Categorie", "Type d'objet", "Type objet"),
-    brand: readLabel("Marque", "Fabricant", "Constructeur"),
-    model: readLabel("Modèle", "Modele", "Gamme", "Série", "Serie"),
+    category: readLabel("Catégorie", "Categorie", "Type d'objet", "Type objet", "Type d'appareil", "Objet", "Appareil", "Famille"),
+    brand: readLabel("Marque", "Marque probable", "Fabricant", "Constructeur"),
+    model: readLabel("Modèle", "Modele", "Modèle exact", "Modele exact", "Gamme", "Série", "Serie", "Nom commercial"),
     reference: readLabel(
       "Référence exacte",
       "Reference exacte",
       "Référence fabricant",
       "Reference fabricant",
+      "Référence commerciale",
+      "Reference commerciale",
+      "Référence constructeur",
+      "Reference constructeur",
       "Référence",
       "Reference",
+      "Code produit",
+      "Code article",
+      "P/N",
+      "PN",
+      "SKU",
       "Réf.",
       "Ref."
     ),
-    confidence: readLabel("Confiance", "Certitude", "Niveau de confiance")
+    confidence: readLabel("Confiance", "Certitude", "Niveau de confiance", "Fiabilité", "Fiabilite")
   };
   const meaningful = Object.values(identity).some((value) => value && !/^(inconn|illisible|non visible|non identifi)/i.test(value));
   return meaningful ? identity : null;
@@ -2414,6 +2441,7 @@ async function handleChat(req, res) {
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique et petit tertiaire en France.",
           ...clearAnswerInstructions("la question électrique posée par l'utilisateur"),
           ...specialistQualityContract(requestKind === "schema-explanation" ? "schema" : "diagnostic"),
+          ...buildSpecialistOutputChecklist(requestKind === "schema-explanation" ? "schema" : "diagnostic"),
           "Réponds comme un expert prudent: diagnostic, raisonnement, priorisation du risque, limites et prochaine action. Tu dois être utile sans donner de procédure dangereuse.",
           "Adapte fortement la taille et l'agencement à la question. Une question simple appelle une réponse courte. Une question experte, un rapport ou un cas complexe appelle une réponse complète avec paragraphes structurés et listes ciblées.",
           "En mode expert, donne une analyse approfondie: résumé exécutif, niveau de danger, raisonnement technique, hypothèses classées, contrôles sans danger, informations à collecter, limites et plan d'action. Utilise des paragraphes courts de 2 à 4 phrases, puis des listes quand elles clarifient.",
@@ -2486,6 +2514,7 @@ async function handlePhotoSchema(req, res) {
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
           ...clearAnswerInstructions("ce qui est visible sur la photo"),
           ...specialistQualityContract("photo-schema"),
+          ...buildSpecialistOutputChecklist("photo-schema"),
           "Analyse la photo fournie pour retranscrire ce qui est visible en schéma électrique de principe structuré, proche d'un document technique professionnel mais clairement non exécutoire.",
           "Ne pretend jamais voir ce qui n'est pas visible. Si la photo est floue ou incomplete, dis-le.",
           "Commence par identifier l'objet lui-même avant d'interpréter ses connexions. Nomme l'appareil principal visible avant sa fonction dans le circuit: par exemple contacteur, disjoncteur, thermostat, variateur, récepteur, bornier ou module de commande. Distingue strictement ce qui est lu sur l'étiquette, ce qui est reconnu visuellement et ce qui reste une hypothèse.",
@@ -2598,6 +2627,7 @@ async function handleManualSearch(req, res) {
           "Tu es Voltia, un assistant français spécialisé dans l'électricité domestique.",
           ...clearAnswerInstructions("la notice ou reference demandee"),
           ...specialistQualityContract("manual-search"),
+          ...buildSpecialistOutputChecklist("manual-search"),
           "Tu aides à retrouver des notices constructeur à partir d'une référence texte ou d'une photo.",
           "Priorise les sources constructeur, distributeurs techniques reconnus, catalogues officiels et PDF de notice.",
           "Ne donne pas de certitude si la référence ne correspond pas exactement.",
@@ -2726,6 +2756,7 @@ async function handleLightingPlan(req, res) {
           "Tu es Voltia, un assistant français spécialisé dans l'éclairage domestique et le dimensionnement indicatif.",
           ...clearAnswerInstructions("la demande d'implantation lumineuse"),
           ...specialistQualityContract("lighting-plan"),
+          ...buildSpecialistOutputChecklist("lighting-plan"),
           "Analyse le plan fourni et propose une implantation logique des éclairages selon les dimensions visibles, l'agencement, les zones de passage, les meubles, les plans de travail et l'usage de la pièce.",
           "Si le plan est un croquis quadrillé dessiné à la main, tu dois le refaire proprement dans la réponse: murs, ouvertures, meubles ou zones utiles, cotes connues, hypothèse d'échelle du quadrillage et limites.",
           "Ne te limite pas à décrire le croquis. Produis un schéma propre et coté en texte monospacé avec les cotes placées autour du plan et les spots directement positionnés sur le schéma.",
@@ -2850,11 +2881,39 @@ function estimateClimateSizing(input) {
   };
 }
 
+function extractClimateDirections(value = "") {
+  const text = normalizePromptText(value);
+  return ["nord", "sud", "est", "ouest", "haut", "bas", "gauche", "droite"]
+    .filter((direction) => new RegExp(`\\b${direction}\\b`).test(text));
+}
+
+function oppositeClimateDirection(direction = "") {
+  return {
+    nord: "sud",
+    sud: "nord",
+    est: "ouest",
+    ouest: "est",
+    haut: "bas",
+    bas: "haut",
+    gauche: "droite",
+    droite: "gauche"
+  }[direction] || "";
+}
+
+function climateWallLabel(direction = "") {
+  if (!direction) return "";
+  return ["haut", "bas", "gauche", "droite"].includes(direction)
+    ? `mur ${direction} du croquis`
+    : `mur ${direction}`;
+}
+
 function buildClimatePlacementGuidance(input = {}, estimate = null) {
   const openings = String(input.openings || "").slice(0, 220);
   const occupiedZones = String(input.occupiedZones || "").slice(0, 220);
   const text = normalizePromptText(`${input.room || ""} ${input.constraints || ""} ${openings} ${occupiedZones} ${input.sun || ""} ${input.region || ""}`);
   const parsedDimensions = parseMetricRoomDimensions(input.dimensions);
+  const openingDirections = extractClimateDirections(openings);
+  const occupiedDirections = extractClimateDirections(occupiedZones);
   const wallHints = [
     ["nord", "mur nord"],
     ["sud", "mur sud"],
@@ -2869,9 +2928,17 @@ function buildClimatePlacementGuidance(input = {}, estimate = null) {
     const wallPattern = new RegExp(`\\bmur\\b[^.,;\\n]{0,45}\\b${keyword}\\b`);
     return wallPattern.test(text);
   }) || wallHints.find(([keyword]) => {
-    const availabilityPattern = new RegExp(`\\b${keyword}\\b[^.,;\\n]{0,35}\\b(disponible|possible|libre)\\b`);
-    return availabilityPattern.test(text);
+      const availabilityPattern = new RegExp(`\\b${keyword}\\b[^.,;\\n]{0,35}\\b(disponible|possible|libre)\\b`);
+      return availabilityPattern.test(text);
+    });
+  const explicitUnitWall = wallHints.find(([keyword]) => {
+    const unitPattern = new RegExp(`\\b(ui|unite interieure|split|clim)\\b[^.,;\\n]{0,55}\\b${keyword}\\b|\\b${keyword}\\b[^.,;\\n]{0,55}\\b(ui|unite interieure|split|clim)\\b`);
+    return unitPattern.test(text);
   });
+  const oppositeOpeningWall = openingDirections
+    .map(oppositeClimateDirection)
+    .map(climateWallLabel)
+    .find(Boolean);
   const avoidZones = [];
   if (text.includes("canape") || text.includes("salon")) avoidZones.push("soufflage direct sur canape ou assise");
   if (text.includes("lit") || text.includes("chambre")) avoidZones.push("soufflage direct sur lit");
@@ -2879,12 +2946,14 @@ function buildClimatePlacementGuidance(input = {}, estimate = null) {
   if (text.includes("baie") || text.includes("fenetre") || text.includes("vitree")) avoidZones.push("pose collee a une baie vitree ou a une fenetre chaude");
   if (text.includes("cuisine") || text.includes("four") || text.includes("plaque")) avoidZones.push("soufflage repris par une source chaude de cuisine");
   if (text.includes("passage") || text.includes("porte")) avoidZones.push("soufflage coupe par une porte ou une zone de passage");
+  if (openings) avoidZones.push(`pose ou soufflage trop proche des ouvrants: ${openings}`);
+  if (occupiedZones) avoidZones.push(`soufflage direct sur zones occupees: ${occupiedZones}`);
 
   if (!avoidZones.length) {
     avoidZones.push("soufflage direct sur les occupants", "obstacle proche devant l'unite");
   }
 
-  const preferredWall = explicitWall?.[1] || (
+  const preferredWall = explicitUnitWall?.[1] || explicitWall?.[1] || oppositeOpeningWall || (
     parsedDimensions
       ? "mur long le plus libre, idealement oppose aux vitrages les plus chauds"
       : "mur haut libre du croquis, a confirmer avec les ouvrants et les occupants"
@@ -2905,6 +2974,15 @@ function buildClimatePlacementGuidance(input = {}, estimate = null) {
     avoidZones: [...new Set(avoidZones)].slice(0, 6),
     openings: openings || "non precises",
     occupiedZones: occupiedZones || "non precisees",
+    openingDirections,
+    occupiedDirections,
+    placementConfidence: explicitUnitWall || explicitWall
+      ? "moyenne - mur propose par l'utilisateur"
+      : oppositeOpeningWall && parsedDimensions
+        ? "indicative - mur oppose aux ouvrants et dimensions connues"
+        : "faible - croquis ou reperes spatiaux a completer",
+    sketchNeeded: !input.image && (!parsedDimensions || !openings || !occupiedZones),
+    sketchPrompt: "Pour placer la clim plus serieusement, utilise le croquis quadrille avec P=porte, F=fenetre, O=zone occupee et UI=mur pressenti.",
     powerBasis: estimate
       ? `${estimate.recommendedKw} kW / ${estimate.recommendedWatts} W / ${estimate.recommendedBtu} BTU/h`
       : "puissance a calculer"
@@ -2962,6 +3040,7 @@ async function handleClimateSizing(req, res) {
           "Tu es Voltia, un assistant français spécialisé dans le dimensionnement indicatif de climatisation domestique.",
           ...clearAnswerInstructions("la demande de dimensionnement de climatisation"),
           ...specialistQualityContract("climate-sizing"),
+          ...buildSpecialistOutputChecklist("climate-sizing"),
           "Explique une estimation de puissance de climatiseur à partir des données fournies.",
           "Si un croquis quadrillé est fourni, analyse-le comme un plan de pièce: murs, portes, fenêtres, mobilier, zones d'occupation, mur possible pour unité intérieure et obstacles au soufflage.",
           "Le croquis peut contenir des repères ajoutés par l'utilisateur: P = porte, F = fenêtre, O = zone occupée sensible au soufflage direct, UI = mur ou zone pressentie pour l'unité intérieure. Utilise ces repères s'ils sont visibles.",
@@ -3001,6 +3080,9 @@ async function handleClimateSizing(req, res) {
                   `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
                   `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
                   `Base implantation deterministe: ${JSON.stringify(placementGuidance)}.`,
+                  placementGuidance.sketchNeeded
+                    ? "Qualite implantation: donne la puissance, mais indique que l'emplacement reste peu fiable sans croquis quadrille complet avec P/F/O/UI."
+                    : "Qualite implantation: utilise les reperes spatiaux fournis pour proposer un emplacement UI coherent et verifiable.",
                   `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`,
                   hasImage
                     ? "Le croquis fourni sert a recommander l'emplacement de l'unite interieure et l'orientation du soufflage. Indique explicitement ou dans la piece placer UI et quelles zones ne doivent pas recevoir le souffle direct."
@@ -3253,6 +3335,7 @@ if (process.env.NODE_ENV !== "test") {
 export {
   assertSupportedImageDataUrl,
   buildClimatePlacementGuidance,
+  buildSpecialistOutputChecklist,
   buildManualSearchQuery,
   clearAnswerInstructions,
   estimateClimateSizing,
