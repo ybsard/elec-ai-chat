@@ -46,6 +46,7 @@ const signupAccountRole = document.querySelector("#signupAccountRole");
 const signupButton = document.querySelector("#signupButton");
 const loginButton = document.querySelector("#loginButton");
 const authInlineNotice = document.querySelector("#authInlineNotice");
+const authModeBenefit = document.querySelector("#authModeBenefit");
 const passwordChecklist = document.querySelector("#passwordChecklist");
 const accessCodeDisclosure = document.querySelector("#accessCodeDisclosure");
 const memberActions = document.querySelector("#memberActions");
@@ -306,7 +307,7 @@ function createCopyAction(content) {
       }
 
       await navigator.clipboard.writeText(content);
-      copyButton.textContent = "Copie";
+      copyButton.textContent = "Copié";
     } catch {
       copyButton.textContent = "Impossible";
     }
@@ -2152,6 +2153,8 @@ async function readJsonResponse(response) {
 function setAuthMode(mode, { focus = false } = {}) {
   const signupMode = mode !== "login";
   authFields?.setAttribute("data-auth-mode", signupMode ? "signup" : "login");
+  accountCard?.classList.toggle("is-signup-mode", signupMode);
+  accountCard?.classList.toggle("is-login-mode", !signupMode);
   signupFields.hidden = !signupMode;
   loginFields.hidden = signupMode;
   signupToggleButton.classList.toggle("is-active", signupMode);
@@ -2164,11 +2167,28 @@ function setAuthMode(mode, { focus = false } = {}) {
       : "Connexion sécurisée : retrouve ton historique, tes rapports et ton statut Plus.",
     "neutral"
   );
+  renderAuthModeBenefit(signupMode ? "signup" : "login");
   updateAuthQuality();
 
   if (focus) {
     (signupMode ? authName : authEmail)?.focus();
   }
+}
+
+function renderAuthModeBenefit(mode) {
+  if (!authModeBenefit) return;
+
+  authModeBenefit.innerHTML = mode === "login"
+    ? `
+      <span>Connexion</span>
+      <strong>Reprends exactement là où tu t'étais arrêté.</strong>
+      <small>Ton historique, tes exports et ton statut Plus reviennent dès la connexion.</small>
+    `
+    : `
+      <span>Création</span>
+      <strong>Ton espace est gratuit au départ.</strong>
+      <small>Tu testes un vrai cas, tu conserves le rapport, puis tu actives Plus seulement si les modules premium servent.</small>
+    `;
 }
 
 function isValidEmail(value) {
@@ -2191,9 +2211,20 @@ function updateAuthQuality() {
   if (!passwordChecklist) return;
   const emailValid = isValidEmail(signupEmail?.value || "");
   const passwordReady = String(signupPassword?.value || "").length >= 8;
+  const hasStartedSignup = Boolean(`${signupEmail?.value || ""}${signupPassword?.value || ""}`.trim());
 
   passwordChecklist.querySelector("[data-password-rule='email']")?.classList.toggle("is-valid", emailValid);
   passwordChecklist.querySelector("[data-password-rule='length']")?.classList.toggle("is-valid", passwordReady);
+  passwordChecklist.classList.toggle("is-ready", emailValid && passwordReady);
+
+  if (!loginFields?.hidden || !hasStartedSignup) return;
+
+  setAuthInlineNotice(
+    emailValid && passwordReady
+      ? "Champs prêts : le compte gratuit peut être créé sans carte bancaire."
+      : "Prépare l'email et un mot de passe de 8 caractères minimum pour sécuriser l'espace.",
+    emailValid && passwordReady ? "success" : "neutral"
+  );
 }
 
 function setAuthBusy(mode, busy) {

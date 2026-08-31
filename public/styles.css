@@ -7205,3 +7205,319 @@ textarea:focus,
     grid-template-columns: 1fr;
   }
 }
+
+/* Audit 2026-08-31: clearer conversion, account and result proof. */
+.account-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 8px;
+  background: #f8fbfb;
+}
+
+.account-choice-grid article {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 7px;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.account-choice-grid span,
+.auth-mode-benefit span,
+.plan-value-row span,
+.sample-result-topline span {
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.account-choice-grid strong,
+.auth-mode-benefit strong {
+  color: #182230;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.account-choice-grid small,
+.auth-mode-benefit small {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.3;
+}
+
+.auth-mode-benefit {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f5fbfa);
+}
+
+.intro-account-card.is-login-mode .auth-mode-benefit {
+  border-color: rgba(246, 191, 69, 0.28);
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.password-checklist.is-ready span {
+  border-color: rgba(25, 169, 116, 0.38);
+}
+
+.plan-value-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.plan-preview .plan-value-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.plan-value-row span {
+  display: grid;
+  min-height: 30px;
+  place-items: center;
+  padding: 6px 7px;
+  border: 1px solid rgba(246, 191, 69, 0.28);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6bf45;
+  text-align: center;
+}
+
+.result-proof-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(360px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f7fbfa);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.result-proof-copy {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+}
+
+.result-proof-copy h2 {
+  margin: 0;
+  max-width: 760px;
+  color: #182230;
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.08;
+}
+
+.result-proof-copy p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.48;
+}
+
+.proof-link-button {
+  width: fit-content;
+  min-height: 38px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.sample-result-preview {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sample-result-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sample-result-topline strong {
+  color: #182230;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.sample-result-preview dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.sample-result-preview dl div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px;
+  border-radius: 7px;
+  background: #f8faf9;
+}
+
+.sample-result-preview dt {
+  color: #0b5f59;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.sample-result-preview dd {
+  margin: 0;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.intro-account-card.is-connected > .account-choice-grid {
+  display: none;
+}
+
+.intro-account-card {
+  max-height: none;
+  overflow: visible;
+}
+
+.plus-price-card,
+.pro-value-strip article,
+.pro-feature-card {
+  border-radius: 8px;
+}
+
+.plus-buying-signals {
+  display: grid;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid rgba(246, 191, 69, 0.26);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.plus-buying-signals strong {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.plus-buying-signals span {
+  position: relative;
+  padding-left: 18px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.plus-buying-signals span::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.46em;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f6bf45;
+}
+
+.plus-result-contract {
+  display: grid;
+  gap: 14px;
+}
+
+.plus-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.plus-contract-grid article {
+  display: grid;
+  gap: 7px;
+  min-height: 122px;
+  padding: 15px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f7fbfa);
+}
+
+.plus-contract-grid article:last-child {
+  border-color: rgba(246, 191, 69, 0.32);
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.plus-contract-grid strong {
+  color: #182230;
+  font-size: 18px;
+  line-height: 1.12;
+}
+
+.plus-contract-grid p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 740;
+  line-height: 1.48;
+}
+
+@media (min-width: 761px) {
+  .intro-account-card.is-auth-focused #signupFields .auth-mode-benefit,
+  .intro-account-card.is-auth-focused #loginFields .auth-mode-benefit {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .account-choice-grid,
+  .plan-value-row,
+  .plus-contract-grid,
+  .result-proof-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .result-proof-panel {
+    padding: 12px;
+  }
+
+  .proof-link-button {
+    width: 100%;
+  }
+
+  .sample-result-topline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sample-result-topline strong {
+    text-align: left;
+  }
+
+  .sample-result-preview dl div {
+    grid-template-columns: 1fr;
+  }
+}

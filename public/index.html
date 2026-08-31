@@ -106,6 +106,24 @@
               <small>Plus ajoute les dossiers, les modules photo, les notices, les dimensionnements et l'export complet.</small>
             </div>
 
+            <div class="account-choice-grid" aria-label="Choisir le bon parcours Voltia">
+              <article>
+                <span>Créer</span>
+                <strong>Garder les rapports</strong>
+                <small>10 usages par jour et historique sans carte bancaire.</small>
+              </article>
+              <article>
+                <span>Connecter</span>
+                <strong>Reprendre un dossier</strong>
+                <small>Retrouve les exports, rapports et le statut Plus.</small>
+              </article>
+              <article>
+                <span>Passer Plus</span>
+                <strong>Produire un livrable</strong>
+                <small>Dossiers, photos, notices et dimensionnements.</small>
+              </article>
+            </div>
+
             <div class="account-quick-actions" aria-label="Actions rapides Voltia">
               <a class="primary-action account-start-link account-signup-trigger" href="#account" data-open-auth="signup">Créer un compte gratuit</a>
               <a class="secondary-action account-start-link" href="#account" data-open-auth="login">Me connecter</a>
@@ -141,6 +159,11 @@
                 <button id="loginModeButton" class="auth-mode-button" type="button" role="tab" aria-selected="false" aria-controls="loginFields">J'ai déjà un compte</button>
               </div>
               <p id="authInlineNotice" class="auth-inline-notice" role="status" aria-live="polite">Compte gratuit sans carte : 10 usages par jour, historique et rapports sauvegardés.</p>
+              <div id="authModeBenefit" class="auth-mode-benefit" aria-live="polite">
+                <span>Création</span>
+                <strong>Ton espace est gratuit au départ.</strong>
+                <small>Tu testes un vrai cas, tu conserves le rapport, puis tu actives Plus seulement si les modules premium servent.</small>
+              </div>
 
               <div id="signupFields" class="signup-fields auth-mode-panel" role="tabpanel">
                 <label class="field">
@@ -160,7 +183,7 @@
                   <span data-password-rule="length">Mot de passe 8 caractères minimum</span>
                 </div>
                 <div class="auth-reassurance-strip" aria-label="Garanties de création de compte">
-                  <span>0 carte bancaire</span>
+                  <span>Sans carte bancaire</span>
                   <span>10 usages / jour</span>
                   <span>Activation Plus ensuite</span>
                 </div>
@@ -192,7 +215,7 @@
             </div>
 
             <details id="accessCodeDisclosure" class="access-code-disclosure">
-              <summary>J'ai un code créateur</summary>
+              <summary>J'ai un code d'accès</summary>
               <div id="accessCodeFields" class="access-code-panel">
                 <label class="field">
                   <span>Code créateur</span>
@@ -209,6 +232,11 @@
                 <strong>9,99 € / mois</strong>
               </div>
               <small>À activer quand tu veux produire plusieurs livrables, regrouper tes dossiers et lever le compteur quotidien. <a href="/pro.html">Voir l'offre</a></small>
+              <div class="plan-value-row" aria-label="Bénéfices clés de Voltia Plus">
+                <span>Dossier complet</span>
+                <span>Modules visuels</span>
+                <span>Export partageable</span>
+              </div>
             </div>
 
             <ul class="plan-benefits" aria-label="Avantages Voltia Plus">
@@ -411,6 +439,39 @@
           <span>Livrable</span>
           <strong>Export exploitable</strong>
           <p>Le compte garde les rapports ; Plus organise les projets et les exports complets.</p>
+        </article>
+      </section>
+
+      <section class="result-proof-panel" aria-label="Exemple de résultat Voltia">
+        <div class="result-proof-copy">
+          <span class="eyebrow">Preuve de valeur</span>
+          <h2>Chaque réponse doit aider à décider, pas seulement expliquer.</h2>
+          <p>Le format commercial le plus convaincant reste un rapport court, hiérarchisé et exportable : conclusion, danger, hypothèses, vérifications sûres et prochaine action.</p>
+          <a class="secondary-action proof-link-button" href="/?sampleReport=1#workspace">Charger l'exemple dans l'assistant</a>
+        </div>
+        <article class="sample-result-preview" aria-label="Aperçu du format de rapport">
+          <div class="sample-result-topline">
+            <span>Rapport exemple</span>
+            <strong>Prise cuisine hors service</strong>
+          </div>
+          <dl>
+            <div>
+              <dt>Conclusion</dt>
+              <dd>Probable défaut localisé ou protection déclenchée.</dd>
+            </div>
+            <div>
+              <dt>Danger</dt>
+              <dd>Arrêter si odeur, chaleur, trace noire ou humidité.</dd>
+            </div>
+            <div>
+              <dt>À vérifier</dt>
+              <dd>Identifier le circuit, noter les appareils branchés, comparer les autres prises.</dd>
+            </div>
+            <div>
+              <dt>Prochaine action</dt>
+              <dd>Partager le rapport et les photos avant devis ou intervention.</dd>
+            </div>
+          </dl>
         </article>
       </section>
 
