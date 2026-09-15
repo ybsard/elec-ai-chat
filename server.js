@@ -168,6 +168,74 @@ function buildSpecialistOutputChecklist(domain = "general") {
   ];
 }
 
+function hasMeaningfulInput(value) {
+  const text = String(value || "").trim();
+  const normalized = normalizePromptText(text);
+  return Boolean(text) && !/^(aucun|aucune|inconnu|inconnue|illisible|non visible|non precis|non precise|non precisee|non precisees|je ne sais pas)$/i.test(normalized);
+}
+
+function buildInputQualityBrief({ domain = "general", checks = [], blockers = [], priorities = [] } = {}) {
+  const normalizedChecks = checks.map((check) => ({
+    label: check.label,
+    ok: Boolean(check.ok)
+  }));
+  const present = normalizedChecks.filter((check) => check.ok).map((check) => check.label);
+  const missing = normalizedChecks.filter((check) => !check.ok).map((check) => check.label);
+  const score = normalizedChecks.length
+    ? Math.round((present.length / normalizedChecks.length) * 100)
+    : 100;
+  const level = blockers.length
+    ? "bloquant"
+    : score >= 85
+      ? "fort"
+      : score >= 60
+        ? "correct"
+        : "faible";
+
+  return {
+    domain,
+    score,
+    level,
+    ready: !blockers.length && missing.length === 0,
+    present,
+    missing,
+    blockers,
+    priorities: priorities.filter(Boolean).slice(0, 5)
+  };
+}
+
+function buildNoticeSourceQuality(reference = "", { hasImage = false, identity = null } = {}) {
+  const cleanReference = String(reference || "").trim();
+  const identityReference = String(identity?.reference || "").trim();
+  const identityBrand = String(identity?.brand || "").trim();
+  const identityModel = String(identity?.model || "").trim();
+  const referenceTokens = cleanReference.match(/\b[A-Z0-9][A-Z0-9._/-]{3,}\b/gi) || [];
+  const hasSpecificReference = hasMeaningfulInput(identityReference) || referenceTokens.some((token) => /\d/.test(token));
+  const hasBrandOrModel = hasMeaningfulInput(identityBrand) || hasMeaningfulInput(identityModel) || cleanReference.split(/\s+/).length >= 2;
+  const brief = buildInputQualityBrief({
+    domain: "manual-search",
+    checks: [
+      { label: "reference exacte ou code produit", ok: hasSpecificReference },
+      { label: "marque ou modele", ok: hasBrandOrModel },
+      { label: "photo etiquette/plaque", ok: hasImage },
+      { label: "objet/categorie reconnaissable", ok: hasMeaningfulInput(identity?.category) || cleanReference.length >= 4 }
+    ],
+    blockers: cleanReference || hasImage ? [] : ["reference ou photo manquante"],
+    priorities: [
+      hasSpecificReference ? "" : "Lire la reference exacte sur l'etiquette ou la plaque signaletique.",
+      hasBrandOrModel ? "" : "Ajouter la marque ou le modele pour filtrer les notices homonymes.",
+      hasImage ? "" : "Ajouter une photo de l'etiquette si la reference est ambigue.",
+      "Comparer chaque lien avec reference, variante, tension et courant avant de retenir la notice."
+    ]
+  });
+
+  return {
+    ...brief,
+    referenceTokens: [...new Set(referenceTokens)].slice(0, 6),
+    matchRule: "Une notice n'est acceptable que si la reference, la variante et les caracteristiques visibles correspondent."
+  };
+}
+
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...securityHeaders() });
   res.end(JSON.stringify(body));
@@ -718,7 +786,7 @@ async function consumeUsage(req, res, feature, authContext = null) {
     }
     if (auth.user.usage.count >= freeDailyLimit) {
       sendJson(res, 402, {
-        error: `Limite gratuite atteinte (${freeDailyLimit} utilisations aujourd'hui). Passe à Voltia Plus pour continuer.`,
+        error: `Limite gratuite atteinte (${freeDailyLimit} utilisations aujourd'hui). Passe à Voltia Pro pour continuer.`,
         upgradeRequired: true
       });
       return { allowed: false, user: auth.user };
@@ -1443,7 +1511,7 @@ function getReportConversation(report) {
 function buildProjectExportHtml(project, reports = []) {
   const generatedAt = new Date().toLocaleString("fr-FR");
   const safeProjectName = escapeHtml(project.name || "Dossier Voltia");
-  const safeDescription = escapeHtml(project.description || "Dossier exporté depuis Voltia Plus.");
+  const safeDescription = escapeHtml(project.description || "Dossier exporté depuis Voltia Pro.");
   const reportBlocks = reports.length
     ? reports.map((report, index) => {
       const conversation = getReportConversation(report);
@@ -1655,7 +1723,7 @@ function buildProjectExportHtml(project, reports = []) {
         <main>
           <section class="cover">
             <div class="brand-row">
-              <span>Voltia Plus</span>
+              <span>Voltia Pro</span>
               <span>Dossier complet</span>
             </div>
             <h1>${safeProjectName}</h1>
@@ -1678,7 +1746,7 @@ function buildProjectExportHtml(project, reports = []) {
           <section class="content">
             ${reportBlocks}
             <p class="footer-note">
-              Export indicatif généré par Voltia Plus. Il ne remplace pas une vérification sur site,
+              Export indicatif généré par Voltia Pro. Il ne remplace pas une vérification sur site,
               une notice fabricant, une norme officielle ou l'avis d'un professionnel qualifié.
             </p>
           </section>
@@ -1788,7 +1856,7 @@ async function handleSaveReport(req, res) {
     if (cleanProjectId) {
       if (!isProUser(auth.user)) {
         sendJson(res, 402, {
-          error: "Les dossiers Voltia Plus permettent de classer les rapports. Passe à Plus pour utiliser cette fonction.",
+          error: "Les dossiers Voltia Pro permettent de classer les rapports. Passe à Pro pour utiliser cette fonction.",
           upgradeRequired: true,
           feature: "projects"
         });
@@ -1881,7 +1949,7 @@ async function handleExportProjectHtml(req, res, projectId) {
 
   if (!isProUser(auth.user)) {
     res.writeHead(402, { "Content-Type": "text/plain; charset=utf-8", ...securityHeaders() });
-    res.end("L'export de dossier est réservé à Voltia Plus.");
+    res.end("L'export de dossier est réservé à Voltia Pro.");
     return;
   }
 
@@ -1916,7 +1984,7 @@ async function handleCreateProject(req, res) {
 
   if (!isProUser(auth.user)) {
     sendJson(res, 402, {
-      error: "Les dossiers sont réservés à Voltia Plus.",
+      error: "Les dossiers sont réservés à Voltia Pro.",
       upgradeRequired: true,
       feature: "projects"
     });
@@ -1981,12 +2049,12 @@ async function handleCreateCheckout(req, res) {
 
   const auth = await getSessionUser(req);
   if (!auth.user) {
-    sendJson(res, 401, { error: "Connecte-toi avant d'activer Voltia Plus." });
+    sendJson(res, 401, { error: "Connecte-toi avant d'activer Voltia Pro." });
     return;
   }
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
     sendJson(res, 501, {
-      error: "Stripe n'est pas encore configure. Ajoute STRIPE_SECRET_KEY et STRIPE_PRICE_ID sur Render."
+      error: "Stripe n'est pas encore configuré. Ajoute STRIPE_SECRET_KEY et STRIPE_PRICE_ID sur Render."
     });
     return;
   }
@@ -2493,7 +2561,7 @@ async function handlePhotoSchema(req, res) {
     if (pedagogyCheck.blocked) return;
     if (!process.env.OPENAI_API_KEY) {
       sendJson(res, 500, {
-        error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+        error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
       });
       return;
     }
@@ -2552,10 +2620,12 @@ async function handlePhotoSchema(req, res) {
 
     const reply = extractResponseText(data) || "Je n'ai pas pu analyser cette photo.";
     const objectIdentity = extractObjectIdentity(reply);
+    const manualSearchQuery = buildManualSearchQuery(objectIdentity);
     sendJson(res, 200, {
       reply,
       objectIdentity,
-      manualSearchQuery: buildManualSearchQuery(objectIdentity)
+      manualSearchQuery,
+      noticeQuality: buildNoticeSourceQuality(manualSearchQuery, { hasImage: true, identity: objectIdentity })
     });
   } catch (error) {
     sendError(res, error);
@@ -2581,17 +2651,19 @@ async function handleManualSearch(req, res) {
     if (pedagogyCheck.blocked) return;
     if (!process.env.OPENAI_API_KEY) {
       sendJson(res, 500, {
-        error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+        error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
       });
       return;
     }
     const usage = await consumeUsage(req, res, "manual-search", auth);
     if (!usage.allowed) return;
 
+    const initialNoticeQuality = buildNoticeSourceQuality(cleanReference, { hasImage });
     const userContent = [
       {
         type: "input_text",
         text: [
+          `Qualite entree notice: ${JSON.stringify(initialNoticeQuality)}.`,
           "Recherche une notice technique ou notice utilisateur fiable pour cet appareil électrique.",
           `Référence saisie: ${cleanReference || "aucune référence texte"}.`,
           "Si une photo est fournie, lis la marque, le modèle, la référence, les tensions/courants visibles, puis utilise ces éléments pour chercher.",
@@ -2651,10 +2723,12 @@ async function handleManualSearch(req, res) {
 
     const reply = extractResponseText(data) || "Je n'ai pas pu trouver de notice fiable.";
     const objectIdentity = extractObjectIdentity(reply);
+    const manualSearchQuery = buildManualSearchQuery(objectIdentity);
     sendJson(res, 200, {
       reply,
       objectIdentity,
-      manualSearchQuery: buildManualSearchQuery(objectIdentity)
+      manualSearchQuery,
+      noticeQuality: buildNoticeSourceQuality(cleanReference || manualSearchQuery, { hasImage, identity: objectIdentity })
     });
   } catch (error) {
     sendError(res, error);
@@ -2669,6 +2743,58 @@ function parseMetricRoomDimensions(value = "") {
   const width = Number(match[2]);
   if (!Number.isFinite(length) || !Number.isFinite(width) || length <= 0 || width <= 0) return null;
   return { length, width, area: Number((length * width).toFixed(2)) };
+}
+
+function buildClimateInputQuality(input = {}, { hasImage = Boolean(input.image) } = {}) {
+  const area = Number(input.area || 0);
+  const height = Number(input.height || 2.5);
+  const hasMetricDimensions = Boolean(parseMetricRoomDimensions(input.dimensions));
+  const hasOpenings = hasMeaningfulInput(input.openings);
+  const hasOccupiedZones = hasMeaningfulInput(input.occupiedZones);
+  const hasConstraints = hasMeaningfulInput(input.constraints);
+  const powerReady = area >= 5
+    && height >= 2
+    && hasMeaningfulInput(input.room)
+    && hasMeaningfulInput(input.insulation)
+    && hasMeaningfulInput(input.sun)
+    && hasMeaningfulInput(input.region);
+  const placementReady = Boolean(hasImage && hasMetricDimensions && hasOpenings && hasOccupiedZones);
+  const brief = buildInputQualityBrief({
+    domain: "climate-sizing",
+    checks: [
+      { label: "surface", ok: area >= 5 },
+      { label: "hauteur plafond", ok: height >= 2 },
+      { label: "type de piece", ok: hasMeaningfulInput(input.room) },
+      { label: "isolation", ok: hasMeaningfulInput(input.insulation) },
+      { label: "exposition soleil", ok: hasMeaningfulInput(input.sun) },
+      { label: "region/climat", ok: hasMeaningfulInput(input.region) },
+      { label: "dimensions metriques", ok: hasMetricDimensions },
+      { label: "ouvrants/vitrages", ok: hasOpenings },
+      { label: "zones occupees", ok: hasOccupiedZones },
+      { label: "croquis quadrille", ok: hasImage },
+      { label: "contraintes d'implantation", ok: hasConstraints }
+    ],
+    blockers: area >= 5 ? [] : ["surface valide manquante"],
+    priorities: [
+      powerReady ? "" : "Completer les donnees thermiques de base avant de qualifier la puissance.",
+      hasMetricDimensions ? "" : "Ajouter dimensions/echelle pour placer UI avec des distances exploitables.",
+      hasOpenings ? "" : "Preciser portes, fenetres, baies vitrees et orientation solaire.",
+      hasOccupiedZones ? "" : "Indiquer lit, canape, bureau ou zones sensibles au soufflage direct.",
+      hasImage ? "" : "Ajouter un croquis quadrille avec P, F, O, UI, fleche de soufflage et zones X."
+    ]
+  });
+
+  return {
+    ...brief,
+    powerReady,
+    placementReady,
+    placementLevel: placementReady
+      ? "fort"
+      : hasImage || hasMetricDimensions || hasOpenings || hasOccupiedZones
+        ? "indicatif"
+        : "faible",
+    requiredSketchLegend: "P=porte, F=fenetre, O=zone occupee, UI=unite interieure, ->=soufflage, X=zone a eviter"
+  };
 }
 
 function estimateLightingSizing({ room = "", dimensions = "", type = "" } = {}) {
@@ -2732,7 +2858,7 @@ async function handleLightingPlan(req, res) {
     if (pedagogyCheck.blocked) return;
     if (!process.env.OPENAI_API_KEY) {
       sendJson(res, 500, {
-        error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+        error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
       });
       return;
     }
@@ -3002,6 +3128,7 @@ async function handleClimateSizing(req, res) {
     }
     const estimate = estimateClimateSizing(input);
     const placementGuidance = buildClimatePlacementGuidance(input, estimate);
+    const inputQuality = buildClimateInputQuality(input, { hasImage });
 
     if (!estimate.area || estimate.area < 5) {
       sendJson(res, 400, { error: "Superficie manquante ou trop faible." });
@@ -3016,7 +3143,7 @@ async function handleClimateSizing(req, res) {
     if (pedagogyCheck.blocked) return;
     if (!process.env.OPENAI_API_KEY) {
       sendJson(res, 500, {
-        error: "OPENAI_API_KEY manquant. Ajoute ta cle dans l'environnement puis relance le serveur."
+        error: "OPENAI_API_KEY manquant. Ajoute ta clé dans l'environnement puis relance le serveur."
       });
       return;
     }
@@ -3080,8 +3207,9 @@ async function handleClimateSizing(req, res) {
                   `Estimation calculee: ${estimate.recommendedWatts} W, ${estimate.recommendedKw} kW, environ ${estimate.recommendedBtu} BTU/h.`,
                   `Base W/m2: ${estimate.baseWattsPerM2}. Coefficients: ${JSON.stringify(estimate.coefficients)}.`,
                   `Base implantation deterministe: ${JSON.stringify(placementGuidance)}.`,
+                  `Qualite entree climatisation: ${JSON.stringify(inputQuality)}.`,
                   placementGuidance.sketchNeeded
-                    ? "Qualite implantation: donne la puissance, mais indique que l'emplacement reste peu fiable sans croquis quadrille complet avec P/F/O/UI."
+                    ? "Qualite implantation: donne la puissance, mais indique que l'emplacement reste peu fiable sans croquis quadrille complet avec P/F/O/UI, -> et X."
                     : "Qualite implantation: utilise les reperes spatiaux fournis pour proposer un emplacement UI coherent et verifiable.",
                   `Niveau de detail: ${String(input.level || "debutant").slice(0, 40)}.`,
                   hasImage
@@ -3105,7 +3233,8 @@ async function handleClimateSizing(req, res) {
     sendJson(res, 200, {
       reply: extractResponseText(data) || "Je n'ai pas pu dimensionner cette climatisation.",
       estimate,
-      placementGuidance
+      placementGuidance,
+      inputQuality
     });
   } catch (error) {
     sendError(res, error);
@@ -3327,14 +3456,26 @@ async function requestListener(req, res) {
 }
 
 if (process.env.NODE_ENV !== "test") {
-  createServer(requestListener).listen(port, () => {
+  const server = createServer(requestListener);
+  server.on("error", (error) => {
+    if (error?.code === "EADDRINUSE") {
+      console.error(`Port ${port} déjà utilisé. Relance Voltia avec un autre port via PORT.`);
+      process.exitCode = 1;
+      return;
+    }
+
+    throw error;
+  });
+  server.listen(port, () => {
     console.log(`Voltia chat site: http://localhost:${port}`);
   });
 }
 
 export {
   assertSupportedImageDataUrl,
+  buildClimateInputQuality,
   buildClimatePlacementGuidance,
+  buildNoticeSourceQuality,
   buildSpecialistOutputChecklist,
   buildManualSearchQuery,
   clearAnswerInstructions,

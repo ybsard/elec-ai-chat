@@ -28,6 +28,7 @@ const promptShortcutButtons = document.querySelectorAll("[data-prompt-template]"
 const plusToolCards = document.querySelectorAll(".schema-card, .photo-card, .manual-card, .lighting-card, .climate-card");
 const accountCard = document.querySelector(".intro-account-card");
 const accountStatus = document.querySelector("#accountStatus");
+const accountSessionSummary = document.querySelector("#accountSessionSummary");
 const accountAuthDetails = document.querySelector(".account-auth-details");
 const authFields = document.querySelector("#authFields");
 const accessCodeFields = document.querySelector("#accessCodeFields");
@@ -185,7 +186,7 @@ let climateSketchDrawing = false;
 let climateSketchCurrentStroke = null;
 let climateSketchStrokes = [];
 let selectedClimateSketchDataUrl = "";
-const climateStampModes = new Set(["door", "window", "occupant", "unit"]);
+const climateStampModes = new Set(["door", "window", "occupant", "unit", "airflow", "avoid"]);
 const climateSketchModeLabels = {
   draw: "Crayon",
   door: "Porte",
@@ -197,6 +198,8 @@ const climateSketchModeLabels = {
 
 climateSketchModeLabels.window = "Fen\u00EAtre";
 climateSketchModeLabels.occupant = "Zone occup\u00E9e";
+climateSketchModeLabels.airflow = "Soufflage";
+climateSketchModeLabels.avoid = "Zone a eviter";
 
 normalizeLiveRegionText(hint);
 normalizeLiveRegionText(pedagogyNotice);
@@ -425,6 +428,15 @@ function responseHeadingClass(value) {
   const classes = ["response-heading"];
   if (normalized.includes("reponse directe")) {
     classes.push("response-heading-direct");
+  }
+  if (normalized.includes("danger") || normalized.includes("securite") || normalized.includes("a ne pas faire")) {
+    classes.push("response-heading-danger");
+  }
+  if (normalized.includes("prochaine action") || normalized.includes("prochaines etapes") || normalized.includes("plan d action")) {
+    classes.push("response-heading-action");
+  }
+  if (normalized.includes("limite") || normalized.includes("hypothese") || normalized.includes("points non verifies")) {
+    classes.push("response-heading-caution");
   }
   return classes.join(" ");
 }
@@ -798,11 +810,48 @@ function inferSchemaObjectIdentity(usage = "", type = "prise", referenceContext 
 function buildObjectSearchQuery(identity) {
   if (!identity) return "";
   if (!cleanIdentityValue(identity.brand) && !cleanIdentityValue(identity.reference)) return "";
-  return [...new Set([identity.brand, identity.model, identity.reference]
+  return [...new Set([identity.brand, identity.model, identity.reference, identity.category]
     .map((value) => cleanIdentityValue(value))
     .filter(Boolean))]
     .join(" ")
     .trim();
+}
+
+function hasConcreteFormValue(value) {
+  const text = String(value || "").trim();
+  return Boolean(text) && !/non precis|non precise|non precisee|usage non|piece non/i.test(normalizeText(text));
+}
+
+function schemaQuantityIsUsable(type, counts = {}) {
+  if (type === "tableau") return Number(counts.breakers || 0) >= 1 && hasConcreteFormValue(counts.breakerRatings);
+  if (type === "va-et-vient") return Number(counts.lights || 0) >= 1 && Number(counts.switches || 0) >= 2;
+  if (type === "eclairage") return Number(counts.lights || 0) >= 1 && Number(counts.switches || 0) >= 1;
+  return Number(counts.sockets || 0) >= 1;
+}
+
+function buildSchemaInputQualityBrief({ type, room, usage, objectReference, identity, manualSearchQuery, counts }) {
+  const checks = [
+    { label: "type", ok: hasConcreteFormValue(type) },
+    { label: "piece", ok: hasConcreteFormValue(room) },
+    { label: "usage/puissance", ok: hasConcreteFormValue(usage) },
+    { label: "quantites", ok: schemaQuantityIsUsable(type, counts) },
+    { label: "objet vers notice", ok: Boolean(manualSearchQuery) },
+    { label: "reference fabricant", ok: Boolean(cleanIdentityValue(identity?.reference) || cleanIdentityValue(objectReference)) }
+  ];
+  const present = checks.filter((check) => check.ok).map((check) => check.label);
+  const missing = checks.filter((check) => !check.ok).map((check) => check.label);
+  const score = Math.round((present.length / checks.length) * 100);
+  const noticeBridge = manualSearchQuery
+    ? `requete notice exploitable: ${manualSearchQuery}`
+    : "notice non fiable: demander marque, modele et reference exacte sur etiquette";
+
+  return [
+    `Qualite entree schema: ${score}%.`,
+    `Donnees presentes: ${present.join(", ") || "aucune"}.`,
+    `Donnees manquantes: ${missing.join(", ") || "aucune"}.`,
+    `Pont schema vers notice: ${noticeBridge}.`,
+    "Obligation livrable: expliquer le schema affiche, nommer l'objet reconnu si present, puis limiter la notice aux references exactes."
+  ].join(" ");
 }
 
 function renderSchemaObjectIdentity(identity = inferSchemaObjectIdentity(
@@ -1056,12 +1105,12 @@ function drawClimateSketchGrid(ctx) {
   ctx.strokeStyle = "rgba(29, 111, 143, 0.28)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  drawRoundedRectPath(ctx, 14, 14, 314, 34, 7);
+  drawRoundedRectPath(ctx, 14, 14, 548, 34, 7);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = "#14556d";
-  ctx.font = "700 14px Inter, system-ui, sans-serif";
-  ctx.fillText("P porte | F fenêtre | O zone occupée | UI mur possible", 26, 36);
+  ctx.font = "700 13px Inter, system-ui, sans-serif";
+  ctx.fillText("P porte | F fenetre | O occupant | UI unite | -> souffle | X eviter", 26, 36);
   ctx.restore();
 }
 
@@ -1071,7 +1120,9 @@ function drawClimateSketchStamp(ctx, stroke) {
     door: { label: "P", color: "#8b5a19" },
     window: { label: "F", color: "#1d6f8f" },
     occupant: { label: "O", color: "#c44747" },
-    unit: { label: "UI", color: "#24a873" }
+    unit: { label: "UI", color: "#24a873" },
+    airflow: { label: "->", color: "#0f766e" },
+    avoid: { label: "X", color: "#d92d20" }
   }[stroke.mode];
   if (!markerConfig) return;
 
@@ -1659,7 +1710,7 @@ function showProfessionalReportExample() {
         openSignupFlow();
         setHint("Crée ton compte gratuit pour garder ce niveau de lisibilité sur tes vrais diagnostics.", true);
       },
-      secondaryLabel: "Voir Plus",
+      secondaryLabel: "Voir Pro",
       onSecondary: () => {
         window.location.href = "/pro.html";
       }
@@ -1667,12 +1718,12 @@ function showProfessionalReportExample() {
   } else if (currentUser.plan !== "pro") {
     showConversionBanner({
       title: "Tu peux déjà garder ce format dans ton compte",
-      text: "Le compte gratuit sauvegarde et exporte déjà tes rapports. Active Plus si tu veux les modules photo, notices, dimensionnements et les dossiers complets.",
+      text: "Le compte gratuit sauvegarde et exporte déjà tes rapports. Active Pro si tu veux les modules photo, notices, dimensionnements et les dossiers complets.",
       primaryLabel: "Sauvegarder un rapport",
       onPrimary: () => {
         saveConversationReport();
       },
-      secondaryLabel: "Voir Plus",
+      secondaryLabel: "Voir Pro",
       onSecondary: () => {
         window.location.href = "/pro.html";
       }
@@ -1754,7 +1805,7 @@ function renderCurrentReportHistory() {
     subtitle: activeProject
       ? `${reports.length} rapport${reports.length > 1 ? "s" : ""} dans ce dossier. Les prochains enregistrements peuvent y être rangés.`
       : currentUser.plan === "pro"
-        ? "Tous tes rapports Plus récents, avec ou sans dossier."
+        ? "Tous tes rapports Pro récents, avec ou sans dossier."
         : "Les derniers rapports sauvegardés dans ton compte.",
     emptyMessage: activeProject
       ? "Aucun rapport dans ce dossier pour l'instant."
@@ -1766,7 +1817,7 @@ function updateSaveTargetUi() {
   if (!saveTargetText) return;
 
   if (!currentUser) {
-    saveTargetText.textContent = "Crée un compte gratuit pour sauvegarder et exporter tes rapports. Active Plus pour les modules photo, notices, dimensionnements et les dossiers complets.";
+    saveTargetText.textContent = "Crée un compte gratuit pour sauvegarder et exporter tes rapports. Active Pro pour les modules photo, notices, dimensionnements et les dossiers complets.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Tous les rapports";
     }
@@ -1779,7 +1830,7 @@ function updateSaveTargetUi() {
 
   if (currentUser.plan !== "pro") {
     activeProjectId = "";
-    saveTargetText.textContent = "Compte gratuit : rapport sauvegardé et export individuel. Plus ajoute les modules photo, notices, dimensionnements, dossiers et export complet.";
+    saveTargetText.textContent = "Compte gratuit : rapport sauvegardé et export individuel. Pro ajoute les modules photo, notices, dimensionnements, dossiers et export complet.";
     if (activeProjectBadge) {
       activeProjectBadge.textContent = "Compte gratuit";
     }
@@ -1802,16 +1853,16 @@ function updateSaveTargetUi() {
   }
 
   if (activeProject) {
-    saveTargetText.textContent = `Voltia Plus : le prochain rapport sera rangé dans le dossier "${activeProject.name}". Tu peux aussi exporter ce dossier complet pour l'imprimer ou le partager.`;
+    saveTargetText.textContent = `Voltia Pro : le prochain rapport sera rangé dans le dossier "${activeProject.name}". Tu peux aussi exporter ce dossier complet pour l'imprimer ou le partager.`;
     return;
   }
 
   if (projectsCache.length) {
-    saveTargetText.textContent = "Voltia Plus : choisis un dossier pour ranger le prochain rapport, ou garde une vue générale de tous tes cas récents.";
+    saveTargetText.textContent = "Voltia Pro : choisis un dossier pour ranger le prochain rapport, ou garde une vue générale de tous tes cas récents.";
     return;
   }
 
-  saveTargetText.textContent = "Voltia Plus : crée un premier dossier pour classer tes photos, notices, dimensionnements et rapports.";
+  saveTargetText.textContent = "Voltia Pro : crée un premier dossier pour classer tes photos, notices, dimensionnements et rapports.";
 }
 
 function renderProjects(projects = []) {
@@ -1840,10 +1891,10 @@ function renderProjects(projects = []) {
     activeProjectId = "";
   }
 
-  projectWorkspaceTitle.textContent = "Dossiers Plus";
+  projectWorkspaceTitle.textContent = "Dossiers Pro";
   projectWorkspaceSubtitle.textContent = isPro
     ? "Classe tes schémas, notices, dimensionnements et rapports par projet."
-    : "Le compte gratuit sauvegarde tes rapports. Voltia Plus ajoute les modules premium et les dossiers.";
+    : "Le compte gratuit sauvegarde tes rapports. Voltia Pro ajoute les modules premium et les dossiers.";
 
   projectUpsell.hidden = isPro;
   projectManager.hidden = !isPro;
@@ -2031,7 +2082,7 @@ async function createProject() {
   }
 
   if (currentUser.plan !== "pro") {
-    showProjectsUpgradePrompt("Les dossiers et exports sont réservés à Voltia Plus.");
+    showProjectsUpgradePrompt("Les dossiers et exports sont réservés à Voltia Pro.");
     return;
   }
 
@@ -2082,7 +2133,7 @@ async function saveConversationReport() {
       onPrimary: () => {
         openSignupFlow();
       },
-      secondaryLabel: "Voir Plus",
+      secondaryLabel: "Voir Pro",
       onSecondary: () => {
         window.location.href = "/pro.html";
       }
@@ -2164,7 +2215,7 @@ function setAuthMode(mode, { focus = false } = {}) {
   setAuthInlineNotice(
     signupMode
       ? "Compte gratuit sans carte : 10 usages par jour, historique et rapports sauvegardés."
-      : "Connexion sécurisée : retrouve ton historique, tes rapports et ton statut Plus.",
+      : "Connexion sécurisée : retrouve ton historique, tes rapports et ton statut Pro.",
     "neutral"
   );
   renderAuthModeBenefit(signupMode ? "signup" : "login");
@@ -2182,12 +2233,12 @@ function renderAuthModeBenefit(mode) {
     ? `
       <span>Connexion</span>
       <strong>Reprends exactement là où tu t'étais arrêté.</strong>
-      <small>Ton historique, tes exports et ton statut Plus reviennent dès la connexion.</small>
+      <small>Ton historique, tes exports et ton statut Pro reviennent dès la connexion.</small>
     `
     : `
       <span>Création</span>
       <strong>Ton espace est gratuit au départ.</strong>
-      <small>Tu testes un vrai cas, tu conserves le rapport, puis tu actives Plus seulement si les modules premium servent.</small>
+      <small>Tu testes un vrai cas, tu conserves le rapport, puis tu actives Pro seulement si les modules premium servent.</small>
     `;
 }
 
@@ -2515,6 +2566,51 @@ async function removePedagogicalStudent(studentId, studentName) {
   }
 }
 
+function renderAccountSessionSummary(meta = {}) {
+  if (!accountSessionSummary) return;
+
+  if (hasAccessPass) {
+    accountSessionSummary.hidden = false;
+    accountSessionSummary.innerHTML = `
+      <span><strong>Accès complet</strong><small>${escapeHtml(meta.accessName || "Invité Voltia")}</small></span>
+      <span><strong>Modules ouverts</strong><small>Diagnostic, photos, notices et dimensionnements.</small></span>
+      <span><strong>Action utile</strong><small>Lance un cas réel puis exporte le rapport.</small></span>
+    `;
+    return;
+  }
+
+  if (!currentUser) {
+    accountSessionSummary.hidden = true;
+    accountSessionSummary.replaceChildren();
+    return;
+  }
+
+  const isPro = currentUser.plan === "pro";
+  const usageLimit = Number(currentUser.freeDailyLimit || 10);
+  const usageToday = Number(currentUser.usageToday || 0);
+  const remaining = Math.max(usageLimit - usageToday, 0);
+  const reportCount = Number(currentUser.reportCount || 0);
+  const projectCount = Number(currentUser.projectCount || 0);
+  const reportLabel = `${reportCount} rapport${reportCount > 1 ? "s" : ""}`;
+  const projectLabel = `${projectCount} dossier${projectCount > 1 ? "s" : ""}`;
+
+  accountSessionSummary.hidden = false;
+  accountSessionSummary.innerHTML = `
+    <span>
+      <strong>${isPro ? "Usage Pro" : `${remaining} essai${remaining > 1 ? "s" : ""} restant${remaining > 1 ? "s" : ""}`}</strong>
+      <small>${isPro ? "Compteur quotidien levé." : `${usageToday}/${usageLimit} usages aujourd'hui.`}</small>
+    </span>
+    <span>
+      <strong>${reportLabel}</strong>
+      <small>${reportCount ? "Historique prêt à reprendre." : "Sauvegarde ton premier diagnostic."}</small>
+    </span>
+    <span>
+      <strong>${isPro ? (projectCount ? projectLabel : "Créer un dossier") : "Activer Pro"}</strong>
+      <small>${isPro ? "Classe les rapports par chantier." : "Dossiers, modules visuels et export complet."}</small>
+    </span>
+  `;
+}
+
 function updateAccountUi(user, meta = {}) {
   currentUser = user || null;
   hasAccessPass = Boolean(meta.accessPass);
@@ -2524,6 +2620,7 @@ function updateAccountUi(user, meta = {}) {
   if (hasAccessPass) {
     accountCard?.classList.remove("is-auth-focused");
     accountStatus.textContent = `${meta.accessName || "Accès invité"} | Accès complet activé | Toutes les fonctionnalités sont débloquées.`;
+    renderAccountSessionSummary(meta);
     accessCodeFields.hidden = true;
     accessCodeDisclosure.hidden = true;
     accountAuthDetails.hidden = true;
@@ -2542,6 +2639,7 @@ function updateAccountUi(user, meta = {}) {
 
   if (!currentUser) {
     accountStatus.textContent = `Libre-service : ${meta.anonymousDailyLimit || 5} essais anonymes sans carte. Crée un compte gratuit pour passer à 10 usages par jour et sauvegarder tes rapports.`;
+    renderAccountSessionSummary(meta);
     accessCodeFields.hidden = false;
     accessCodeDisclosure.hidden = false;
     accountAuthDetails.hidden = false;
@@ -2561,7 +2659,7 @@ function updateAccountUi(user, meta = {}) {
     return;
   }
 
-  const planLabel = currentUser.plan === "pro" ? "Plus" : "Gratuit";
+  const planLabel = currentUser.plan === "pro" ? "Pro" : "Gratuit";
   accountCard?.classList.remove("is-auth-focused");
   const roleLabel = currentUser.accountRole === "teacher" ? "Enseignant" : "Élève / utilisateur";
   const displayName = currentUser.name || currentUser.email;
@@ -2576,6 +2674,7 @@ function updateAccountUi(user, meta = {}) {
     : "";
 
   accountStatus.textContent = `${displayName} · ${roleLabel} · Compte ${planLabel} · ${usage}${projectsLabel}${classroomLabel}`;
+  renderAccountSessionSummary(meta);
   accessCodeFields.hidden = true;
   accessCodeDisclosure.hidden = true;
   accountAuthDetails.hidden = true;
@@ -2608,7 +2707,7 @@ function getPlusToolState() {
   if (hasAccessPass || currentUser?.plan === "pro") {
     return {
       locked: false,
-      label: "Plus actif",
+      label: "Pro actif",
       hint: "Module premium débloqué."
     };
   }
@@ -2621,15 +2720,15 @@ function getPlusToolState() {
     if (remaining <= 0) {
       return {
         locked: true,
-        label: "Plus requis",
-        hint: "Quota gratuit terminé. Active Voltia Plus pour utiliser ce module."
+        label: "Pro requis",
+        hint: "Quota gratuit terminé. Active Voltia Pro pour utiliser ce module."
       };
     }
 
     return {
       locked: false,
-      label: `${remaining} essai${remaining > 1 ? "s" : ""} gratuit${remaining > 1 ? "s" : ""}`,
-      hint: "Inclus dans ton quota gratuit, puis disponible avec Voltia Plus."
+      label: "Pro à l'essai",
+      hint: `Module premium inclus dans ton quota gratuit (${remaining} essai${remaining > 1 ? "s" : ""} restant${remaining > 1 ? "s" : ""}), puis disponible avec Voltia Pro.`
     };
   }
 
@@ -2643,8 +2742,8 @@ function getPlusToolState() {
 
   return {
     locked: false,
-    label: "Essais gratuits",
-    hint: "Inclus pendant les essais gratuits, puis disponible avec Voltia Plus."
+    label: "Pro à l'essai",
+    hint: "Module premium inclus pendant les essais gratuits, puis disponible avec Voltia Pro."
   };
 }
 
@@ -2654,7 +2753,7 @@ function updatePlusToolCards() {
   plusToolCards.forEach((card) => {
     card.classList.add("is-plus-module");
     card.classList.toggle("is-plus-locked", state.locked);
-    card.classList.toggle("is-plus-active", state.label === "Plus actif");
+    card.classList.toggle("is-plus-active", state.label === "Pro actif");
     card.setAttribute("data-plus-state", state.label);
 
     const heading = card.querySelector(".card-heading");
@@ -2757,7 +2856,7 @@ function showAnonymousUpgradePrompt(message) {
       openSignupFlow();
       setHint("Crée ton compte gratuit pour reprendre immédiatement.", true);
     },
-    secondaryLabel: "Voir Plus",
+    secondaryLabel: "Voir Pro",
     onSecondary: () => {
       window.location.href = "/pro.html";
     }
@@ -2767,8 +2866,8 @@ function showAnonymousUpgradePrompt(message) {
 function showProUpgradePrompt(message) {
   showConversionBanner({
     title: "Le quota du compte gratuit est atteint",
-    text: message || "Passe à Voltia Plus pour lever le compteur quotidien et débloquer les modules premium.",
-    primaryLabel: "Activer Plus",
+    text: message || "Passe à Voltia Pro pour lever le compteur quotidien et débloquer les modules premium.",
+    primaryLabel: "Activer Pro",
     onPrimary: () => {
       startCheckout();
     },
@@ -2781,9 +2880,9 @@ function showProUpgradePrompt(message) {
 
 function showProjectsUpgradePrompt(message) {
   showConversionBanner({
-    title: "Dossiers réservés à Voltia Plus",
-    text: message || "Voltia Plus ajoute des dossiers pour ranger tes rapports par projet, logement ou besoin.",
-    primaryLabel: "Activer Plus",
+    title: "Dossiers réservés à Voltia Pro",
+    text: message || "Voltia Pro ajoute des dossiers pour ranger tes rapports par projet, logement ou besoin.",
+    primaryLabel: "Activer Pro",
     onPrimary: () => {
       startCheckout();
     },
@@ -2810,7 +2909,7 @@ function handleBarrierResponse(response, data, fallbackError) {
 
   if (response.status === 402 && data.upgradeRequired && data.feature === "projects") {
     setAccountNotice(errorMessage);
-    setHint("Les dossiers sont réservés à Voltia Plus.", true);
+    setHint("Les dossiers sont réservés à Voltia Pro.", true);
     updatePlusToolCards();
     showProjectsUpgradePrompt(errorMessage);
     return true;
@@ -2818,7 +2917,7 @@ function handleBarrierResponse(response, data, fallbackError) {
 
   if (response.status === 402 && data.upgradeRequired) {
     setAccountNotice(errorMessage);
-    setHint("Le quota du compte gratuit est atteint. Passe à Voltia Plus pour continuer sans compteur quotidien.", true);
+    setHint("Le quota du compte gratuit est atteint. Passe à Voltia Pro pour continuer sans compteur quotidien.", true);
     updatePlusToolCards();
     showProUpgradePrompt(errorMessage);
     return true;
@@ -2847,20 +2946,20 @@ function handleLandingState() {
     setHint("Compte gratuit : sauvegarde des rapports, reprise des échanges et 10 usages par jour.");
   } else if (shouldOpenAuth) {
     openAccountPanel({ block: "center" });
-    setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe à Plus si tu utilises Voltia plusieurs fois par semaine.");
+    setHint("Crée un compte gratuit pour sauvegarder tes rapports, ou passe à Pro si tu utilises Voltia plusieurs fois par semaine.");
   }
 
   if (intent === "pro") {
     accountCard?.classList.add("is-pro-intent");
-    setAccountNotice("Crée ton compte gratuit, puis clique sur Activer Plus pour lever le quota quotidien et activer les modules premium.");
-    setHint("Parcours recommandé : compte gratuit d'abord, puis activation Plus depuis l'espace compte.", true);
+    setAccountNotice("Crée ton compte gratuit, puis clique sur Activer Pro pour lever le quota quotidien et activer les modules premium.");
+    setHint("Parcours recommandé : compte gratuit d'abord, puis activation Pro depuis l'espace compte.", true);
   } else {
     accountCard?.classList.remove("is-pro-intent");
   }
 
   if (checkoutState === "success") {
-    setAccountNotice("Paiement confirmé. Voltia Plus est en cours d'activation sur ton compte.");
-    setHint("Paiement confirmé. Recharge la page dans quelques secondes si le statut Plus n'apparaît pas encore.");
+    setAccountNotice("Paiement confirmé. Voltia Pro est en cours d'activation sur ton compte.");
+    setHint("Paiement confirmé. Recharge la page dans quelques secondes si le statut Pro n'apparaît pas encore.");
   } else if (checkoutState === "cancel") {
     setAccountNotice("Paiement annulé. Ton compte gratuit reste actif.");
     setHint("Paiement annulé. Tu peux continuer avec le compte gratuit ou réessayer plus tard.");
@@ -2959,7 +3058,7 @@ async function submitAuth(mode) {
       const roleLabel = data.user.accountRole === "teacher" ? "enseignant" : "élève / utilisateur";
       setAccountNotice(`Bienvenue ${displayName}. Ton compte ${roleLabel} est prêt : jusqu'à ${data.user.freeDailyLimit || 10} usages par jour et sauvegarde de rapports.`);
       setAuthInlineNotice("Compte créé. Tu peux lancer un diagnostic ou sauvegarder un rapport.", "success");
-      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou activer Plus pour lever le compteur quotidien.`);
+      setHint(`Compte créé pour ${displayName}. Tu peux continuer gratuitement ou activer Pro pour lever le compteur quotidien.`);
       hideConversionBanner();
     } else {
       setAccountNotice(`Bonjour ${displayName}. Connexion réussie. Ton historique de rapports est disponible dans ton compte.`);
@@ -3080,14 +3179,14 @@ async function submitAccessCode() {
 
 async function startCheckout() {
   if (!currentUser) {
-    setAccountNotice("Connecte-toi ou crée un compte avant d'activer Voltia Plus.");
-    setHint("Connecte-toi ou crée un compte avant d'activer Plus.", true);
+    setAccountNotice("Connecte-toi ou crée un compte avant d'activer Voltia Pro.");
+    setHint("Connecte-toi ou crée un compte avant d'activer Pro.", true);
     openSignupFlow();
     return;
   }
 
   upgradeButton.disabled = true;
-  setAccountNotice("Préparation du paiement Stripe pour activer Voltia Plus...");
+  setAccountNotice("Préparation du paiement Stripe pour activer Voltia Pro...");
   setHint("Préparation du paiement Stripe...");
 
   try {
@@ -4421,6 +4520,15 @@ function buildSchemaPrompt() {
   const dedicatedLoad = schemaType.value === "prise" ? dedicatedLoadLabel(usage) : "";
   const schemaIdentity = inferSchemaObjectIdentity(rawUsage, schemaType.value, objectReference);
   const schemaManualSearchQuery = buildObjectSearchQuery(schemaIdentity);
+  const schemaInputQualityBrief = buildSchemaInputQualityBrief({
+    type: schemaType.value,
+    room,
+    usage,
+    objectReference,
+    identity: schemaIdentity,
+    manualSearchQuery: schemaManualSearchQuery,
+    counts
+  });
   const schemaObjectDetails = schemaIdentity
     ? [
         `Objet reconnu depuis la demande: ${[
@@ -4463,6 +4571,7 @@ function buildSchemaPrompt() {
     `Format demandé: ${symbolStyle}`,
     diagramInventory,
     schemaObjectDetails,
+    schemaInputQualityBrief,
     `Pièce: ${room}.`,
     `Usage ou puissance: ${usage}.`,
     `Objet, marque, modele ou reference fabricant saisi: ${objectReference || "non precise"}.`,
@@ -4856,12 +4965,12 @@ function climateReadinessNote(payload, hasSketch) {
       || String(payload.occupiedZones || "").trim()
   );
   if (hasSketch) {
-    return "Qualite implantation: croquis quadrille fourni avec reperes visuels exploitables.";
+    return "Qualite implantation: croquis quadrille fourni avec reperes P/F/O/UI, soufflage -> et zones X si poses.";
   }
   if (hasSpatialText) {
     return "Qualite implantation: pas de croquis, placement indicatif base sur les dimensions et contraintes texte.";
   }
-  return "Qualite implantation: puissance estimable, emplacement peu fiable sans croquis quadrille P/F/O/UI.";
+  return "Qualite implantation: puissance estimable, emplacement peu fiable sans croquis quadrille P/F/O/UI, -> et X.";
 }
 
 async function sizeClimateSystem() {
@@ -4914,7 +5023,7 @@ async function sizeClimateSystem() {
     payload.openings ? `ouvrants: ${payload.openings}` : "",
     payload.occupiedZones ? `zones occupees: ${payload.occupiedZones}` : "",
     selectedClimateSketchDataUrl
-      ? "Demande: proposer où placer l'unité intérieure dans la pièce, l'orientation du soufflage et les zones à éviter."
+      ? "Demande: proposer ou placer UI dans la piece, orienter le soufflage -> et marquer les zones X a eviter."
       : ""
   ].filter(Boolean).join(" | ");
 
@@ -4924,7 +5033,7 @@ async function sizeClimateSystem() {
   sizeClimate.disabled = true;
   hint.textContent = selectedClimateSketchDataUrl
     ? "Voltia estime la puissance et analyse le croquis pour placer la clim..."
-    : "Voltia estime la puissance. Pour un emplacement fiable, ajoute un croquis quadrille avec P/F/O/UI.";
+    : "Voltia estime la puissance. Pour un emplacement fiable, ajoute un croquis quadrille avec P/F/O/UI, -> et X.";
 
   try {
     const response = await fetchWithTimeout("/api/climate-sizing", {
@@ -5048,7 +5157,7 @@ document.querySelectorAll("[data-open-auth]").forEach((trigger) => {
     event.preventDefault();
     if (trigger.dataset.openAuth === "login") {
       openLoginFlow();
-      setHint("Connexion : retrouve tes rapports, dossiers et ton statut Plus.");
+      setHint("Connexion : retrouve tes rapports, dossiers et ton statut Pro.");
       return;
     }
     openSignupFlow();

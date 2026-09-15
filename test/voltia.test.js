@@ -5,8 +5,10 @@ process.env.NODE_ENV = "test";
 
 const {
   assertSupportedImageDataUrl,
+  buildClimateInputQuality,
   buildClimatePlacementGuidance,
   buildManualSearchQuery,
+  buildNoticeSourceQuality,
   buildSpecialistOutputChecklist,
   clearAnswerInstructions,
   estimateClimateSizing,
@@ -245,6 +247,40 @@ test("asks for a climate sketch when placement data is incomplete", () => {
   assert.match(guidance.sketchPrompt, /P=porte/);
 });
 
+test("grades climate input quality separately for power and placement", () => {
+  const weakQuality = buildClimateInputQuality({
+    area: 28,
+    height: 2.5,
+    room: "Salon",
+    insulation: "Correcte",
+    sun: "Normale",
+    region: "Tempere"
+  }, { hasImage: false });
+
+  assert.equal(weakQuality.powerReady, true);
+  assert.equal(weakQuality.placementReady, false);
+  assert.equal(weakQuality.placementLevel, "faible");
+  assert.equal(weakQuality.missing.includes("croquis quadrille"), true);
+  assert.equal(weakQuality.priorities.some((item) => /croquis quadrille/.test(item)), true);
+
+  const strongQuality = buildClimateInputQuality({
+    area: 28,
+    height: 2.5,
+    room: "Salon",
+    insulation: "Correcte",
+    sun: "Normale",
+    region: "Tempere",
+    dimensions: "6 x 4 m",
+    openings: "fenetre sud",
+    occupiedZones: "canape au centre",
+    constraints: "mur nord libre"
+  }, { hasImage: true });
+
+  assert.equal(strongQuality.placementReady, true);
+  assert.equal(strongQuality.placementLevel, "fort");
+  assert.equal(strongQuality.score, 100);
+});
+
 test("defines domain specialist contracts for climate placement", () => {
   const contract = specialistQualityContract("climate-sizing").join("\n");
 
@@ -357,6 +393,29 @@ test("keeps category in notice query when brand and model are missing", () => {
     }),
     "contacteur jour nuit A9C20842"
   );
+});
+
+test("grades notice source quality before trusting a manual match", () => {
+  const vague = buildNoticeSourceQuality("contacteur jour nuit", { hasImage: false });
+
+  assert.equal(vague.level, "faible");
+  assert.equal(vague.missing.includes("reference exacte ou code produit"), true);
+  assert.equal(vague.missing.includes("photo etiquette/plaque"), true);
+  assert.match(vague.matchRule, /reference/);
+
+  const precise = buildNoticeSourceQuality("Schneider Electric A9C20842", {
+    hasImage: true,
+    identity: {
+      category: "contacteur",
+      brand: "Schneider Electric",
+      model: "Acti9 iCT",
+      reference: "A9C20842"
+    }
+  });
+
+  assert.equal(precise.ready, true);
+  assert.equal(precise.level, "fort");
+  assert.equal(precise.referenceTokens.includes("A9C20842"), true);
 });
 
 test("normalizes classroom invite codes", () => {

@@ -20,7 +20,7 @@
             <span>Voltia</span>
           </div>
           <div class="topbar-actions">
-            <a href="/pro.html">Voltia Plus</a>
+            <a href="/pro.html">Voltia Pro</a>
             <a href="#commercial-offer">Offre</a>
             <a href="#formules-electriques">Formules</a>
             <a href="/legal.html">Sécurité et mentions</a>
@@ -40,7 +40,7 @@
               <span>Sans carte pour commencer</span>
               <span>5 essais anonymes</span>
               <span>Compte gratuit : rapports sauvegardés</span>
-              <span>Plus : dossiers et modules visuels</span>
+              <span>Pro : dossiers et modules visuels</span>
             </div>
             <div class="hero-cta-row">
               <a class="primary-action hero-link-button account-signup-trigger" href="#account" data-open-auth="signup">Tester gratuitement</a>
@@ -50,7 +50,7 @@
               <div class="command-topline">
                 <span>Cockpit live</span>
                 <strong>Rapport chantier</strong>
-                <em>Plus</em>
+                <em>Pro</em>
               </div>
               <div class="command-metrics">
                 <span><strong>6</strong> modules</span>
@@ -84,7 +84,7 @@
               </article>
               <article>
                 <strong>3. Garde un livrable utile</strong>
-                <span>Historique gratuit, modules Plus si usage répété.</span>
+                <span>Historique gratuit, modules Pro si usage répété.</span>
               </article>
             </div>
           </div>
@@ -93,17 +93,18 @@
             <div class="account-hero">
               <span class="account-badge">Free</span>
               <div>
-                <h2>Créer ton compte gratuit</h2>
-                <p>Sans carte. Historique, rapports sauvegardés et 10 usages par jour avant Plus.</p>
+                <h2>Créer ton espace Voltia</h2>
+                <p>Compte gratuit sans carte : historique, rapports sauvegardés et 10 usages par jour avant Pro.</p>
               </div>
             </div>
 
             <div id="accountStatus" class="account-status" role="status" aria-live="polite">Libre-service : 5 essais anonymes. Le compte gratuit sauvegarde tes rapports et passe à 10 usages par jour, toujours sans carte.</div>
+            <div id="accountSessionSummary" class="account-session-summary" aria-label="Résumé de l'espace compte" hidden></div>
 
             <div class="account-outcome-card" aria-label="Valeur du compte Voltia">
               <span>Ce que tu obtiens</span>
               <strong>Un espace pour retrouver tes diagnostics et transformer un essai utile en rapport conservé.</strong>
-              <small>Plus ajoute les dossiers, les modules photo, les notices, les dimensionnements et l'export complet.</small>
+              <small>Pro ajoute les dossiers, les modules photo, les notices, les dimensionnements et l'export complet.</small>
             </div>
 
             <div class="account-choice-grid" aria-label="Choisir le bon parcours Voltia">
@@ -113,12 +114,12 @@
                 <small>10 usages par jour et historique sans carte bancaire.</small>
               </article>
               <article>
-                <span>Connecter</span>
+                <span>Se connecter</span>
                 <strong>Reprendre un dossier</strong>
-                <small>Retrouve les exports, rapports et le statut Plus.</small>
+                <small>Retrouve les exports, rapports et le statut Pro.</small>
               </article>
               <article>
-                <span>Passer Plus</span>
+                <span>Activer Pro</span>
                 <strong>Produire un livrable</strong>
                 <small>Dossiers, photos, notices et dimensionnements.</small>
               </article>
@@ -133,7 +134,7 @@
             <div class="account-assurance-grid" aria-label="Garanties du parcours Voltia">
               <span><strong>Sans carte</strong><small>Tu testes avant tout paiement.</small></span>
               <span><strong>Compte utile</strong><small>Historique et rapports conservés.</small></span>
-              <span><strong>Plus ensuite</strong><small>À activer seulement si les modules premium servent.</small></span>
+              <span><strong>Pro ensuite</strong><small>À activer seulement si les modules premium servent.</small></span>
             </div>
 
             <details class="account-auth-details">
@@ -150,7 +151,7 @@
               <div class="account-path" aria-label="Parcours conseillé">
                 <span><strong>1</strong> Tester</span>
                 <span><strong>2</strong> Sauvegarder</span>
-                <span><strong>3</strong> Activer Plus si besoin</span>
+                <span><strong>3</strong> Activer Pro si besoin</span>
               </div>
 
             <div id="authFields" class="auth-panel">
@@ -162,21 +163,21 @@
               <div id="authModeBenefit" class="auth-mode-benefit" aria-live="polite">
                 <span>Création</span>
                 <strong>Ton espace est gratuit au départ.</strong>
-                <small>Tu testes un vrai cas, tu conserves le rapport, puis tu actives Plus seulement si les modules premium servent.</small>
+                <small>Tu testes un vrai cas, tu conserves le rapport, puis tu actives Pro seulement si les modules premium servent.</small>
               </div>
 
-              <div id="signupFields" class="signup-fields auth-mode-panel" role="tabpanel">
+              <div id="signupFields" class="signup-fields auth-mode-panel" role="tabpanel" aria-labelledby="signupToggleButton">
                 <label class="field">
                   <span>Nom ou prénom</span>
-                  <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name">
+                  <input id="authName" type="text" placeholder="Ex: Yanis" autocomplete="name" autocapitalize="words">
                 </label>
                 <label class="field">
                   <span>Email</span>
-                  <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+                  <input id="signupEmail" type="email" placeholder="ton@email.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
                 </label>
                 <label class="field">
                   <span>Mot de passe</span>
-                  <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password">
+                  <input id="signupPassword" type="password" placeholder="8 caractères minimum" autocomplete="new-password" minlength="8">
                 </label>
                 <div id="passwordChecklist" class="password-checklist" aria-label="Préparation du compte">
                   <span data-password-rule="email">Email valide</span>
@@ -185,7 +186,7 @@
                 <div class="auth-reassurance-strip" aria-label="Garanties de création de compte">
                   <span>Sans carte bancaire</span>
                   <span>10 usages / jour</span>
-                  <span>Activation Plus ensuite</span>
+                  <span>Activation Pro ensuite</span>
                 </div>
                 <label class="field">
                   <span>Type de compte</span>
@@ -195,22 +196,22 @@
                   </select>
                 </label>
                 <button id="signupButton" class="primary-action" type="button">Créer mon compte gratuit</button>
-                <small>Compte gratuit d'abord. Plus s'active ensuite seulement si les modules premium sont utiles.</small>
+                <small>Compte gratuit d'abord. Pro s'active ensuite seulement si les modules premium sont utiles.</small>
               </div>
 
-              <div id="loginFields" class="auth-mode-panel login-fields" role="tabpanel" hidden>
+              <div id="loginFields" class="auth-mode-panel login-fields" role="tabpanel" aria-labelledby="loginModeButton" hidden>
                 <label class="field">
                   <span>Email</span>
-                  <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email">
+                  <input id="authEmail" type="email" placeholder="ton@email.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
                 </label>
                 <label class="field">
                   <span>Mot de passe</span>
-                  <input id="authPassword" type="password" placeholder="8 caractères minimum" autocomplete="current-password">
+                  <input id="authPassword" type="password" placeholder="8 caractères minimum" autocomplete="current-password" minlength="8">
                 </label>
                 <div class="account-actions">
                   <button id="loginButton" class="primary-action" type="button">Se connecter</button>
                 </div>
-                <small>Connexion utile pour retrouver tes rapports, ton historique et ton statut Plus.</small>
+                <small>Connexion utile pour retrouver tes rapports, ton historique et ton statut Pro.</small>
               </div>
             </div>
 
@@ -218,8 +219,8 @@
               <summary>J'ai un code d'accès</summary>
               <div id="accessCodeFields" class="access-code-panel">
                 <label class="field">
-                  <span>Code créateur</span>
-                  <input id="accessCodeInput" type="password" placeholder="Code créateur ou invité">
+                  <span>Code d'accès</span>
+                  <input id="accessCodeInput" type="password" placeholder="Code d'accès ou invité" autocapitalize="characters" spellcheck="false">
                 </label>
                 <button id="accessCodeButton" class="secondary-action" type="button">Débloquer</button>
               </div>
@@ -228,18 +229,18 @@
 
             <div class="plan-preview">
               <div>
-                <span class="plan-label">Voltia Plus</span>
+                <span class="plan-label">Voltia Pro</span>
                 <strong>9,99 € / mois</strong>
               </div>
               <small>À activer quand tu veux produire plusieurs livrables, regrouper tes dossiers et lever le compteur quotidien. <a href="/pro.html">Voir l'offre</a></small>
-              <div class="plan-value-row" aria-label="Bénéfices clés de Voltia Plus">
+              <div class="plan-value-row" aria-label="Bénéfices clés de Voltia Pro">
                 <span>Dossier complet</span>
                 <span>Modules visuels</span>
                 <span>Export partageable</span>
               </div>
             </div>
 
-            <ul class="plan-benefits" aria-label="Avantages Voltia Plus">
+            <ul class="plan-benefits" aria-label="Avantages Voltia Pro">
               <li>Photo vers schéma</li>
               <li>Notices et références</li>
               <li>Dimensionnements</li>
@@ -247,7 +248,7 @@
             </ul>
 
             <div id="memberActions" class="member-actions" hidden>
-              <button id="upgradeButton" class="primary-action" type="button">Activer Plus — 9,99 € / mois</button>
+              <button id="upgradeButton" class="primary-action" type="button">Activer Pro — 9,99 € / mois</button>
               <button id="exportAccountButton" class="secondary-action" type="button">Exporter mes données</button>
               <button id="deleteAccountButton" class="secondary-action danger-action" type="button">Supprimer mon compte</button>
               <button id="logoutButton" class="secondary-action" type="button">Déconnexion</button>
@@ -328,7 +329,7 @@
                 <div id="studentJoinClassroom" class="student-join-classroom">
                   <label class="field">
                     <span>Code classe</span>
-                    <input id="studentClassCode" type="text" maxlength="12" autocomplete="off" placeholder="VLT-ABCD">
+                    <input id="studentClassCode" type="text" maxlength="12" autocomplete="off" placeholder="VLT-ABCD" autocapitalize="characters" spellcheck="false">
                   </label>
                   <button id="joinClassroomButton" class="primary-action" type="button">Rejoindre la classe</button>
                 </div>
@@ -348,7 +349,7 @@
             <div id="projectWorkspace" class="project-workspace" hidden>
               <div class="project-heading">
                 <div>
-                  <strong id="projectWorkspaceTitle">Dossiers Plus</strong>
+                  <strong id="projectWorkspaceTitle">Dossiers Pro</strong>
                   <span id="projectWorkspaceSubtitle">Range tes rapports par projet, logement ou pièce.</span>
                 </div>
                 <div class="project-heading-actions">
@@ -358,9 +359,9 @@
               </div>
 
               <div id="projectUpsell" class="project-upsell" hidden>
-                <strong>Voltia Plus</strong>
-                <p>Voltia Plus aide à classer plusieurs cas, préparer un dossier complet et l'exporter pour l'imprimer ou le partager.</p>
-                <button id="projectUpsellButton" class="secondary-action" type="button">Activer Plus</button>
+                <strong>Voltia Pro</strong>
+                <p>Voltia Pro aide à classer plusieurs cas, préparer un dossier complet et l'exporter pour l'imprimer ou le partager.</p>
+                <button id="projectUpsellButton" class="secondary-action" type="button">Activer Pro</button>
               </div>
 
               <div id="projectManager" class="project-manager" hidden>
@@ -396,7 +397,7 @@
       <section id="commercial-offer" class="conversion-ladder" aria-label="Parcours commercial Voltia">
         <div class="conversion-ladder-heading">
           <span class="eyebrow">Offre Voltia</span>
-          <h2>Un parcours simple : tester, sauvegarder, puis passer Plus quand le besoin devient récurrent.</h2>
+          <h2>Un parcours simple : tester, sauvegarder, puis passer Pro quand le besoin devient récurrent.</h2>
           <p>La vente repose sur un livrable clair avant achat, devis ou intervention. Le paiement arrive seulement quand l'utilisateur a compris ce que Voltia produit.</p>
         </div>
 
@@ -412,7 +413,7 @@
             <p>10 usages par jour, reprise des conversations et sauvegarde des rapports depuis ton espace compte.</p>
           </article>
           <article>
-            <span>Plus</span>
+            <span>Pro</span>
             <strong>Produire des dossiers</strong>
             <p>Photo vers schéma, recherche de notice, dimensionnements, dossiers et export complet.</p>
           </article>
@@ -438,7 +439,7 @@
         <article>
           <span>Livrable</span>
           <strong>Export exploitable</strong>
-          <p>Le compte garde les rapports ; Plus organise les projets et les exports complets.</p>
+          <p>Le compte garde les rapports ; Pro organise les projets et les exports complets.</p>
         </article>
       </section>
 
@@ -475,19 +476,19 @@
         </article>
       </section>
 
-      <section class="commercial-roadmap-strip" aria-label="Ce que Voltia Plus débloque">
+      <section class="commercial-roadmap-strip" aria-label="Ce que Voltia Pro débloque">
         <article>
-          <span>Plus prioritaire</span>
+          <span>Pro prioritaire</span>
           <strong>Dossiers chantier</strong>
           <p>Regrouper diagnostics, schémas, notices et exports dans un seul espace partageable.</p>
         </article>
         <article>
-          <span>Plus visuel</span>
+          <span>Pro visuel</span>
           <strong>Photo vers schéma</strong>
           <p>Transformer une photo ou un croquis en support clair avant devis ou rendez-vous.</p>
         </article>
         <article>
-          <span>Plus décisionnel</span>
+          <span>Pro décisionnel</span>
           <strong>Notices et dimensionnements</strong>
           <p>Retrouver les documents utiles et cadrer éclairage ou clim avec hypothèses lisibles.</p>
         </article>
@@ -639,7 +640,7 @@
             <p>Un seul module ouvert à la fois pour garder l'interface lisible.</p>
             <div class="workspace-kpis" aria-label="État du cockpit Voltia">
               <span><strong>01</strong> Diagnostic</span>
-              <span><strong>Plus</strong> Modules visuels</span>
+              <span><strong>Pro</strong> Modules visuels</span>
               <span><strong>PDF</strong> Livrable</span>
             </div>
             <div class="tool-switcher" aria-label="Navigation des modules Voltia">
@@ -924,7 +925,9 @@
                   <button class="sketch-tool" type="button" data-climate-draw-mode="door">Porte</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="window">Fenêtre</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="occupant">Zone occupée</button>
-                  <button class="sketch-tool" type="button" data-climate-draw-mode="unit">Mur UI</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="unit">Unité intérieure</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="airflow">Souffle</button>
+                  <button class="sketch-tool" type="button" data-climate-draw-mode="avoid">Zone X</button>
                   <button class="sketch-tool" type="button" data-climate-draw-mode="erase">Gomme</button>
                 </div>
               </div>
@@ -1090,7 +1093,7 @@
             </label>
             <button id="showSampleReport" class="secondary-action report-sample-button" type="button">Charger un exemple</button>
             <p id="saveTargetText" class="save-target-text" role="status" aria-live="polite">
-              Compte gratuit : rapport sauvegardé et export individuel. Plus : modules photo, notices, dimensionnements, dossiers et export complet.
+              Compte gratuit : rapport sauvegardé et export individuel. Pro : modules photo, notices, dimensionnements, dossiers et export complet.
             </p>
             <div class="report-proof-note" aria-label="Ce que tu récupères">
               <strong>Ce que tu récupères à la fin</strong>
@@ -1101,7 +1104,12 @@
                 <span>Prochaine action</span>
                 <span>Rapport exportable</span>
               </div>
-              <p>Chaque résultat doit se lire comme une fiche de décision : conclusion, danger, hypothèses, vérifications sûres et prochaine action. Plus ajoute les modules visuels et l'organisation en dossiers.</p>
+              <div class="report-outcome-grid" aria-label="Contrat de résultat Voltia">
+                <span><strong>Comprendre</strong><small>Conclusion lisible.</small></span>
+                <span><strong>Décider</strong><small>Risques et priorités.</small></span>
+                <span><strong>Partager</strong><small>Rapport conservé.</small></span>
+              </div>
+              <p>Chaque résultat doit se lire comme une fiche de décision : conclusion, danger, hypothèses, vérifications sûres et prochaine action. Pro ajoute les modules visuels et l'organisation en dossiers.</p>
             </div>
           </div>
 
@@ -1133,13 +1141,13 @@
               <input id="normsSearchToggle" type="checkbox">
               <span>Rechercher les normes en vigueur</span>
             </label>
-            <input id="sourceUrlInput" type="url" placeholder="https://exemple.fr/page-notice-ou-article" autocomplete="off" disabled hidden>
+            <input id="sourceUrlInput" type="url" aria-label="URL de la source à utiliser" placeholder="https://exemple.fr/page-notice-ou-article" autocomplete="off" inputmode="url" autocapitalize="off" spellcheck="false" disabled hidden>
           </div>
 
           <div id="conversionBanner" class="conversion-banner" hidden>
             <div class="conversion-banner-copy">
               <strong id="conversionBannerTitle">Continuer sur Voltia</strong>
-              <p id="conversionBannerText">Crée un compte gratuit ou passe à Plus pour poursuivre ton diagnostic.</p>
+              <p id="conversionBannerText">Crée un compte gratuit ou passe à Pro pour poursuivre ton diagnostic.</p>
             </div>
             <div class="conversion-banner-actions">
               <button id="conversionPrimaryButton" class="primary-action" type="button">Continuer</button>
@@ -1149,7 +1157,7 @@
 
           <form id="chatForm" class="composer">
             <div class="input-wrap">
-              <textarea id="prompt" name="prompt" rows="1" maxlength="1200" placeholder="Décris ton problème électrique..." autocomplete="off"></textarea>
+              <textarea id="prompt" name="prompt" rows="1" maxlength="1200" aria-label="Décris ton problème électrique" placeholder="Décris ton problème électrique..." autocomplete="off"></textarea>
               <span id="counter" class="counter">0 / 1200</span>
             </div>
             <button id="sendButton" type="submit">Envoyer</button>

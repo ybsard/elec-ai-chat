@@ -679,6 +679,9 @@ h2 {
 }
 
 .plan-preview a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   color: var(--accent);
   font-weight: 950;
   text-decoration: none;
@@ -1178,7 +1181,7 @@ textarea:focus {
 }
 
 .level-option {
-  min-height: 34px;
+  min-height: 44px;
   min-width: 0;
   padding: 0 8px;
   border: 1px solid var(--line);
@@ -1801,6 +1804,27 @@ textarea:focus {
   border-left-color: var(--warning);
   background: #fffaf0;
   color: #704a00;
+}
+
+.formatted-response .response-heading-danger {
+  border-color: rgba(208, 68, 68, 0.25);
+  border-left-color: #d04444;
+  background: #fff5f3;
+  color: #842626;
+}
+
+.formatted-response .response-heading-action {
+  border-color: rgba(25, 169, 116, 0.28);
+  border-left-color: #19a974;
+  background: #ecfdf9;
+  color: #0b5f59;
+}
+
+.formatted-response .response-heading-caution {
+  border-color: rgba(15, 118, 110, 0.22);
+  border-left-color: #0f766e;
+  background: #f2fbf9;
+  color: #264653;
 }
 
 .formatted-response h3:first-child {
@@ -2938,6 +2962,12 @@ textarea:disabled {
 
 .app-footer span {
   max-width: 760px;
+}
+
+.app-footer a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
 }
 
 .legal-page {
@@ -4636,7 +4666,7 @@ body.chat-fullscreen-active {
   overflow: hidden;
 }
 
-/* Voltia Plus pass: premium visual layer and paid-state modules. */
+/* Voltia Pro pass: premium visual layer and paid-state modules. */
 :root {
   --plus-ink: #101a2a;
   --plus-panel: #132337;
@@ -6437,8 +6467,7 @@ textarea:focus,
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  min-height: 36px;
-  max-height: 38px;
+  min-height: 44px;
   padding: 8px 11px;
   border: 1px solid rgba(15, 23, 42, 0.1);
   background: #ffffff;
@@ -6609,7 +6638,11 @@ textarea:focus,
   .topbar-actions .pill {
     width: auto;
     min-width: 0;
+    min-height: 44px;
     padding: 7px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     white-space: normal;
     font-size: 11px;
@@ -6823,10 +6856,46 @@ textarea:focus,
   line-height: 1.35;
 }
 
+.account-session-summary,
+.report-outcome-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.account-session-summary span,
+.report-outcome-grid span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 9px;
+  border: 1px solid rgba(15, 118, 110, 0.13);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.account-session-summary strong,
+.report-outcome-grid strong {
+  overflow-wrap: anywhere;
+  color: #0b5f59;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1.12;
+}
+
+.account-session-summary small,
+.report-outcome-grid small {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.3;
+}
+
 .account-workspace-link {
   grid-column: 1 / -1;
   display: grid;
-  min-height: 34px;
+  min-height: 44px;
   place-items: center;
   padding: 7px 10px;
   border: 1px solid rgba(15, 118, 110, 0.16);
@@ -7184,8 +7253,10 @@ textarea:focus,
 
   .account-quick-actions,
   .account-assurance-grid,
+  .account-session-summary,
   .password-checklist,
   .auth-reassurance-strip,
+  .report-outcome-grid,
   .plus-outcome-grid,
   .pro-objection-grid,
   .plus-decision-summary,
@@ -7202,7 +7273,7 @@ textarea:focus,
 
 @media (max-width: 430px) {
   .topbar-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -7332,7 +7403,7 @@ textarea:focus,
 
 .proof-link-button {
   width: fit-content;
-  min-height: 38px;
+  min-height: 44px;
   padding: 8px 12px;
   text-decoration: none;
 }
